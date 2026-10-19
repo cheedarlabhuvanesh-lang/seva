@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seva</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--p:#6C3D95;--pl:#A78BFA;--bg:#F8FAFF;--sf:#fff;--tx:#1F2937;--tx2:#64748B;--ok:#087F5B;--okbg:#E7F8F0;--wn:#9A4A00;--wnbg:#FFF2D9;--er:#B42318;--erbg:#FEECEB;--bd:#D9DEEA}
+*{box-sizing:border-box;margin:0}
+body{font:19px/1.5 system-ui,"Noto Sans Telugu",sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;padding-bottom:88px}
+.te{font-family:"Noto Sans Telugu",system-ui,sans-serif;line-height:1.6}
+.wrap{max-width:440px;margin:0 auto;padding:16px}
+h1{font-size:30px;line-height:1.2}h2{font-size:24px;line-height:1.3;margin-bottom:8px}
+p.sub{color:var(--tx2);font-size:17px}
+.screen{display:none}.screen.on{display:block}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:16px;padding:20px;margin-top:16px}
+label{display:block;font-weight:600;margin:12px 0 6px}
+input,textarea{width:100%;font:inherit;padding:14px;border:2px solid var(--bd);border-radius:12px;min-height:56px;background:#fff;color:var(--tx)}
+textarea{min-height:88px}
+button{font-weight:600;font-size:18px;line-height:1.2;font-family:inherit;min-height:56px;padding:12px 20px;border-radius:14px;border:2px solid var(--p);background:#fff;color:var(--p);cursor:pointer}
+button.main{background:var(--p);color:#fff}
+button:disabled{opacity:.5;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--pl);outline-offset:2px}
+.row{display:flex;gap:10px;margin-top:14px}.row>button{flex:1}
+.chip{display:inline-block;background:#EFE8F7;color:var(--p);border-radius:99px;padding:4px 14px;font-size:16px;font-weight:600}
+.state{border-radius:16px;padding:20px;margin-top:16px;text-align:center;border:2px solid}
+.state svg{width:44px;height:44px;margin-bottom:6px}
+.state h3{font-size:24px;line-height:1.3}
+.state p{margin-top:6px}
+.s-idle{background:#fff;border-color:var(--bd)}
+.s-listen{background:#F3EDFA;border-color:var(--p);color:var(--p)}
+.s-ok{background:var(--okbg);border-color:var(--ok);color:var(--ok)}
+.s-warn{background:var(--wnbg);border-color:var(--wn);color:var(--wn)}
+.s-err{background:var(--erbg);border-color:var(--er);color:var(--er)}
+.big{font-size:clamp(56px,18vw,72px);font-weight:700;line-height:1.1;margin:6px 0}
+.badge{display:inline-block;font-size:14px;font-weight:700;border:2px dashed currentColor;border-radius:8px;padding:2px 8px;margin-bottom:8px}
+.pulse{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.15);opacity:.7}}
+@media(prefers-reduced-motion:reduce){.pulse,.spin{animation:none}}
+.spin{width:44px;height:44px;border:5px solid #E5DAF3;border-top-color:var(--p);border-radius:50%;margin:0 auto 8px;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.state button{margin-top:14px;width:100%}
+details{margin-top:16px;border:2px dashed var(--bd);border-radius:16px;padding:14px;background:#fff}
+summary{font-weight:700;cursor:pointer}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--bd);display:flex;justify-content:center;gap:8px;padding:8px}
+nav button{flex:1;max-width:140px;border:0;color:var(--tx2);font-size:16px}
+nav button[aria-current=page]{color:var(--p);background:#EFE8F7}
+.hint{font-size:16px;color:var(--tx2);margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<section id="home" class="screen on">
+  <h1>Namaste! Welcome to Seva</h1>
+  <p class="sub">Seva listens for your token number in hospital announcements and tells you where to go.</p>
+  <div class="card">
+    <span class="chip">Hospital</span>
+    <h2 style="margin-top:10px">Listen for your turn</h2>
+    <p class="sub">Tap once. Keep the phone with you and the screen on.</p>
+    <div class="row"><button class="main" data-go="listen">Start Listening</button></div>
+    <div class="row"><button data-go="ask">Ask a question</button></div>
+  </div>
+  <p class="hint">Phase 1: this page uses test data only. Nothing is recorded yet.</p>
+</section>
+
+<section id="listen" class="screen">
+  <h2>Listen</h2>
+  <span class="chip">Hospital</span>
+  <label for="token">Your token number</label>
+  <input id="token" value="A-47" autocomplete="off" inputmode="text">
+  <div class="row">
+    <button class="main" id="start">Start Listening</button>
+    <button id="stop" disabled>Stop</button>
+  </div>
+  <div id="result" aria-live="polite"></div>
+
+  <details open>
+    <summary>Test mode (simulated, not from the microphone)</summary>
+    <label for="ann">Type a fake announcement</label>
+    <textarea id="ann">Token A-47, please go to room 204</textarea>
+    <div class="row"><button class="main" id="run">Run test</button></div>
+    <div class="row"><button id="tMic">Mic blocked</button><button id="tErr">Server error</button></div>
+    <p class="hint">Try: "Token B-12 room 5" (not yours), "Token A-47 please wait" (no room), or leave it empty (silence).</p>
+  </details>
+</section>
+
+<section id="ask" class="screen">
+  <h2>Ask Seva</h2>
+  <p class="sub">What would you like to ask?</p>
+  <label for="q">Your question</label>
+  <input id="q" value="What time is OPD?" autocomplete="off">
+  <div class="row"><button class="main" id="askBtn">Ask</button></div>
+  <div id="askOut" aria-live="polite"></div>
+</section>
+
+</div>
+
+<nav aria-label="Main">
+  <button data-go="home" aria-current="page">Home</button>
+  <button data-go="listen">Listen</button>
+  <button data-go="ask">Ask</button>
+</nav>
+
+<script>
+const $=id=>document.getElementById(id);
+const SVG={
+ mic:'<path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11z"/>',
+ ok:'<path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-2 15l-5-5 1.4-1.4L10 14.2l7.6-7.6L19 8z"/>',
+ warn:'<path d="M12 2L1 21h22L12 2zm1 15h-2v-2h2v2zm0-4h-2V9h2v4z"/>',
+ spk:'<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4z"/>',
+ err:'<path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>'
+};
+function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e}
+function icon(name,cls){const s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('viewBox','0 0 24 24');s.setAttribute('fill','currentColor');s.setAttribute('aria-hidden','true');if(cls)s.setAttribute('class',cls);s.innerHTML=SVG[name];return s}
+
+/* ---- screens / nav ---- */
+function go(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===name));
+  document.querySelectorAll('nav button').forEach(b=>b.toggleAttribute('aria-current',b.dataset.go===name)||0);
+  document.querySelectorAll('nav button').forEach(b=>{b.dataset.go===name?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current')});
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>{go(b.dataset.go);if(b.id!=='nav'&&b.textContent==='Start Listening'&&b.dataset.go==='listen')startListening()}));
+
+/* ---- speech (never switches language silently) ---- */
+function speak(text,lang,out){
+  const note=m=>{const n=el('p','hint',m);out.appendChild(n);setTimeout(()=>n.remove(),6000)};
+  if(!('speechSynthesis' in window))return note('Voice is not available in this browser.');
+  const v=speechSynthesis.getVoices().find(x=>x.lang.toLowerCase().startsWith(lang));
+  if(!v)return note(lang==='te'?'Telugu voice is not available on this device.':'Voice is not available on this device.');
+  const u=new SpeechSynthesisUtterance(text);u.voice=v;u.lang=v.lang;speechSynthesis.cancel();speechSynthesis.speak(u);
+}
+
+/* ---- detection (test only): numbers come ONLY from this result ---- */
+function detect(text){
+  const t=(text||'').toUpperCase();
+  const tk=t.match(/\b([A-Z])\s*-?\s*(\d{1,3})\b/);
+  const rm=t.match(/ROOM(?:\s*NUMBER)?\s*(\d{1,4})/);
+  return{token:tk?tk[1]+'-'+tk[2]:null,room:rm?rm[1]:null};
+}
+
+/* ---- Listen states ---- */
+const R=$('result');let timer=null;
+function setState(cls,ic,title,body,opts={}){
+  R.replaceChildren();
+  const s=el('div','state '+cls);
+  if(opts.test)s.appendChild(el('div','badge','TEST DATA'));
+  if(ic){const w=el('div');w.appendChild(icon(ic,opts.pulse?'pulse':''));s.appendChild(w)}
+  if(opts.big)s.appendChild(el('div','big',opts.big));
+  s.appendChild(el('h3',null,title));
+  (body||[]).forEach(b=>s.appendChild(el('p',b.te?'te':'',b.t)));
+  (opts.buttons||[]).forEach(b=>{const x=el('button',b.main?'main':'',b.t);x.addEventListener('click',b.fn);s.appendChild(x)});
+  R.appendChild(s);
+}
+function idle(){clearTimeout(timer);$('start').disabled=false;$('stop').disabled=true;
+  setState('s-idle',null,'Ready',[{t:'Enter your token and tap Start Listening.'}])}
+function listening(){$('start').disabled=true;$('stop').disabled=false;
+  setState('s-listen','mic','Listening…',[{t:'Please wait for your announcement.'},{t:'You can stop any time.'}],{pulse:true})}
+function micBlocked(){$('start').disabled=false;$('stop').disabled=true;
+  setState('s-err','err','Microphone blocked',[{t:'Seva needs the microphone to hear announcements. Allow it in your browser settings.'}],
+   {buttons:[{t:'Open settings',fn:()=>alert('Open your browser site settings and allow the microphone.')},{t:'Try again',main:true,fn:startListening}]})}
+function showErr(){$('start').disabled=false;$('stop').disabled=true;
+  setState('s-err','err','Could not reach the server',[{t:'Check your internet and try again.'}],{buttons:[{t:'Try again',main:true,fn:startListening}]})}
+
+function evaluate(text,test){
+  clearTimeout(timer);$('start').disabled=false;$('stop').disabled=true;
+  const mine=$('token').value.toUpperCase().replace(/[\s-]/g,'');
+  const d=detect(text);
+  if(!d.token)return setState('s-warn','warn','Nothing clear heard',[{t:'No token number was found. Keep waiting or check the display board.'}],{test});
+  if(d.token.replace('-','')!==mine)
+    return setState('s-warn','spk','Another announcement',[{t:"It's not for you. Please keep waiting."}],{test});
+  if(!d.room)
+    return setState('s-warn','warn','Number not confirmed',[{t:'Your token was called, but the room was not confirmed. Please check the display board.'}],{test});
+  const te='మీ నంబర్ వచ్చింది. '+d.token+'. గది నంబర్ '+d.room+'.';
+  setState('s-ok','ok','Your number is called!',[{t:'Room '+d.room},{t:te,te:true}],{
+    test,big:d.token,
+    buttons:[{t:'Replay (Telugu)',main:true,fn:()=>speak(te,'te',R)},{t:'Got it',fn:idle}]});
+}
+
+function startListening(){
+  go('listen');listening();
+  clearTimeout(timer);
+  timer=setTimeout(()=>evaluate('Token '+$('token').value+', please go to room 204',true),3000);
+}
+$('start').addEventListener('click',startListening);
+$('stop').addEventListener('click',idle);
+$('run').addEventListener('click',()=>evaluate($('ann').value,true));
+$('tMic').addEventListener('click',micBlocked);
+$('tErr').addEventListener('click',showErr);
+idle();
+
+/* ---- Ask ---- */
+const A=$('askOut');let askTimer=null,tick=null;
+function askState(cls,ic,title,body,btns,spin){
+  A.replaceChildren();const s=el('div','state '+cls);
+  if(spin)s.appendChild(el('div','spin'));
+  if(ic){const w=el('div');w.appendChild(icon(ic));s.appendChild(w)}
+  s.appendChild(el('h3',null,title));
+  body.forEach(b=>{const p=el('p',b.te?'te':'',b.t);if(b.id)p.id=b.id;s.appendChild(p)});
+  (btns||[]).forEach(b=>{const x=el('button',b.main?'main':'',b.t);x.addEventListener('click',b.fn);s.appendChild(x)});
+  A.appendChild(s);return s;
+}
+$('askBtn').addEventListener('click',()=>{
+  const q=$('q').value.trim();
+  if(!q)return askState('s-warn','warn','Type a question first',[{t:'Write what you want to ask, then tap Ask.'}]);
+  $('askBtn').disabled=true;let sec=0;
+  askState('s-listen',null,'Getting answer…',[{t:'This can take up to 60 seconds.'},{t:'0 seconds',id:'el'}],
+    [{t:'Cancel',fn:()=>{clearTimeout(askTimer);clearInterval(tick);$('askBtn').disabled=false;askState('s-idle',null,'Cancelled',[{t:'You can ask again any time.'}])}}],true);
+  tick=setInterval(()=>{sec++;const e=$('el');if(e)e.textContent=sec+' seconds'},1000);
+  askTimer=setTimeout(()=>{
+    clearInterval(tick);$('askBtn').disabled=false;
+    const te='OPD ఉదయం 9 గంటల నుంచి మధ్యాహ్నం 12 గంటల వరకు ఉంటుంది.';
+    const s=askState('s-ok','ok',"Here's the answer",[{t:te,te:true}],[{t:'Play Audio',main:true,fn:()=>speak(te,'te',A)},{t:'Ask another',fn:()=>{A.replaceChildren();$('q').focus()}}]);
+    s.insertBefore(el('div','badge','TEST DATA'),s.firstChild);
+  },3000);
+});
+</script>
+</body>
+</html>
