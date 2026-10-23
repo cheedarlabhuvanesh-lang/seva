@@ -1,0 +1,524 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="application-name" content="Seva">
+<meta name="apple-mobile-web-app-title" content="Seva">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F7F5FF">
+<title>Seva — Listening</title>
+
+<script>
+  try{ if(localStorage.getItem("seva.darkMode")==="1")
+         document.documentElement.setAttribute("data-theme","dark"); }catch(e){}
+</script>
+
+<style>
+/* ══════════════════════════════════════════════════════════
+   SCREEN 4 — listening.
+   She has already chosen the place and typed the number on
+   screen 3. This screen has one job: show that Seva is
+   awake, and let her stop.
+
+   DESIGN TOKENS — identical to every other screen.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --primary:#6C3D95;
+  --accent:#3B82F6;
+  --ink:#16215A;
+
+  --bg:#F8FAFF;
+  --surface:#FFFFFF;
+  --line:#E6EBF5;
+
+  --text:#1F2937;
+  --muted:#5A6B86;
+
+  --cta-from:#2563EB;
+  --cta-to:#7C3AED;
+  /* the house gradient. one brand ramp, used for every
+     selected pill and every primary button.               */
+  --mode-from:#2563EB;        /* 5.17:1 with white */
+  --mode-to:#7C3AED;          /* 5.70:1 with white */
+
+  /* red = stop. The mock's #EF4444 gives white text only
+     3.76:1 and fails. These two are the same red to the
+     eye and pass: 4.83:1 and 6.57:1.                     */
+  --stop-from:#DC2626;
+  --stop-to:#B42318;
+
+  --f-sans:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",sans-serif;
+  --f-telugu:"Noto Sans Telugu","Nirmala UI","Gautami",sans-serif;
+
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px;
+  --r-pill:28px;
+  --tap:56px;
+  --navh:68px;
+}
+html[data-theme="dark"]{
+  --bg:#10131F; --surface:#191E2E; --line:#2A3146;
+  --text:#F2F5FA; --muted:#A8B4C8; --ink:#DCE4F5;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:var(--f-sans); font-size:18px; line-height:1.6;
+  display:flex; justify-content:center;
+}
+/* the background leans violet while she is waiting */
+.screen{
+  position:relative; width:100%; max-width:400px; min-height:100dvh;
+  display:flex; flex-direction:column;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.66) 40%, #F7F5FF 68%),
+    linear-gradient(170deg,#EFE9FF 0%,#EDF0FF 42%,#F8F6FF 72%);
+  padding:calc(env(safe-area-inset-top) + 14px) 20px
+          calc(env(safe-area-inset-bottom) + var(--navh) + 16px);
+}
+html[data-theme="dark"] .screen{
+  background:
+    linear-gradient(180deg, rgba(16,19,31,0) 0%, rgba(16,19,31,.7) 38%, var(--bg) 62%),
+    linear-gradient(170deg,#241B46 0%,#181B30 45%,var(--bg) 72%);
+}
+
+/* ══════ 1. LISTEN / ASK ══════ */
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3);margin-bottom:var(--s6)}
+.modes a,.modes span{
+  min-height:56px;display:flex;align-items:center;justify-content:center;border-radius:var(--r-pill);
+  font-size:18px;font-weight:700;text-decoration:none;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);
+}
+.modes .on{
+  border-color:transparent;
+  background:linear-gradient(100deg,var(--mode-from),var(--mode-to));
+  color:#fff;box-shadow:0 10px 22px rgba(52,70,185,.30);
+}
+.spk{
+  width:.9em;height:.9em;
+  flex:none;
+  margin-right:.34em;
+  vertical-align:-.04em;
+}
+.modes a:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+
+/* ══════ 2. THE MIC, AWAKE ══════ */
+.stage{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:var(--s6);padding:var(--s4) 0;
+}
+.micwrap{
+  --t:.36;                     /* the one speed dial. screen 3 rests at .72 */
+  position:relative;width:200px;height:200px;display:grid;place-items:center;
+}
+.micwrap::before{
+  content:"";position:absolute;width:184px;height:184px;border-radius:50%;
+  background:radial-gradient(circle,rgba(124,92,246,.28) 0%,rgba(124,92,246,0) 70%);
+  animation:halo calc(16.8s * var(--t)) ease-in-out infinite;
+}
+@keyframes halo{
+  0%,100%{transform:scale(1);opacity:.78}
+  50%{transform:scale(1.14);opacity:1}
+}
+
+/* a ring leaves the mic every 2 seconds */
+.ring{
+  --ro:.85; --rs:1.58;
+  position:absolute;width:140px;height:140px;border-radius:50%;
+  border:3px solid currentColor;filter:blur(2px);opacity:0;pointer-events:none;
+  animation:ripple calc(16.8s * var(--t)) cubic-bezier(.16,.72,.3,1) infinite;
+}
+.ring.r1{color:rgba(34,211,238,.55)}
+.ring.r2{color:rgba(167,139,250,.55);animation-delay:calc(5.6s  * var(--t))}
+.ring.r3{color:rgba(244,114,208,.45);animation-delay:calc(11.2s * var(--t))}
+@keyframes ripple{
+  0%  {transform:scale(1);         opacity:0}
+  8%  {                            opacity:var(--ro)}
+  78% {transform:scale(var(--rs)); opacity:0}
+  100%{transform:scale(var(--rs)); opacity:0}
+}
+
+.mic{
+  position:relative;width:140px;height:140px;display:grid;place-items:center;
+  border:0;border-radius:50%;overflow:hidden;isolation:isolate;
+  background:linear-gradient(150deg,#6B5BF5 0%,#3A22B8 100%);
+  color:#fff;cursor:pointer;
+  box-shadow:0 0 0 12px rgba(165,243,252,.42),
+             0 0 44px 10px rgba(103,232,249,.50),
+             0 18px 38px rgba(58,34,184,.42),
+             inset 0 2px 8px rgba(255,255,255,.30),
+             inset 0 -16px 30px rgba(20,10,80,.40);
+  animation:breathe 6s ease-in-out infinite;
+  transition:transform .16s ease;
+}
+.mic:active{transform:scale(.96)}
+.mic:focus-visible{outline:3px solid var(--primary);outline-offset:6px}
+@keyframes breathe{
+  0%,100%{transform:scale(1)}
+  50%    {transform:scale(1.04)}
+}
+
+.orb{position:absolute;inset:0;border-radius:50%;overflow:hidden;z-index:1;pointer-events:none}
+.swirls{position:absolute;inset:-28%;filter:blur(18px);
+        animation:orbSpin calc(72s * var(--t)) linear infinite}
+.sw{position:absolute;width:74%;height:74%;border-radius:50%;mix-blend-mode:screen}
+.sw.c{top:4%;left:2%;background:radial-gradient(circle,rgba(34,211,238,.95) 0%,rgba(34,211,238,0) 68%);
+      animation:drift1 calc(24s * var(--t)) ease-in-out infinite}
+.sw.m{bottom:0;left:16%;background:radial-gradient(circle,rgba(244,114,208,.95) 0%,rgba(244,114,208,0) 68%);
+      animation:drift2 calc(36s * var(--t)) ease-in-out infinite}
+.sw.v{top:12%;right:0;background:radial-gradient(circle,rgba(167,139,250,.95) 0%,rgba(167,139,250,0) 68%);
+      animation:drift3 calc(48s * var(--t)) ease-in-out infinite}
+.sw.w{bottom:8%;right:8%;width:56%;height:56%;
+      background:radial-gradient(circle,rgba(226,255,247,.90) 0%,rgba(226,255,247,0) 66%);
+      animation:drift4 calc(72s * var(--t)) ease-in-out infinite}
+@keyframes orbSpin{to{transform:rotate(360deg)}}
+@keyframes drift1{0%,100%{transform:translate(0,0) scale(1)}
+                  33%{transform:translate(22%,16%) scale(1.18)}
+                  66%{transform:translate(-14%,10%) scale(.92)}}
+@keyframes drift2{0%,100%{transform:translate(0,0) scale(1.05)}
+                  40%{transform:translate(18%,-20%) scale(.88)}
+                  70%{transform:translate(-20%,-8%) scale(1.20)}}
+@keyframes drift3{0%,100%{transform:translate(0,0) scale(.95)}
+                  50%{transform:translate(-24%,22%) scale(1.22)}}
+@keyframes drift4{0%,100%{transform:translate(0,0) scale(1)}
+                  45%{transform:translate(-18%,-18%) scale(1.30)}}
+
+/* glass: highlight top-left, dark core in the middle so the
+   white mic always stays readable — worst case 6.30:1 */
+.gloss{
+  position:absolute;inset:0;border-radius:50%;z-index:2;pointer-events:none;
+  background:
+    radial-gradient(130% 90% at 28% 16%,
+      rgba(255,255,255,.58) 0%, rgba(255,255,255,.12) 34%, rgba(255,255,255,0) 58%),
+    radial-gradient(circle at 50% 54%,
+      rgba(28,14,92,.68) 0%, rgba(28,14,92,.30) 36%, rgba(28,14,92,0) 64%);
+}
+.mic .glyph{position:relative;z-index:3;filter:drop-shadow(0 2px 6px rgba(16,8,70,.5))}
+
+/* ══════ 3. STATUS ══════ */
+.status{text-align:center}
+.status .big{font-size:32px;font-weight:750;letter-spacing:-.4px;color:var(--ink);line-height:1.2}
+.status .small{margin-top:var(--s2);font-size:19px;color:var(--muted);
+               max-width:18ch;margin-left:auto;margin-right:auto}
+
+/* ══════ 4. THE WAVEFORM ══════
+   Decoration. It is not reading a microphone — the mic is
+   not open yet. Each bar has its own height and its own
+   start delay, so the line never pulses as one block.      */
+.wavebars{display:flex;align-items:center;justify-content:center;gap:3px;height:56px;width:100%}
+.wavebars i{
+  display:block;width:3px;border-radius:2px;background:currentColor;
+  height:calc(var(--h) * 52px);
+  animation:bar 1.4s ease-in-out infinite alternate;
+  animation-delay:var(--d);
+}
+@keyframes bar{
+  from{transform:scaleY(.26)}
+  to  {transform:scaleY(1)}
+}
+
+/* ══════ 5. INFO CHIP ══════ */
+.infochip{
+  display:flex;align-items:center;justify-content:center;gap:var(--s2);
+  width:100%;min-height:50px;padding:0 var(--s4);
+  border-radius:var(--r-pill);
+  background:var(--surface);color:var(--text);
+  font-size:17px;font-weight:600;
+  box-shadow:0 2px 10px rgba(22,33,90,.06);
+}
+.infochip svg{flex:none;color:var(--cta-from)}
+
+/* ══════ 6. STOP ══════
+   Red, with a white badge so it is unmissable at a glance
+   and still readable without reading — the only red thing
+   on the screen is the way out.                           */
+.stop{
+  display:flex;align-items:center;justify-content:center;gap:var(--s3);
+  width:100%;min-height:var(--tap);margin-top:var(--s3);
+  border:0;border-radius:var(--r-pill);
+  background:linear-gradient(100deg,var(--stop-from),var(--stop-to));
+  color:#fff;                             /* 4.83:1 and 6.57:1 */
+  font-family:inherit;font-size:18px;font-weight:700;cursor:pointer;
+  box-shadow:0 0 0 6px rgba(220,38,38,.14),
+             0 10px 26px rgba(180,35,24,.36);
+  transition:transform .14s ease, box-shadow .14s ease;
+}
+.stop:hover{box-shadow:0 0 0 8px rgba(220,38,38,.18),0 10px 26px rgba(180,35,24,.42)}
+.stop:active{transform:translateY(2px) scale(.99);
+             box-shadow:0 0 0 4px rgba(220,38,38,.14),0 5px 13px rgba(180,35,24,.4)}
+.stop:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+
+/* the white badge with the red square inside it */
+.stop .badge{
+  flex:none;width:30px;height:30px;
+  display:grid;place-items:center;
+  border-radius:50%;
+  background:#fff;
+  color:var(--stop-to);
+}
+
+/* ══════ 7. BOTTOM NAV ══════ */
+.nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:400px;display:grid;grid-template-columns:repeat(2,1fr);
+  border-top:1px solid var(--line);
+  background:color-mix(in srgb, var(--surface) 92%, transparent);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  padding-bottom:env(safe-area-inset-bottom);z-index:20;
+}
+.nav a{
+  min-height:var(--navh);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;text-decoration:none;color:var(--muted);
+  font-size:13px;font-weight:600;
+}
+.nav a:focus-visible{outline:3px solid var(--primary);outline-offset:-4px}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .ring.r1{opacity:.5;transform:scale(1.18)}
+  .ring.r2{opacity:.35;transform:scale(1.36)}
+  .ring.r3{opacity:.22;transform:scale(1.54)}
+  .wavebars i{transform:scaleY(.8)}
+}
+@media (max-height:740px){
+  .micwrap{width:166px;height:166px}
+  .micwrap::before{width:154px;height:154px}
+  .ring{width:116px;height:116px}
+  .mic{width:116px;height:116px}
+  .mic .glyph{width:50px;height:50px}
+  .status .big{font-size:28px}
+  .wavebars{height:44px}
+  .wavebars i{height:calc(var(--h) * 40px)}
+  .stage{gap:var(--s4)}
+}
+</style>
+</head>
+
+<body>
+<main class="screen">
+
+  <nav class="modes" aria-label="Mode">
+    <span class="on" aria-current="page">Listen</span>
+    <a href="ask.html"><svg class="spk" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.2 12C15.7 15.58 15.58 15.7 12 23.2C8.3 15.58 8.42 15.7 0.8 12C8.3 8.42 8.42 8.3 12 0.8C15.7 8.42 15.58 8.3 23.2 12Z"/></svg>Nova</a>
+  </nav>
+
+  <div class="stage">
+
+    <div class="micwrap">
+      <span class="ring r1" aria-hidden="true"></span>
+      <span class="ring r2" aria-hidden="true"></span>
+      <span class="ring r3" aria-hidden="true"></span>
+
+      <button class="mic" id="mic" type="button" aria-label="Stop listening">
+        <span class="orb" aria-hidden="true">
+          <span class="swirls">
+            <span class="sw c"></span><span class="sw m"></span>
+            <span class="sw v"></span><span class="sw w"></span>
+          </span>
+        </span>
+        <span class="gloss" aria-hidden="true"></span>
+        <svg class="glyph" width="60" height="60" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <rect x="9" y="2" width="6" height="11.5" rx="3"/>
+          <path d="M5.6 10.5a.9.9 0 011.8 0 4.6 4.6 0 009.2 0 .9.9 0 011.8 0 6.4 6.4 0 01-5.5 6.34V20h2.6a.9.9 0 010 1.8H8.5a.9.9 0 010-1.8h2.6v-3.16a6.4 6.4 0 01-5.5-6.34z"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="status" aria-live="polite">
+      <div class="big">Listening&hellip;</div>
+      <div class="small">Please wait for your announcement</div>
+    </div>
+
+    <div class="wavebars" id="wavebars" aria-hidden="true"></div>
+
+  </div>
+
+  <div class="infochip">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6h.01"/>
+    </svg>
+    You can stop anytime
+  </div>
+
+  <button class="stop" id="stop" type="button">
+    <span class="badge" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+        <rect x="4" y="4" width="16" height="16" rx="4"/>
+      </svg>
+    </span>
+    Stop
+  </button>
+
+</main>
+
+<nav class="nav" aria-label="Main">
+  <a href="home.html">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M3 10.5L12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-6h4v6"/>
+    </svg>
+    Home
+  </a>
+  <a href="settings.html">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3.2"/>
+      <path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4L5.3 5.3"/>
+    </svg>
+    Settings
+  </a>
+</nav>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   SCREEN 4 — listening.
+
+   It does NOT open the microphone yet. The one place the
+   real call goes is marked REAL MIC GOES HERE.
+   ══════════════════════════════════════════════════════════ */
+
+/* ---- if she got here without choosing anything, go back ---- */
+(function(){
+  var raw = null;
+  try{ raw = localStorage.getItem("seva.watch"); }catch(e){}
+  if (!raw) location.replace("listen.html");
+})();
+
+/* ---- the waveform bars ----
+   Built once. The height and the delay come from a fixed
+   formula, so it looks random but is the same every time
+   and there is no image to load.                          */
+(function(){
+  var wavebars = document.getElementById("wavebars");
+  var N = 45;
+  for (var i = 0; i < N; i++){
+    var env  = Math.pow(Math.sin(Math.PI * i / (N - 1)), 0.8);   // tall in the middle
+    var seed = Math.sin(i * 12.9898) * 43758.5453;
+    var rnd  = seed - Math.floor(seed);                          // 0 … 1, repeatable
+    var h    = Math.max(0.10, env * (0.42 + 0.58 * rnd));
+    var bar  = document.createElement("i");
+    bar.style.setProperty("--h", h.toFixed(3));
+    bar.style.setProperty("--d", (((i * 0.06) + rnd * 0.5) % 1.4).toFixed(2) + "s");
+    bar.style.color = env > 0.55 ? "#2563EB" : (env > 0.28 ? "#3B82F6" : "#93B9FB");
+    wavebars.appendChild(bar);
+  }
+})();
+
+/* ─────────────────────────────────────────────────────────
+   DEMO TIMER — THIS IS NOT A REAL DETECTION.
+
+   The microphone is not open. Nothing is being heard. This
+   timer only exists so the screens can be walked through
+   and filmed before /api/listen is wired up.
+
+   When the real ear is connected, delete this whole block.
+   The real code sets seva.lastResult and then goes to the
+   screen that matches the verdict:
+       mine    -> confirmed.html
+       other   -> another.html
+       missing -> missing.html
+   Open this page with ?demo=off to switch the timer off.
+   ───────────────────────────────────────────────────────── */
+var DEMO_AFTER_MS = 7000;
+
+var DEMO_NEXT = {
+  mine:    "confirmed.html",   /* screen 5 — it is hers        */
+  other:   "another.html",     /* screen 6 — somebody else's   */
+  missing: "missing.html",     /* screen 7 — heard, no number  */
+  none:    null                /* nothing heard, stay put      */
+};
+
+(function(){
+  var want = "off";
+  if (want === "off") return;
+  var next = DEMO_NEXT[want] !== undefined ? DEMO_NEXT[want] : DEMO_NEXT.mine;
+  if (!next) return;
+  setTimeout(function(){ window.location.href = next; }, DEMO_AFTER_MS);
+})();
+
+/* ---- stop goes back to screen 3 ---- */
+function stop(){
+  /* ───────── REAL MIC STOPS HERE ─────────
+     stream.getTracks().forEach(t => t.stop());        */
+  window.location.href = "listen.html";
+}
+document.getElementById("stop").addEventListener("click", stop);
+document.getElementById("mic").addEventListener("click", stop);
+
+/* ───────── REAL MIC GOES HERE ─────────
+   navigator.mediaDevices.getUserMedia({audio:true}) …
+   then the energy gate, then POST /api/listen.
+   Needs https or localhost — it will not work over a
+   plain http LAN address.                              */
+</script>
+<script>
+/* Live listening: microphone -> /listen (Gnani Prisma) -> /detect -> result screen */
+(function(){
+  function J(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}}
+  var watch=J("seva.watch");if(!watch||!watch.value)return;
+  var lang="en-IN";try{lang=localStorage.getItem("seva.language")||"en-IN"}catch(e){}
+  var WIN=10,EVERY=5,QUIET=0.004;
+  var big=document.querySelector(".status .big"),small=document.querySelector(".status .small");
+  var ctx,stream,node,chunks=[],total=0,timer,busy=false,fails=0,done=false;
+  function say(a,b){if(a)big.textContent=a;if(b!==undefined)small.textContent=b}
+  function rms(f){var s=0;for(var i=0;i<f.length;i++)s+=f[i]*f[i];return Math.sqrt(s/Math.max(1,f.length))}
+  function resample(f,from,to){var r=from/to,n=Math.floor(f.length/r),o=new Float32Array(n);
+    for(var i=0;i<n;i++){var a=Math.floor(i*r),e=Math.max(a+1,Math.min(Math.floor((i+1)*r),f.length)),s=0;for(var j=a;j<e;j++)s+=f[j];o[i]=s/(e-a)}return o}
+  function wav(f,sr){var b=new ArrayBuffer(44+f.length*2),v=new DataView(b);
+    function w(o,t){for(var i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))}
+    w(0,"RIFF");v.setUint32(4,36+f.length*2,true);w(8,"WAVE");w(12,"fmt ");v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+    v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,"data");v.setUint32(40,f.length*2,true);
+    for(var i=0;i<f.length;i++){var x=Math.max(-1,Math.min(1,f[i]));v.setInt16(44+i*2,x<0?x*32768:x*32767,true)}
+    return new Blob([b],{type:"audio/wav"})}
+  function release(){done=true;clearInterval(timer);try{node.onaudioprocess=null;node.disconnect()}catch(e){}
+    try{stream.getTracks().forEach(function(t){t.stop()})}catch(e){}try{ctx.close()}catch(e){}}
+  window.addEventListener("pagehide",release);
+  function valid(r){return r&&typeof r==="object"&&["mine","other","missing","none"].indexOf(r.verdict)>=0}
+  function tick(){
+    if(done||busy)return;
+    var sr=ctx.sampleRate,need=Math.min(total,Math.floor(sr*WIN));
+    if(need<sr*2)return;
+    var all=new Float32Array(total),o=0;chunks.forEach(function(c){all.set(c,o);o+=c.length});
+    var win=all.subarray(all.length-need);
+    if(rms(win)<QUIET){say(null,"Very quiet. Move closer to the speaker.");return}
+    busy=true;say(null,"Checking what was said\u2026");
+    var fd=new FormData();fd.append("audio",wav(resample(win,sr,16000),16000),"clip.wav");fd.append("language_code",lang);
+    fetch("/listen",{method:"POST",body:fd}).then(function(r){if(!r.ok)throw r;return r.json()}).then(function(j){
+      if(typeof j.transcript!=="string")throw 0;
+      if(!j.transcript.trim()){say(null,"Please wait for your announcement");return null}
+      return fetch("/detect",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({transcript:j.transcript,mode:watch.mode,value:watch.value})}).then(function(r){if(!r.ok)throw r;return r.json()})
+    }).then(function(r){
+      fails=0;if(done||!r)return;
+      if(!valid(r))throw 0;
+      if(r.verdict==="mine"||r.verdict==="missing"){try{localStorage.setItem("seva.lastResult",JSON.stringify(r))}catch(e){}release();location.href="confirmed.html"}
+      else if(r.verdict==="other"){release();location.href="another.html"}
+      else say(null,"Heard speech, but not your announcement. Still listening.");
+    }).catch(function(){
+      fails++;if(done)return;
+      if(fails>=2){release();say("Could not reach the server","Check your internet, then tap Stop and try again.")}
+    }).then(function(){busy=false});
+  }
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){location.replace("mic-blocked.html");return}
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
+    stream=s;var C=window.AudioContext||window.webkitAudioContext;ctx=new C();if(ctx.resume)ctx.resume();
+    var src=ctx.createMediaStreamSource(s);node=ctx.createScriptProcessor(4096,1,1);var mute=ctx.createGain();mute.gain.value=0;
+    node.onaudioprocess=function(e){var d=new Float32Array(e.inputBuffer.getChannelData(0));chunks.push(d);total+=d.length;
+      var max=ctx.sampleRate*WIN;while(chunks.length>1&&total-chunks[0].length>=max)total-=chunks.shift().length};
+    src.connect(node);node.connect(mute);mute.connect(ctx.destination);
+    timer=setInterval(tick,EVERY*1000);
+    try{if(navigator.wakeLock)navigator.wakeLock.request("screen").catch(function(){})}catch(e){}
+  }).catch(function(){location.replace("mic-blocked.html")});
+})();
+</script>
+</body>
+</html>
+

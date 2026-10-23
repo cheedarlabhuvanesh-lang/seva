@@ -1,0 +1,378 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="application-name" content="Seva">
+<meta name="apple-mobile-web-app-title" content="Seva">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F4F1FD">
+<title>Seva — Hear what matters</title>
+<style>
+/* ══════════════════════════════════════════════════════════
+   SEVA — DESIGN TOKENS
+   Every colour and size for the whole app lives here.
+   Change it once here, it changes everywhere.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  /* brand */
+  --primary:#6C3D95;
+  --primary-light:#A78BFA;
+  --accent:#3B82F6;
+  --ink:#16215A;              /* wordmark navy */
+
+  /* surfaces */
+  --bg:#F8FAFF;
+  --surface:#FFFFFF;
+
+  /* text  (all checked for contrast on our backgrounds) */
+  --text:#1F2937;             /* 13.1:1  */
+  --muted:#5A6B86;            /*  4.8:1  */
+
+  /* states */
+  --ok-fg:#087F5B;   --ok-bg:#E7F8F0;
+  --warn-fg:#9A4A00; --warn-bg:#FFF2D9;
+  --err-fg:#B42318;  --err-bg:#FEECEB;
+
+  /* button gradient — deepened so white text passes 4.5:1
+     (#3B82F6 was only 3.68:1 and failed) */
+  --cta-from:#2563EB;         /* 5.17:1 with white */
+  --cta-to:#7C3AED;           /* 5.70:1 with white */
+
+  /* type */
+  --f-sans:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",sans-serif;
+  --f-telugu:"Noto Sans Telugu","Nirmala UI","Gautami",sans-serif;
+
+  /* spacing scale: 4px grid */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px;
+
+  /* radius */
+  --r-sm:8px; --r-md:12px; --r-lg:16px; --r-pill:28px;
+
+  /* minimum touch target */
+  --tap:56px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+
+html,body{height:100%}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--f-sans);
+  font-size:18px;                 /* 18px, not 16 — read at arm's length */
+  line-height:1.6;
+  display:flex;
+  justify-content:center;
+  overflow:hidden;
+}
+
+/* ─── the phone-width column ─────────────────────────────── */
+.screen{
+  position:relative;
+  width:100%;
+  max-width:400px;                /* mobile-first, 400px */
+  min-height:100dvh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  background:
+    /* clean white at the bottom so the text and button stay crisp */
+    linear-gradient(180deg,
+      rgba(255,255,255,0)   0%,
+      rgba(255,255,255,.55) 46%,
+      #FFFFFF               72%),
+    /* soft aurora wash at the top */
+    linear-gradient(170deg,#EDE8FC 0%,#E6EEFE 42%,#FBF8FF 78%);
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+
+/* ── the screen glint ────────────────────────────────────
+   The same light as the button, but crossing the whole
+   screen. A narrow bright core is what makes it visible on
+   a pale background — a wide soft wash just disappears.
+
+   It is masked so it fades out before it reaches the
+   paragraph and the button: the light plays over the
+   colourful top, and never dims a word you have to read.  */
+.glint{
+  position:absolute;
+  top:-12%;
+  left:0;
+  width:34%;
+  height:124%;
+  z-index:4;
+  pointer-events:none;
+  background:linear-gradient(100deg,
+    rgba(255,255,255,0)    0%,
+    rgba(255,255,255,.10) 28%,
+    rgba(255,255,255,.34) 42%,
+    rgba(255,255,255,.72) 49%,
+    rgba(255,255,255,.94) 50.5%,   /* the bright core */
+    rgba(255,255,255,.72) 52%,
+    rgba(255,255,255,.34) 59%,
+    rgba(255,255,255,.10) 73%,
+    rgba(255,255,255,0)  100%);
+  -webkit-mask-image:linear-gradient(180deg,
+    #000 0%, #000 44%, rgba(0,0,0,.45) 60%, transparent 74%);
+          mask-image:linear-gradient(180deg,
+    #000 0%, #000 44%, rgba(0,0,0,.45) 60%, transparent 74%);
+  animation:screenSweep 12s cubic-bezier(.42,.02,.28,1) infinite;
+}
+
+/* ─── drifting aurora blobs ──────────────────────────────── */
+.blob{
+  position:absolute;
+  border-radius:50%;
+  filter:blur(46px);
+  pointer-events:none;
+  z-index:0;
+  will-change:transform;
+}
+.b1{width:260px;height:260px;background:#B9A6F7;top:-70px;  left:-80px;  opacity:.72;
+    animation:drift 15s ease-in-out infinite}
+.b2{width:230px;height:230px;background:#8FB8FA;top:60px;   right:-90px; opacity:.66;
+    animation:drift 19s ease-in-out infinite reverse}
+.b3{width:240px;height:240px;background:#F3B8E4;top:230px;  left:-70px;  opacity:.46;
+    animation:drift 23s ease-in-out infinite}
+
+@keyframes drift{
+  0%,100%{transform:translate(0,0) scale(1)}
+  33%    {transform:translate(20px,-24px) scale(1.12)}
+  66%    {transform:translate(-18px,18px) scale(.92)}
+}
+@keyframes bob{
+  0%,100%{transform:translateY(0)}
+  50%    {transform:translateY(-8px)}
+}
+@keyframes rise{
+  from{opacity:0;transform:translateY(14px)}
+  to  {opacity:1;transform:translateY(0)}
+}
+
+/* the white light sweeping across the button */
+@keyframes sheen{
+  0%        {left:-65%}
+  58%, 100% {left:135%}
+}
+
+/* a much softer version of the same light, crossing the whole screen */
+@keyframes screenSweep{
+  0%        {transform:translateX(-130%) skewX(-20deg)}
+  55%, 100% {transform:translateX(330%)  skewX(-20deg)}
+}
+
+/* someone who gets motion sick, or a slow phone, gets it still */
+@media (prefers-reduced-motion:reduce){
+  .blob,.logo,.fade,
+  .cta::after,
+  .glint{animation:none !important}
+  .glint{display:none}
+  .fade{opacity:1}
+}
+
+/* ─── content ────────────────────────────────────────────── */
+.content{
+  position:relative;
+  z-index:1;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  padding:clamp(48px,11vh,86px) var(--s6) 0;
+}
+
+.logo{
+  width:122px;height:102px;
+  animation:bob 5.5s ease-in-out infinite;
+}
+
+.wordmark{
+  font-size:46px;
+  font-weight:800;
+  letter-spacing:-1.4px;
+  line-height:1;
+  color:var(--ink);
+  margin-top:var(--s6);
+}
+
+.telugu{
+  font-family:var(--f-telugu);
+  font-size:27px;
+  font-weight:600;
+  line-height:1.4;                /* Telugu glyphs are tall — never below 1.4 */
+  color:var(--primary);
+  margin-top:var(--s1);
+}
+
+.tagline{
+  font-size:23px;
+  font-weight:700;
+  line-height:1.35;
+  color:var(--text);
+  margin-top:var(--s8);
+}
+
+.blurb{
+  font-size:16.5px;
+  line-height:1.55;
+  color:var(--muted);
+  margin-top:var(--s3);
+  max-width:19em;
+  text-wrap:balance;
+}
+
+/* staggered entrance */
+.fade{opacity:0;animation:rise .66s cubic-bezier(.22,.9,.3,1) forwards}
+.d1{animation-delay:.05s} .d2{animation-delay:.18s}
+.d3{animation-delay:.30s} .d4{animation-delay:.42s} .d5{animation-delay:.56s}
+
+/* ─── call to action ─────────────────────────────────────── */
+.footer{
+  position:relative;
+  z-index:1;
+  padding:var(--s6) var(--s6) clamp(28px,5vh,44px);
+}
+
+.cta{
+  position:relative;
+  overflow:hidden;              /* keeps the sheen inside the rounded shape */
+  isolation:isolate;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  width:100%;
+  min-height:var(--tap);
+  border:0;
+  border-radius:var(--r-pill);
+  background:linear-gradient(95deg,var(--cta-from),var(--cta-to));
+  color:#fff;
+  font-family:inherit;
+  font-size:17px;
+  font-weight:650;
+  cursor:pointer;
+  box-shadow:0 8px 22px rgba(60,40,140,.26);
+  transition:transform .14s ease, box-shadow .14s ease, filter .14s ease;
+}
+.cta:hover{filter:brightness(1.06)}
+.cta:active{transform:translateY(2px) scale(.985);box-shadow:0 4px 12px rgba(60,40,140,.3)}
+.cta:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
+
+/* ── the shine ───────────────────────────────────────────
+   A white band tilted 18 degrees, sliding left to right,
+   then waiting before it comes round again.            */
+.cta::after{
+  content:"";
+  position:absolute;
+  top:-20%;
+  bottom:-20%;
+  left:-65%;
+  width:46%;
+  z-index:1;
+  pointer-events:none;
+  transform:skewX(-18deg);
+  background:linear-gradient(100deg,
+    rgba(255,255,255,0)    0%,
+    rgba(255,255,255,.10) 30%,
+    rgba(255,255,255,.72) 50%,
+    rgba(255,255,255,.10) 70%,
+    rgba(255,255,255,0)  100%);
+  animation:sheen 6s cubic-bezier(.42,.02,.28,1) infinite;
+}
+
+/* the label and arrow must sit above the shine, not under it */
+.cta-label,
+.cta svg{position:relative;z-index:2}
+
+.cta svg{flex:none}
+
+/* leaving the splash */
+.screen.leaving{opacity:0;transition:opacity .34s ease}
+
+/* very short screens — pull everything up so nothing is cut off */
+@media (max-height:680px){
+  .content{padding-top:34px}
+  .logo{width:100px;height:84px}
+  .wordmark{font-size:40px;margin-top:var(--s4)}
+  .tagline{font-size:21px;margin-top:var(--s6)}
+}
+</style>
+</head>
+
+<body>
+<script>try{ if (localStorage.getItem("seva.seenSplash")==="1" && !/[?&]splash(=|&|$)/.test(location.search)) location.replace("home.html"); }catch(e){}</script>
+<main class="screen" id="screen">
+
+  <!-- drifting aurora -->
+  <span class="blob b1" aria-hidden="true"></span>
+  <span class="blob b2" aria-hidden="true"></span>
+  <span class="blob b3" aria-hidden="true"></span>
+
+  <!-- the light sweeping across the screen -->
+  <span class="glint" aria-hidden="true"></span>
+
+  <div class="content">
+
+    <!-- logo: a person with sound reaching them from both sides -->
+    <svg class="logo fade d1" viewBox="0 0 124 104" role="img"
+         aria-label="Seva logo: a person with sound waves reaching them">
+      <path d="M40 34 A 26 26 0 0 0 40 74" stroke="#22C1EE" stroke-width="7.5"
+            fill="none" stroke-linecap="round"/>
+      <path d="M28 24 A 40 40 0 0 0 28 84" stroke="#3B82F6" stroke-width="7.5"
+            fill="none" stroke-linecap="round"/>
+      <path d="M84 34 A 26 26 0 0 1 84 74" stroke="#A855F7" stroke-width="7.5"
+            fill="none" stroke-linecap="round"/>
+      <path d="M96 24 A 40 40 0 0 1 96 84" stroke="#D946EF" stroke-width="7.5"
+            fill="none" stroke-linecap="round"/>
+      <circle cx="62" cy="28" r="12.5" fill="#2563EB"/>
+      <circle cx="62" cy="25" r="4.6"  fill="#fff"/>
+      <path d="M47 50 Q47 44 53 44 L71 44 Q77 44 77 50 L77 82 Q77 88 71 88
+               L53 88 Q47 88 47 82 Z" fill="#2563EB"/>
+    </svg>
+
+    <h1 class="wordmark fade d2">Seva</h1>
+    <p  class="telugu   fade d2">సేవ</p>
+
+    <p class="tagline fade d3">Hear what matters.</p>
+    <p class="blurb   fade d4">
+      Your personal announcement assistant for hospitals,
+      railway stations and bus stands.
+    </p>
+  </div>
+
+  <div class="footer">
+    <button class="cta fade d5" id="start" type="button">
+      <span class="cta-label">Get started</span>
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5 12h13M13 6l6 6-6 6"/>
+      </svg>
+    </button>
+  </div>
+
+</main>
+
+<script>
+  // Remember that the splash has been seen, then fade into Home.
+  // Next time the app opens, Home loads straight away.
+  document.getElementById('start').addEventListener('click', function () {
+    try { localStorage.setItem('seva.seenSplash', '1'); } catch (e) {}
+    var screen = document.getElementById('screen');
+    screen.classList.add('leaving');
+    setTimeout(function () { window.location.href = 'home.html'; }, 320);
+  });
+</script>
+</body>
+</html>
+

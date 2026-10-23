@@ -1,0 +1,514 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="application-name" content="Seva">
+<meta name="apple-mobile-web-app-title" content="Seva">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ECEFFC">
+<title>Answer — Seva</title>
+<script>
+  try{ if(localStorage.getItem("seva.darkMode")==="1")
+         document.documentElement.setAttribute("data-theme","dark"); }catch(e){}
+</script>
+<style>
+/* ══════════════════════════════════════════════════════════
+   SCREEN 11 — ANSWER. Arrives from ask.html, which has
+   already written seva.question and run the thinking state.
+
+   WHERE THE ANSWER COMES FROM
+   The facts below are a copy of data/hospital.json from the
+   backend repository — Government General Hospital,
+   Vijayawada, last checked 14 October 2026. They are not
+   written by me and not written by a model. If the question
+   matches nothing in that file, this screen REFUSES. That
+   refusal is the most important behaviour on the page: it is
+   what makes the rest of the answers worth believing.
+
+   BOTTOM BAR IS 2 ITEMS, Home and Settings, exactly like
+   ask.html. Nova is deliberately absent so that "Ask another
+   question" is the only route back to asking — one control,
+   one place.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --ink:#16215A; --bg:#ECEFFC; --surface:#FFFFFF; --line:#E3E8F7;
+  --text:#1F2937; --muted:#50607D; --muted-tint:#43506A;
+  --cta-from:#2563EB; --cta-to:#7C3AED; --spark:#4C3BD8;
+  --panel:#F4F6FE; --tile:#EDF1FD;
+  --ok-bg:#C9EEDF; --ok-ink:#0A6E42;
+  --warn-bg:#FBDFC2; --warn-ink:#A85206;
+  --f:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --f-indic:"Noto Sans Telugu","Noto Sans Devanagari","Nirmala UI","Gautami",sans-serif;
+  --navh:68px; --r-pill:999px;
+}
+[data-theme="dark"]{
+  --bg:#10131F; --surface:#191E2E; --line:#2A3146; --text:#F2F5FA;
+  --muted:#A8B4C8; --muted-tint:#A8B4C8; --ink:#DCE4F5;
+  --panel:#141A2B; --tile:#1E2538; --spark:#A89CFF;
+  --ok-bg:#1B4539; --ok-ink:#7FE0B6; --warn-bg:#4A3317; --warn-ink:#F6B872;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--f); font-size:18px; line-height:1.6;
+  background:var(--bg); color:var(--text);
+  min-height:100vh; min-height:100dvh; -webkit-font-smoothing:antialiased;
+}
+.sky{position:fixed;inset:0;z-index:-2;pointer-events:none;overflow:hidden}
+.sky::before{
+  content:"";position:absolute;inset:0;
+  background:
+    radial-gradient(56% 24% at 6% 1%,   rgba(206,216,253,.78) 0%, rgba(206,216,253,0) 64%),
+    radial-gradient(64% 30% at 102% 6%, rgba(198,208,252,.88) 0%, rgba(198,208,252,0) 62%),
+    radial-gradient(66% 28% at 90% 99%, rgba(202,214,253,.70) 0%, rgba(202,214,253,0) 66%);
+}
+[data-theme="dark"] .sky::before{
+  background:radial-gradient(64% 30% at 102% 6%,rgba(60,54,124,.52) 0%,rgba(60,54,124,0) 62%);
+}
+.screen{max-width:400px;margin:0 auto;
+  padding:calc(env(safe-area-inset-top) + 16px) 16px
+          calc(env(safe-area-inset-bottom) + var(--navh) + 30px);}
+
+.top{display:flex;align-items:center;gap:11px;margin-bottom:16px}
+.tile{
+  width:46px;height:46px;flex:none;border:0;padding:0;border-radius:50%;
+  background:var(--surface);color:var(--ink);display:grid;place-items:center;cursor:pointer;
+  box-shadow:0 6px 16px rgba(31,41,70,.11);-webkit-tap-highlight-color:transparent;
+}
+[data-theme="dark"] .tile{box-shadow:none;border:1px solid var(--line)}
+.tile:focus-visible{outline:3px solid #4C3BD8;outline-offset:2px}
+.hd{flex:1;min-width:0}
+h1{margin:0;font-size:25px;font-weight:800;letter-spacing:-.5px;color:var(--ink);line-height:1.15}
+
+/* the question, as she typed it */
+.you{display:flex;justify-content:flex-end;margin-bottom:13px}
+.bub{
+  max-width:86%;background:linear-gradient(135deg,var(--cta-from),var(--cta-to));color:#fff;
+  border-radius:20px 20px 6px 20px;padding:12px 15px;font-size:16.5px;line-height:1.45;
+  box-shadow:0 8px 20px rgba(60,52,170,.26);overflow-wrap:anywhere;
+}
+
+/* the answer */
+.ans{
+  background:var(--surface);border-radius:22px;padding:17px;margin-bottom:13px;
+  box-shadow:0 9px 24px rgba(31,41,70,.10), inset 0 0 0 1px rgba(255,255,255,.9);
+}
+[data-theme="dark"] .ans{box-shadow:none;border:1px solid var(--line)}
+.who{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+.who svg{flex:none;color:var(--spark)}
+.who b{font-size:15.5px;font-weight:800;color:var(--ink)}
+.topic{
+  display:inline-block;margin-bottom:9px;padding:5px 11px;border-radius:var(--r-pill);
+  background:var(--tile);color:var(--muted-tint);font-size:13.5px;font-weight:800;
+  font-family:var(--f-indic);line-height:1.5;
+}
+.atext{margin:0;font-size:17px;line-height:1.55;color:var(--text)}
+.todo{
+  margin-top:13px;padding-top:13px;border-top:1px solid var(--line);
+}
+.todo b{
+  display:block;font-size:12.5px;font-weight:800;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:5px;
+}
+.todo p{margin:0;font-size:16px;line-height:1.5;color:var(--muted-tint)}
+
+/* refusal */
+.ans.norec .atext{color:var(--ink);font-weight:700}
+.sugg{margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
+.sugg b{display:block;font-size:12.5px;font-weight:800;letter-spacing:.08em;
+        text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.schips{display:flex;flex-wrap:wrap;gap:7px}
+.sc{
+  border:0;font-family:inherit;cursor:pointer;
+  padding:8px 13px;border-radius:var(--r-pill);background:var(--tile);
+  color:var(--muted-tint);font-size:14.5px;font-weight:700;line-height:1.4;
+  -webkit-tap-highlight-color:transparent;
+}
+.sc:focus-visible{outline:3px solid #4C3BD8;outline-offset:2px}
+
+/* source */
+.src{display:flex;gap:9px;align-items:flex-start;margin-top:14px;padding-top:13px;
+     border-top:1px solid var(--line)}
+.src svg{flex:none;color:var(--ok-ink);margin-top:2px}
+.src.warn svg{color:var(--warn-ink)}
+.src span{font-size:13.5px;line-height:1.45;color:var(--muted)}
+.src b{color:var(--muted-tint)}
+
+/* player */
+.player{display:flex;align-items:center;gap:10px;background:var(--surface);
+        border-radius:18px;padding:11px 13px;margin-bottom:13px;
+        box-shadow:0 7px 20px rgba(31,41,70,.09), inset 0 0 0 1px rgba(255,255,255,.9)}
+[data-theme="dark"] .player{box-shadow:none;border:1px solid var(--line)}
+.play{
+  flex:none;width:46px;height:46px;border:0;padding:0;border-radius:50%;
+  background:linear-gradient(135deg,var(--cta-from),var(--cta-to));color:#fff;
+  display:grid;place-items:center;cursor:pointer;
+  box-shadow:0 6px 16px rgba(76,58,200,.36);-webkit-tap-highlight-color:transparent;
+}
+.play:focus-visible{outline:3px solid #16215A;outline-offset:2px}
+.bars{flex:1;min-width:0;display:flex;align-items:center;gap:2px;height:30px;overflow:hidden}
+.bars i{flex:1;min-width:2px;border-radius:2px;background:#AFBBD6}
+[data-theme="dark"] .bars i{background:#4A5673}
+.bars.playing i{animation:lively 1.1s ease-in-out infinite}
+@keyframes lively{0%,100%{background:#AFBBD6}50%{background:var(--spark)}}
+.elapsed{flex:none;font-size:13.5px;font-weight:700;color:var(--muted);min-width:34px;text-align:right}
+
+/* ask again */
+.again{
+  width:100%;min-height:58px;border:0;border-radius:var(--r-pill);
+  position:relative;overflow:hidden;isolation:isolate;
+  background:linear-gradient(135deg,var(--cta-from),var(--cta-to));color:#fff;
+  font-family:inherit;font-size:17.5px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  box-shadow:0 12px 26px rgba(60,52,170,.30);-webkit-tap-highlight-color:transparent;
+  text-decoration:none;
+}
+.again::after{
+  content:"";position:absolute;top:-20%;bottom:-20%;left:-65%;width:46%;z-index:1;
+  transform:skewX(-18deg);pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.72) 50%,transparent);
+  animation:sheen 6s cubic-bezier(.42,.02,.28,1) infinite;
+}
+@keyframes sheen{0%{left:-65%}58%,100%{left:135%}}
+.again span,.again svg{position:relative;z-index:2}
+.again:focus-visible{outline:3px solid #16215A;outline-offset:3px}
+
+.disc{margin:14px 4px 0;font-size:13.5px;line-height:1.5;color:var(--muted);text-align:center}
+
+/* nav — 2 items, same as ask.html */
+.nav{
+  position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(env(safe-area-inset-bottom) + 12px);
+  width:min(372px,calc(100% - 28px));
+  display:grid;grid-template-columns:repeat(2,1fr);
+  border-radius:26px;background:rgba(255,255,255,.90);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  box-shadow:0 10px 30px rgba(31,41,70,.15), inset 0 0 0 1px rgba(255,255,255,.95);
+  z-index:30;
+}
+[data-theme="dark"] .nav{background:rgba(25,30,46,.94);box-shadow:none;border:1px solid var(--line)}
+.nav a{
+  min-height:var(--navh);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;text-decoration:none;color:var(--muted);
+  font-size:13px;font-weight:600;-webkit-tap-highlight-color:transparent;
+}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true"></div>
+
+<main class="screen">
+
+  <div class="top">
+    <button class="tile" id="back" type="button" aria-label="Go back">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5M12 5l-7 7 7 7"/>
+      </svg>
+    </button>
+    <div class="hd"><h1>Answer</h1></div>
+  </div>
+
+  <div class="you" id="you" hidden><p class="bub" id="bub"></p></div>
+
+  <section class="ans" id="ans"></section>
+
+  <div class="player" id="player" hidden>
+    <button class="play" id="play" type="button" aria-pressed="false" aria-label="Read this answer aloud">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M8 5.1v13.8a1 1 0 001.53.85l10.6-6.9a1 1 0 000-1.7L9.53 4.25A1 1 0 008 5.1z"/>
+      </svg>
+    </button>
+    <div class="bars" id="bars" aria-hidden="true"></div>
+    <span class="elapsed" id="elapsed">0:00</span>
+  </div>
+
+  <a class="again" href="ask.html">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M23.2 12C15.7 15.58 15.58 15.7 12 23.2C8.3 15.58 8.42 15.7 0.8 12C8.3 8.42 8.42 8.3 12 0.8C15.7 8.42 15.58 8.3 23.2 12Z"/>
+    </svg>
+    <span>Ask another question</span>
+  </a>
+
+  <p class="disc">Seva repeats the hospital's own written information.
+     It does not give medical advice.</p>
+
+</main>
+
+<nav class="nav" aria-label="Main">
+  <a href="home.html">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M3 10.5L12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-6h4v6"/>
+    </svg>
+    Home
+  </a>
+  <a href="settings.html">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3.2"/>
+      <path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4L5.3 5.3"/>
+    </svg>
+    Settings
+  </a>
+</nav>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   THE FACTS — copied from backend data/hospital.json
+   Government General Hospital, Vijayawada
+   last_checked 2026-10-14
+
+   The file's own note says: "VERIFY against the real hospital
+   before any public demo." That still stands.
+
+   Do not add an entry here that is not in that file. If this
+   drifts from the backend, the screen starts lying.
+   ══════════════════════════════════════════════════════════ */
+var FACTS = [
+ {id:"opd-timings", en:"OPD Timings", te:"ఓపీడీ సమయాలు",
+  a:"OPD runs Monday to Saturday, 8 in the morning to 1 in the afternoon. Registration closes at 12:30. Sunday is emergency only.",
+  d:"Come before 11 in the morning to avoid the long queue. Collect a token at the registration counter near the main entrance.",
+  k:["ఓపీడీ","సమయం","టైమింగ్","ఎన్ని గంటల","తెరు","మూసి","opd","timing","time","open","close","hours","ఓ పి డి"]},
+ {id:"token-system", en:"Token Number System", te:"టోకెన్ నంబర్",
+  a:"Tokens look like A-47 or B-112. The letter is your department block, the number is your turn. Announcements are made on the speaker in the waiting hall.",
+  d:"Keep the token slip in your hand. If you cannot hear the announcement, show your slip at the help desk and they will check your turn.",
+  k:["టోకెన్","నంబర్","వంతు","క్యూ","పిలుపు","token","number","queue","turn","called","announcement"]},
+ {id:"departments", en:"Department Locations", te:"విభాగాలు ఎక్కడ ఉన్నాయి",
+  a:"Ground floor Block A has Orthopaedics and Casualty. First floor Block A has General Medicine. Second floor Block C has the Laboratory and Pharmacy. Cardiology is on the first floor of Block B.",
+  d:"From the main gate, Block A is straight ahead. Block B is to the right past the canteen. Block C is behind Block A. Ask any staff member in a blue coat.",
+  k:["విభాగం","ఎక్కడ","అంతస్తు","బ్లాక్","గది","రూమ్","ఆర్థో","గుండె","ల్యాబ్","department","where","floor","block","room","location","ortho","cardiology","lab"]},
+ {id:"documents", en:"Documents to Bring", te:"ఏ పత్రాలు తేవాలి",
+  a:"Bring your Aadhaar card, any old prescriptions and reports, and your Ayushman Bharat card if you have one. A referral slip is needed to see a specialist.",
+  d:"Keep everything in one folder. Without Aadhaar, registration takes much longer.",
+  k:["పత్రాలు","కాగితాలు","ఆధార్","రిపోర్ట్","తేవాలి","కావాలి","documents","papers","aadhaar","bring","reports","id","card"]},
+ {id:"emergency", en:"Emergency and Ambulance", te:"అత్యవసరం మరియు అంబులెన్స్",
+  a:"Call one zero eight for a free ambulance, any time of day or night. Casualty is open twenty four hours on the ground floor of Block A, to the left of the main gate.",
+  d:"Do not wait in the OPD queue for an emergency. Go straight to Casualty. Tell the guard at the gate it is an emergency and he will let you through.",
+  k:["అత్యవసర","అంబులెన్స్","108","ప్రమాదం","నొప్పి","సీరియస్","కేజువాలిటీ","emergency","ambulance","urgent","accident","casualty","pain","serious"]},
+ {id:"ayushman", en:"Ayushman Bharat Cashless", te:"ఆయుష్మాన్ భారత్ నగదు రహిత చికిత్స",
+  a:"Cashless treatment up to five lakh rupees per family per year. You pay nothing for covered procedures.",
+  d:"Bring your Ayushman card and Aadhaar to the Ayushman help desk near the registration counter. They will verify and open your case.",
+  k:["ఆయుష్మాన్","నగదు రహిత","ఉచిత","బీమా","కార్డు","ayushman","cashless","free","insurance","pmjay","scheme"]},
+ {id:"appointment", en:"Booking an Appointment", te:"అపాయింట్‌మెంట్ ఎలా బుక్ చేయాలి",
+  a:"General OPD needs no appointment, just a token. Specialists need a referral from the general OPD doctor first.",
+  d:"Go to general OPD, get the referral, then book at the specialist counter on the first floor. Booking closes at noon.",
+  k:["అపాయింట్మెంట్","బుక్","ముందుగా","స్పెషలిస్ట్","appointment","book","booking","specialist","referral","slot"]},
+ {id:"pharmacy", en:"Pharmacy and Free Medicines", te:"మందుల దుకాణం",
+  a:"Most medicines on the essential list are free at the hospital pharmacy. It is on the second floor of Block C, next to the laboratory.",
+  d:"Take your prescription to the pharmacy counter. Pharmacy is open 8 in the morning to 4 in the afternoon.",
+  k:["మందులు","ఫార్మసీ","మెడిసిన్","ఉచిత మందు","medicine","pharmacy","drugs","prescription","tablets","free medicine"]},
+ {id:"lab-tests", en:"Laboratory and Tests", te:"ల్యాబ్ పరీక్షలు",
+  a:"Blood and urine tests are free with a doctor's slip. Sample collection is 8 to 11 in the morning only. Most reports come the same evening.",
+  d:"Laboratory is on the second floor of Block C. Come fasting if the doctor asked for a sugar test.",
+  k:["ల్యాబ్","పరీక్ష","రక్తం","టెస్ట్","రిపోర్ట్","శాంపిల్","lab","test","blood","report","sample","scan","x-ray"]},
+ {id:"visiting-hours", en:"Inpatient Visiting Hours", te:"రోగిని చూడటానికి సమయం",
+  a:"Visiting hours are 11 to 12 in the morning and 5 to 7 in the evening. One attendant may stay overnight with the patient.",
+  d:"Collect a visitor pass from the security desk at the ward entrance. Children under ten are not allowed in the wards.",
+  k:["చూడటానికి","సందర్శన","అడ్మిట్","వార్డు","అటెండర్","visiting","visitor","admitted","ward","attendant","inpatient"]}
+];
+var CHECKED = "14 October 2026";
+var PLACE   = "Government General Hospital, Vijayawada";
+var SPARK   = "M23.2 12C15.7 15.58 15.58 15.7 12 23.2C8.3 15.58 8.42 15.7 0.8 12C8.3 8.42 8.42 8.3 12 0.8C15.7 8.42 15.58 8.3 23.2 12Z";
+var NS = "http://www.w3.org/2000/svg";
+
+function el(t,c,x){var n=document.createElement(t);if(c)n.className=c;
+  if(x!==undefined)n.textContent=x;return n;}            /* textContent, never innerHTML */
+function icon(d,size,fill){
+  var s=document.createElementNS(NS,"svg");
+  s.setAttribute("viewBox","0 0 24 24");s.setAttribute("width",size);s.setAttribute("height",size);
+  s.setAttribute("aria-hidden","true");s.setAttribute("fill",fill||"currentColor");
+  var p=document.createElementNS(NS,"path");p.setAttribute("d",d);s.appendChild(p);return s;
+}
+function get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+
+var lang = (get("seva.language") || "en-IN");
+var isTe = lang.indexOf("te") === 0;
+
+/* ---- the question she typed ---- */
+var question = get("seva.question");
+if (question){
+  document.getElementById("bub").textContent = question;
+  document.getElementById("you").hidden = false;
+}
+
+/* ──────────────────────────────────────────────────────────
+   MATCHING — plain keyword overlap, deliberately dumb.
+   A longer keyword that appears in the question scores more
+   than a short one, so "free medicine" beats "free". If the
+   best score is zero, nothing is shown but the refusal.
+   ────────────────────────────────────────────────────────── */
+function match(q){
+  if (!q) return null;
+  var s = q.toLowerCase(), best = null, bestScore = 0;
+  FACTS.forEach(function(f){
+    var score = 0;
+    f.k.forEach(function(w){
+      if (s.indexOf(w.toLowerCase()) !== -1) score += w.length;
+    });
+    if (score > bestScore){ bestScore = score; best = f; }
+  });
+  return bestScore > 0 ? best : null;
+}
+
+/* ───────── REAL BRAIN GOES HERE ─────────
+   When the laptop is connected, ask.html will POST the
+   question to /api/ask and store the reply as seva.answer.
+   This screen prefers that reply over the local match below.
+   The model is given ONLY the question and these same facts
+   — never a recording, never a transcript.
+   ───────────────────────────────────────── */
+var backend = get("seva.answer");
+var hit = backend ? null : match(question);
+
+var box = document.getElementById("ans");
+var speech = "";
+
+var who = el("div","who");
+who.appendChild(icon(SPARK,16));
+who.appendChild(el("b",null,"Seva says"));
+box.appendChild(who);
+
+if (backend){
+  box.appendChild(el("p","atext", backend));
+  speech = backend;
+  var s0 = el("div","src");
+  s0.appendChild(icon("M12 1.8l8.2 3.4v6c0 4.9-3.4 9.4-8.2 10.9C7.2 20.6 3.8 16.1 3.8 11.2v-6zm-.9 15.5L7.6 11.2l1.5-1.5 2 2 4.3-4.3 1.5 1.5z",16));
+  var t0=el("span");t0.appendChild(el("b",null,PLACE));
+  t0.appendChild(document.createTextNode(" \u00B7 answered from the hospital's own list"));
+  s0.appendChild(t0); box.appendChild(s0);
+
+} else if (hit){
+  box.appendChild(el("span","topic", isTe ? hit.te : hit.en));
+  box.appendChild(el("p","atext", hit.a));
+  var td = el("div","todo");
+  td.appendChild(el("b",null,"What to do"));
+  td.appendChild(el("p",null,hit.d));
+  box.appendChild(td);
+  speech = hit.a + " " + hit.d;
+
+  var s1 = el("div","src");
+  s1.appendChild(icon("M12 1.8l8.2 3.4v6c0 4.9-3.4 9.4-8.2 10.9C7.2 20.6 3.8 16.1 3.8 11.2v-6zm-.9 15.5L7.6 11.2l1.5-1.5 2 2 4.3-4.3 1.5 1.5z",16));
+  var t1 = el("span");
+  t1.appendChild(el("b",null,PLACE));
+  t1.appendChild(document.createTextNode(" \u00B7 list checked " + CHECKED));
+  s1.appendChild(t1);
+  box.appendChild(s1);
+
+  if (isTe){
+    var note = el("div","src");
+    note.className = "src warn";
+    note.appendChild(icon("M12 2.4a9.6 9.6 0 100 19.2 9.6 9.6 0 000-19.2zm-1.1 5.2h2.2v5.6h-2.2zm0 7h2.2v2.2h-2.2z",16));
+    note.appendChild(el("span",null,
+      "Shown in English. The facts are stored once in English and translated when the laptop is connected."));
+    box.appendChild(note);
+  }
+
+} else {
+  /* THE REFUSAL. This is the point of the whole screen. */
+  box.className = "ans norec";
+  box.appendChild(el("p","atext",
+    question ? "I do not have that in the list I was given for this hospital."
+             : "No question was asked yet."));
+  box.appendChild(el("p","atext",
+    (question ? "Rather than guess, " : "") + "please ask at the help desk near the registration counter.")
+  ).style.cssText = "font-weight:400;color:var(--muted-tint);font-size:16px;margin-top:8px";
+
+  var sg = el("div","sugg");
+  sg.appendChild(el("b",null,"What I can answer"));
+  var chips = el("div","schips");
+  FACTS.forEach(function(f){
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sc";
+    b.textContent = isTe ? f.te : f.en;
+    b.addEventListener("click", function(){
+      try{ localStorage.setItem("seva.question", f.en); }catch(e){}
+      void 0;
+    });
+    chips.appendChild(b);
+  });
+  sg.appendChild(chips);
+  box.appendChild(sg);
+}
+
+/* ---- read it aloud ---- */
+if (speech){
+  var player = document.getElementById("player");
+  var play   = document.getElementById("play");
+  var bars   = document.getElementById("bars");
+  var time   = document.getElementById("elapsed");
+  player.hidden = false;
+
+  for (var i=0;i<38;i++){
+    var b = document.createElement("i");
+    var env = Math.sin((i+1)/38*Math.PI);
+    b.style.height = Math.round(5+22*env*(0.45+0.55*Math.abs(Math.sin(i*2.7)))) + "px";
+    b.style.animationDelay = (i*0.03).toFixed(2) + "s";
+    bars.appendChild(b);
+  }
+
+  var speaking=false, tick=null;
+  function stop(){
+    speaking=false;
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    if (tick){ clearInterval(tick); tick=null; }
+    play.setAttribute("aria-pressed","false");
+    play.setAttribute("aria-label","Read this answer aloud");
+    while (play.firstChild) play.removeChild(play.firstChild);
+    play.appendChild(icon("M8 5.1v13.8a1 1 0 001.53.85l10.6-6.9a1 1 0 000-1.7L9.53 4.25A1 1 0 008 5.1z",21));
+    bars.classList.remove("playing");
+    time.textContent="0:00";
+  }
+  /* ───────── REAL AUDIO GOES HERE ─────────
+     Gnani Timbre v3.0, voice Chetana, returns a real clip
+     with a real duration. Until then the phone's own voice
+     speaks it and reports no length, so only elapsed time
+     is shown — an invented total would be a lie on screen.
+     ───────────────────────────────────────── */
+  play.addEventListener("click", function(){
+    if (speaking){ stop(); return; }
+    if (!window.speechSynthesis){ time.textContent="\u2014"; return; }
+    var u = new SpeechSynthesisUtterance(speech);
+    u.lang = "en-IN"; u.rate = 0.94;
+    u.onend = stop;
+    u.onerror = function(){ stop(); time.textContent="\u2014"; };
+
+    speaking = true;
+    play.setAttribute("aria-pressed","true");
+    play.setAttribute("aria-label","Stop");
+    while (play.firstChild) play.removeChild(play.firstChild);
+    play.appendChild(icon("M7.2 5.6h3.4v12.8H7.2zM13.4 5.6h3.4v12.8h-3.4z",21));
+    bars.classList.add("playing");
+
+    var t0=Date.now(), started=false;
+    u.onstart = function(){ started=true; t0=Date.now(); };
+    time.textContent="0:00";
+    tick=setInterval(function(){
+      var s=Math.floor((Date.now()-t0)/1000);
+      time.textContent = Math.floor(s/60)+":"+(s%60<10?"0":"")+(s%60);
+    },250);
+    setTimeout(function(){ if (!started && speaking){ stop(); time.textContent="\u2014"; } },1200);
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  });
+  window.addEventListener("pagehide", stop);
+}
+
+document.getElementById("back").addEventListener("click", function(){
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  window.location.href = "ask.html";
+});
+</script>
+</body>
+</html>
+

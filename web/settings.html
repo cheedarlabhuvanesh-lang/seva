@@ -1,0 +1,475 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="application-name" content="Seva">
+<meta name="apple-mobile-web-app-title" content="Seva">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ECEFFC">
+<title>Seva — Settings</title>
+
+<script>
+  try{ if(localStorage.getItem("seva.darkMode")==="1")
+         document.documentElement.setAttribute("data-theme","dark"); }catch(e){}
+</script>
+
+<style>
+/* ══════════════════════════════════════════════════════════
+   SCREEN 11 — SETTINGS
+
+   WHAT CHANGED FROM THE MOCKUP, AND WHY
+
+   1. THE GREEN TOGGLE WAS #22C55E — 2.28:1 against the white
+      card. A control needs 3.0 (WCAG 1.4.11). It is #15803D
+      now, 5.02, and the white knob reads 5.02 on it too.
+
+   2. THE OFF TRACK HAS AN OUTLINE. Every near-white grey fails
+      against a white card — #E5E7EB is 1.24. The boundary has
+      to come from a ring, so the track carries one at 4.0.
+
+   3. POSITION CARRIES THE STATE, NOT ONLY COLOUR. Knob left or
+      right, plus role="switch" and aria-checked, so the state
+      survives colour blindness and a screen reader.
+
+   4. No 9:41 status bar — that belongs to the phone.
+
+   EVERY SWITCH HERE IS REAL and writes to localStorage.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --ink:#16215A;
+  --bg:#ECEFFC;
+  --surface:#FFFFFF;
+  --line:#E3E8F7;
+  --text:#1F2937;
+  --muted:#50607D;
+  --muted-tint:#43506A;
+
+  --cta-from:#2563EB;
+  --cta-to:#7C3AED;
+
+  --on:#15803D;               /* 5.02 on white */
+  --off:#E2E6EE;
+  --off-ring:#79839A;         /* 3.9 on white  */
+
+  --f:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --f-indic:"Noto Sans Telugu","Noto Sans Devanagari","Noto Sans Tamil","Noto Sans Kannada",
+            "Noto Sans Malayalam","Noto Sans Bengali","Noto Sans Gujarati","Noto Sans Gurmukhi",
+            "Nirmala UI","Gautami",sans-serif;
+
+  --tap:56px;
+  --navh:68px;
+  --r-pill:999px;
+}
+[data-theme="dark"]{
+  --bg:#10131F; --surface:#191E2E; --line:#2A3146;
+  --text:#F2F5FA; --muted:#A8B4C8; --muted-tint:#A8B4C8; --ink:#DCE4F5;
+  --on:#2FA85F; --off:#39415A; --off-ring:#8A94AC;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--f); font-size:18px; line-height:1.6;
+  background:var(--bg); color:var(--text);
+  min-height:100vh; min-height:100dvh;
+  -webkit-font-smoothing:antialiased;
+}
+.sky{position:fixed;inset:0;z-index:-2;pointer-events:none;overflow:hidden}
+.sky::before{
+  content:"";position:absolute;inset:0;
+  background:
+    radial-gradient(56% 26% at 6% 1%,   rgba(206,216,253,.78) 0%, rgba(206,216,253,0) 64%),
+    radial-gradient(64% 32% at 102% 8%, rgba(198,208,252,.88) 0%, rgba(198,208,252,0) 62%),
+    radial-gradient(66% 30% at 90% 99%, rgba(202,214,253,.76) 0%, rgba(202,214,253,0) 66%);
+}
+[data-theme="dark"] .sky::before{
+  background:radial-gradient(64% 32% at 102% 8%,rgba(60,54,124,.52) 0%,rgba(60,54,124,0) 62%);
+}
+
+.screen{
+  max-width:400px;margin:0 auto;
+  padding:calc(env(safe-area-inset-top) + 20px) 16px
+          calc(env(safe-area-inset-bottom) + var(--navh) + 30px);
+}
+h1{margin:0 0 4px;font-size:31px;font-weight:800;letter-spacing:-.6px;color:var(--ink)}
+.lede{margin:0 0 22px;font-size:16px;color:var(--muted)}
+
+.card{
+  background:var(--surface);border-radius:20px;overflow:hidden;margin-bottom:14px;
+  box-shadow:0 8px 22px rgba(31,41,70,.09), inset 0 0 0 1px rgba(255,255,255,.9);
+}
+[data-theme="dark"] .card{box-shadow:none;border:1px solid var(--line)}
+
+.row{
+  display:flex;align-items:center;gap:13px;
+  min-height:var(--tap);padding:12px 15px;
+  text-decoration:none;color:var(--text);
+}
+.row + .row{border-top:1px solid var(--line)}
+.row .ic{
+  flex:none;width:42px;height:42px;border-radius:13px;
+  display:grid;place-items:center;
+}
+.row .lab{flex:1;min-width:0;display:flex;flex-direction:column}
+.row .t{font-size:17px;font-weight:700;color:var(--ink);line-height:1.3}
+.row .s{font-size:14px;color:var(--muted-tint);line-height:1.3}
+.row .s.indic{font-family:var(--f-indic)}
+.row .chev{flex:none;color:var(--muted-tint)}
+
+.ic.lang {background:#E4D9FB;color:#5B21B6}   /* 6.68 */
+.ic.audio{background:#D6E3FD;color:#1D4ED8}   /* 5.19 */
+.ic.vib  {background:#DEDCFB;color:#4C3BD8}   /* 5.54 */
+.ic.dark {background:#DCE2EF;color:#36425C}   /* 8.23 */
+.ic.info {background:#D9E7FB;color:#1D4ED8}
+.ic.help {background:#D7E9E3;color:#0A6E42}
+.ic.priv {background:#E0DCF6;color:#5B21B6}
+.ic.inst {background:#D6E3FD;color:#1D4ED8}   /* 5.19, same verified pair as audio */
+/* a row that is a button. NOT greyed when it cannot be tapped — a faded
+   row reads as broken; it just loses its chevron and its pointer. */
+button.row{width:100%;border:0;background:none;font-family:inherit;text-align:left;
+           cursor:pointer;-webkit-tap-highlight-color:transparent}
+button.row[data-live="0"]{cursor:default}
+button.row:focus-visible{outline:3px solid #4C3BD8;outline-offset:-3px;border-radius:14px}
+[data-theme="dark"] .row .ic{background:rgba(255,255,255,.09);color:#C4CEE6}
+
+/* ── the switch ── */
+.sw{
+  flex:none;width:54px;height:32px;border:0;padding:0;border-radius:var(--r-pill);
+  position:relative;cursor:pointer;background:var(--off);
+  box-shadow:inset 0 0 0 1.6px var(--off-ring);
+  transition:background .18s ease, box-shadow .18s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.sw .knob{
+  position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 3px rgba(16,24,40,.34);
+  transition:transform .18s ease;
+}
+.sw[aria-checked="true"]{background:var(--on);box-shadow:inset 0 0 0 1.6px var(--on)}
+.sw[aria-checked="true"] .knob{transform:translateX(22px)}
+.sw:focus-visible{outline:3px solid #4C3BD8;outline-offset:2px}
+
+/* ── bottom bar ── */
+.nav{
+  position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(env(safe-area-inset-bottom) + 12px);
+  width:min(372px,calc(100% - 28px));
+  display:grid;grid-template-columns:repeat(3,1fr);
+  border-radius:26px;
+  background:rgba(255,255,255,.90);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  box-shadow:0 10px 30px rgba(31,41,70,.15), inset 0 0 0 1px rgba(255,255,255,.95);
+  z-index:30;
+}
+[data-theme="dark"] .nav{background:rgba(25,30,46,.94);box-shadow:none;border:1px solid var(--line)}
+.nav a{
+  position:relative;min-height:var(--navh);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  text-decoration:none;color:var(--muted);font-size:13px;font-weight:600;
+  -webkit-tap-highlight-color:transparent;
+}
+.nav a.on{color:#5B21B6;font-weight:700}
+[data-theme="dark"] .nav a.on{color:#C4A7FF}
+.nav a.on::after{
+  content:"";position:absolute;bottom:11px;width:22px;height:3px;border-radius:2px;
+  background:currentColor;
+}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+
+<div class="sky" aria-hidden="true"></div>
+
+<main class="screen">
+
+  <h1>Settings</h1>
+  <p class="lede">Customize your Seva experience</p>
+
+  <!-- ── language ── -->
+  <div class="card">
+    <a class="row" href="select-language.html">
+      <span class="ic lang" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="8.8"/>
+          <path d="M3.2 12h17.6"/>
+          <path d="M12 3.2c2.3 2.4 3.5 5.3 3.5 8.8s-1.2 6.4-3.5 8.8c-2.3-2.4-3.5-5.3-3.5-8.8S9.7 5.6 12 3.2z"/>
+        </svg>
+      </span>
+      <span class="lab">
+        <span class="t">Language</span>
+        <span class="s indic" id="langNow">English</span>
+      </span>
+      <span class="chev" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+      </span>
+    </a>
+  </div>
+
+  <!-- ── switches ── -->
+  <div class="card">
+
+    <div class="row">
+      <span class="ic audio" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12.6 3.3a1 1 0 00-1.07.13L6.9 7.2H3.9A1.4 1.4 0 002.5 8.6v6.8a1.4 1.4 0 001.4 1.4h3l4.63 3.77A1 1 0 0013.2 19.8V4.2a1 1 0 00-.6-.9z"/>
+          <path d="M16.3 8.1a1.1 1.1 0 00-.3 1.53 4.3 4.3 0 010 4.74 1.1 1.1 0 101.83 1.22 6.5 6.5 0 000-7.18 1.1 1.1 0 00-1.53-.31z"/>
+          <path d="M19.1 5a1.1 1.1 0 00-.33 1.52 9.9 9.9 0 010 10.96A1.1 1.1 0 1020.6 18.7a12.1 12.1 0 000-13.4A1.1 1.1 0 0019.1 5z"/>
+        </svg>
+      </span>
+      <span class="lab"><span class="t">Auto play audio</span></span>
+      <button class="sw" id="swAuto" role="switch" aria-checked="true"
+              aria-label="Auto play audio"><span class="knob"></span></button>
+    </div>
+
+    <div class="row">
+      <span class="ic vib" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" d="M8.4 2.5h7.2a2.4 2.4 0 012.4 2.4v14.2a2.4 2.4 0 01-2.4 2.4H8.4A2.4 2.4 0 016 19.1V4.9a2.4 2.4 0 012.4-2.4zm-.2 2.6v13.8h7.6V5.1z"/>
+          <path d="M2.9 9.1a.95.95 0 00-.95.95v3.9a.95.95 0 001.9 0v-3.9a.95.95 0 00-.95-.95zM21.1 9.1a.95.95 0 00-.95.95v3.9a.95.95 0 001.9 0v-3.9a.95.95 0 00-.95-.95z"/>
+        </svg>
+      </span>
+      <span class="lab"><span class="t">Vibration</span></span>
+      <button class="sw" id="swVib" role="switch" aria-checked="true"
+              aria-label="Vibration"><span class="knob"></span></button>
+    </div>
+
+    <div class="row">
+      <span class="ic dark" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20.6 14.9A9.2 9.2 0 019.2 3.5 9.4 9.4 0 1020.6 14.9z"/>
+        </svg>
+      </span>
+      <span class="lab"><span class="t">Dark mode</span></span>
+      <button class="sw" id="swDark" role="switch" aria-checked="false"
+              aria-label="Dark mode"><span class="knob"></span></button>
+    </div>
+
+  </div>
+
+  <!-- ── install ── -->
+  <div class="card">
+    <button class="row" id="installRow" type="button" data-live="0">
+      <span class="ic inst" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" d="M10.8 2.6h2.4v8.9l3.1-3.1 1.7 1.7-6 6-6-6 1.7-1.7 3.1 3.1zM3.4 15.4h2.4v3.6h12.4v-3.6h2.4v4.4a1.6 1.6 0 01-1.6 1.6H5a1.6 1.6 0 01-1.6-1.6z"/>
+        </svg>
+      </span>
+      <span class="lab">
+        <span class="t" id="installT">Install Seva</span>
+        <span class="s" id="installS">Add it to your home screen</span>
+      </span>
+      <span class="chev" id="installChev" aria-hidden="true" hidden>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+      </span>
+    </button>
+  </div>
+
+  <!-- ── the rest ── -->
+  <div class="card">
+
+    <a class="row" href="about.html">
+      <span class="ic info" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" d="M12 2.6A9.4 9.4 0 1021.4 12 9.41 9.41 0 0012 2.6zm0 3.3a1.35 1.35 0 11-1.35 1.35A1.35 1.35 0 0112 5.9zm1.2 11.9h-2.4v-7.2h2.4z"/>
+        </svg>
+      </span>
+      <span class="lab"><span class="t">About Seva</span></span>
+      <span class="chev" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+      </span>
+    </a>
+
+    <a class="row" href="help.html">
+      <span class="ic help" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" d="M12 2.4A8.6 8.6 0 003.4 11v.7A2.6 2.6 0 001.8 14.1v2.2a2.6 2.6 0 002.6 2.6h1.5a1.2 1.2 0 001.2-1.2v-6.3a1.2 1.2 0 00-1.2-1.2h-.3A6.4 6.4 0 0118 10.2h-.3a1.2 1.2 0 00-1.2 1.2v6.3a1.2 1.2 0 001.2 1.2h.5a4.3 4.3 0 01-3.3 1.5h-1a1.15 1.15 0 100 2.3h1a6.6 6.6 0 006.1-4.1 2.6 2.6 0 001-2.05v-2.2a2.6 2.6 0 00-1.6-2.4V11A8.6 8.6 0 0012 2.4z"/>
+        </svg>
+      </span>
+      <span class="lab"><span class="t">Help &amp; Support</span></span>
+      <span class="chev" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+      </span>
+    </a>
+
+    <a class="row" href="privacy.html">
+      <span class="ic priv" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" d="M12 1.8l7.6 3v6.1c0 4.7-3.1 8.9-7.6 10.3-4.5-1.4-7.6-5.6-7.6-10.3V4.8zm4.06 7.07l-1.63-1.63-3.72 3.72-1.54-1.54-1.63 1.63 3.17 3.17z"/>
+        </svg>
+      </span>
+      <span class="lab"><span class="t">Privacy Policy</span></span>
+      <span class="chev" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+      </span>
+    </a>
+
+  </div>
+
+</main>
+
+<nav class="nav" aria-label="Main">
+  <a href="home.html">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M3 10.5L12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-6h4v6"/>
+    </svg>
+    Home
+  </a>
+  <a href="ask.html">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linejoin="round" aria-hidden="true">
+      <path d="M4 6.5A2.5 2.5 0 016.5 4h11A2.5 2.5 0 0120 6.5v7a2.5 2.5 0 01-2.5 2.5H11l-4.2 3.4a.5.5 0 01-.8-.4V16h-.5A1.5 1.5 0 014 14.5z"/>
+      <path d="M16.1 10c-3.1 1.76-3.17 1.82-4.6 5.28C10.07 11.82 10 11.76 6.9 10c3.1-1.49 3.17-1.55 4.6-4.92C12.93 8.45 13 8.51 16.1 10z"
+            fill="currentColor" stroke="none"/>
+    </svg>
+    Nova
+  </a>
+  <a class="on" href="settings.html" aria-current="page">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path fill-rule="evenodd" d="M10.3 2.2h3.4a1.4 1.4 0 011.38 1.14l.26 1.4a7.6 7.6 0 011.5.87l1.34-.48a1.4 1.4 0 011.68.62l1.7 2.94a1.4 1.4 0 01-.3 1.76l-1.08.92a7.7 7.7 0 010 1.74l1.08.92a1.4 1.4 0 01.3 1.76l-1.7 2.94a1.4 1.4 0 01-1.68.62l-1.34-.48a7.6 7.6 0 01-1.5.87l-.26 1.4a1.4 1.4 0 01-1.38 1.14h-3.4a1.4 1.4 0 01-1.38-1.14l-.26-1.4a7.6 7.6 0 01-1.5-.87l-1.34.48a1.4 1.4 0 01-1.68-.62l-1.7-2.94a1.4 1.4 0 01.3-1.76l1.08-.92a7.7 7.7 0 010-1.74l-1.08-.92a1.4 1.4 0 01-.3-1.76l1.7-2.94a1.4 1.4 0 011.68-.62l1.34.48a7.6 7.6 0 011.5-.87l.26-1.4A1.4 1.4 0 0110.3 2.2zM12 8.3A3.7 3.7 0 1015.7 12 3.7 3.7 0 0012 8.3z"/>
+    </svg>
+    Settings
+  </a>
+</nav>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   SCREEN 11 — SETTINGS
+   Every switch writes straight to localStorage. No server.
+   ══════════════════════════════════════════════════════════ */
+
+var LANGS = {
+  "te-IN":["తెలుగు","Telugu"],  "hi-IN":["हिन्दी","Hindi"],
+  "ta-IN":["தமிழ்","Tamil"],    "kn-IN":["ಕನ್ನಡ","Kannada"],
+  "ml-IN":["മലയാളം","Malayalam"],"mr-IN":["मराठी","Marathi"],
+  "bn-IN":["বাংলা","Bengali"],   "gu-IN":["ગુજરાતી","Gujarati"],
+  "pa-IN":["ਪੰਜਾਬੀ","Punjabi"],  "en-IN":["English","English"]
+};
+
+function get(k, dflt){
+  try{ var v = localStorage.getItem(k); return v === null ? dflt : v; }
+  catch(e){ return dflt; }
+}
+function set(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+
+/* ---- the language row shows what is saved ---- */
+var code = get("seva.language", "en-IN");
+var entry = LANGS[code] || LANGS["en-IN"];
+document.getElementById("langNow").textContent =
+  (entry[0] === entry[1]) ? entry[0] : entry[0] + " · " + entry[1];
+
+/* ---- switches ----
+   Default ON for audio and vibration: she is waiting for a
+   number in a loud hall, so the alert should reach her
+   without her having turned anything on first.             */
+function wire(id, key, dflt, after){
+  var el = document.getElementById(id);
+  var on = get(key, dflt) === "1";
+  el.setAttribute("aria-checked", on ? "true" : "false");
+  el.addEventListener("click", function(){
+    var now = el.getAttribute("aria-checked") !== "true";
+    el.setAttribute("aria-checked", now ? "true" : "false");
+    set(key, now ? "1" : "0");
+    if (after) after(now);
+  });
+}
+
+wire("swAuto", "seva.autoPlay",  "1");
+
+wire("swVib",  "seva.vibration", "1", function(on){
+  /* a short buzz the moment it is switched on, so she knows
+     the phone can actually do it                            */
+  if (on && navigator.vibrate) navigator.vibrate(40);
+});
+
+wire("swDark", "seva.darkMode",  "0", function(on){
+  if (on) document.documentElement.setAttribute("data-theme","dark");
+  else    document.documentElement.removeAttribute("data-theme");
+  var m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.setAttribute("content", on ? "#10131F" : "#ECEFFC");
+});
+
+/* ══════════════════════════════════════════════════════════
+   INSTALL — "download" for a website.
+
+   There is no APK and no Play Store listing. What a browser
+   can do is install the site itself: a real icon on the home
+   screen, no address bar.
+
+   The browser decides, not us. Chrome only offers it over
+   https (localhost excepted), so on a plain http LAN address
+   the event never fires — and this row says so rather than
+   showing a button that does nothing.
+   Safari never fires the event at all; iOS installs through
+   the Share sheet, so iPhone gets the instruction instead.
+   ══════════════════════════════════════════════════════════ */
+(function(){
+  var row  = document.getElementById("installRow");
+  var t    = document.getElementById("installT");
+  var sub  = document.getElementById("installS");
+  var chev = document.getElementById("installChev");
+  var deferred = null;
+
+  function standalone(){
+    return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches)
+            || window.navigator.standalone === true;
+  }
+  function isIOS(){
+    return /iPad|iPhone|iPod/.test(navigator.userAgent || "");
+  }
+  function secure(){
+    return location.protocol === "https:" ||
+           location.hostname === "localhost" || location.hostname === "127.0.0.1";
+  }
+  function set(title, s2, live){
+    t.textContent = title;
+    sub.textContent = s2;
+    row.setAttribute("data-live", live ? "1" : "0");
+    chev.hidden = !live;
+  }
+
+  if (standalone())      set("Seva is installed", "You are running it from the home screen", false);
+  else if (isIOS())      set("Install Seva", "Tap Share, then Add to Home Screen", false);
+  else if (!secure())    set("Install Seva", "Open Seva over https to install it", false);
+  else                   set("Install Seva", "Waiting for the browser to offer it\u2026", false);
+
+  window.addEventListener("beforeinstallprompt", function(e){
+    e.preventDefault();
+    deferred = e;
+    set("Install Seva", "Add it to your home screen", true);
+  });
+
+  row.addEventListener("click", function(){
+    if (row.getAttribute("data-live") !== "1" || !deferred) return;
+    deferred.prompt();
+    deferred.userChoice.then(function(c){
+      deferred = null;
+      if (c && c.outcome === "accepted") set("Seva is installed","Look for it on your home screen",false);
+      else set("Install Seva","You can install it from here later",false);
+    });
+  });
+
+  window.addEventListener("appinstalled", function(){
+    deferred = null;
+    set("Seva is installed", "Look for it on your home screen", false);
+  });
+})();
+</script>
+</body>
+</html>
+

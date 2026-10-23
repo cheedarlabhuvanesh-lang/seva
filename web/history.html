@@ -1,0 +1,747 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="application-name" content="Seva">
+<meta name="apple-mobile-web-app-title" content="Seva">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ECEFFC">
+<title>Seva — History</title>
+
+<script>
+  try{ if(localStorage.getItem("seva.darkMode")==="1")
+         document.documentElement.setAttribute("data-theme","dark"); }catch(e){}
+</script>
+
+<style>
+/* ══════════════════════════════════════════════════════════
+   SCREEN 10 — HISTORY, with the expandable record
+
+   WHAT CHANGED FROM THE MOCKUP, AND WHY
+
+   1. "LOCATION — Main Hospital" IS GONE. Seva never asks for
+      location, never reads GPS and has no venue list. That
+      tile could only ever hold a guess. It is replaced by
+      STATUS, which comes from the stored verdict and is true.
+
+   2. NO FAKE 0:12. The clip length is not known until a real
+      audio file exists; the phone's own voice reports no
+      duration at all. So the player shows elapsed time only
+      and the bars are a playing indicator, not a progress
+      bar. When /api/replay lands, the total drops in at the
+      marked line.
+
+   3. THE SENTENCE IS STORED, NOT REBUILT. confirmed.html now
+      saves the exact line it spoke as entry.spoken. Records
+      made before that change simply show no sentence block —
+      they do not get a reconstructed one.
+
+   4. ICONS FOLLOW THE KIND. The mockup labels a row "Bus 6428"
+      and gives it "Vijayawada -> Platform 2", which is a
+      train. Kind drives both the word and the icon here.
+
+   5. THE COUNTS ARE COUNTED. The mockup reads All 12 with
+      5 + 3 + 2 = 10 underneath. These are computed.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --ink:#16215A;
+  --bg:#ECEFFC;
+  --surface:#FFFFFF;
+  --line:#E3E8F7;
+  --text:#1F2937;
+  --muted:#50607D;
+  --muted-tint:#43506A;
+
+  --cta-from:#2563EB;
+  --cta-to:#7C3AED;
+  --spark:#4C3BD8;
+
+  --panel:#F4F6FE;
+  --tile:#EDF1FD;
+
+  --hosp-disc:#D4E2FD; --hosp-ink:#1D4ED8;   /* 5.14 on its disc */
+  --train-disc:#C9EEDF;--train-ink:#0A6E42;  /* 5.05 */
+  --bus-disc:#FBDFC2;  --bus-ink:#A85206;    /* 4.24 */
+
+  --f:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --f-indic:"Noto Sans Telugu","Noto Sans Devanagari","Nirmala UI","Gautami",sans-serif;
+  --tap:56px;
+  --navh:68px;
+  --r-pill:999px;
+}
+[data-theme="dark"]{
+  --bg:#10131F; --surface:#191E2E; --line:#2A3146;
+  --text:#F2F5FA; --muted:#A8B4C8; --muted-tint:#A8B4C8; --ink:#DCE4F5;
+  --panel:#141A2B; --tile:#1E2538; --spark:#A89CFF;
+  --hosp-disc:#23335C; --hosp-ink:#9CC0FF;
+  --train-disc:#1B4539;--train-ink:#7FE0B6;
+  --bus-disc:#4A3317;  --bus-ink:#F6B872;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--f); font-size:18px; line-height:1.6;
+  background:var(--bg); color:var(--text);
+  min-height:100vh; min-height:100dvh;
+  -webkit-font-smoothing:antialiased;
+}
+.sky{position:fixed;inset:0;z-index:-2;pointer-events:none;overflow:hidden}
+.sky::before{
+  content:"";position:absolute;inset:0;
+  background:
+    radial-gradient(56% 24% at 6% 1%,   rgba(206,216,253,.78) 0%, rgba(206,216,253,0) 64%),
+    radial-gradient(64% 30% at 102% 6%, rgba(198,208,252,.88) 0%, rgba(198,208,252,0) 62%),
+    radial-gradient(66% 28% at 90% 99%, rgba(202,214,253,.70) 0%, rgba(202,214,253,0) 66%);
+}
+[data-theme="dark"] .sky::before{
+  background:radial-gradient(64% 30% at 102% 6%,rgba(60,54,124,.52) 0%,rgba(60,54,124,0) 62%);
+}
+
+.screen{
+  max-width:400px;margin:0 auto;
+  padding:calc(env(safe-area-inset-top) + 16px) 16px
+          calc(env(safe-area-inset-bottom) + var(--navh) + 30px);
+}
+
+/* ── header ── */
+.top{display:flex;align-items:flex-start;gap:11px;margin-bottom:18px}
+.tile{
+  width:46px;height:46px;flex:none;border:0;padding:0;border-radius:50%;
+  background:var(--surface);color:var(--ink);
+  display:grid;place-items:center;cursor:pointer;
+  box-shadow:0 6px 16px rgba(31,41,70,.11);
+  -webkit-tap-highlight-color:transparent;
+}
+[data-theme="dark"] .tile{box-shadow:none;border:1px solid var(--line)}
+.tile:focus-visible{outline:3px solid #4C3BD8;outline-offset:2px}
+.tile[aria-pressed="true"]{background:linear-gradient(135deg,var(--cta-from),var(--cta-to));color:#fff}
+.hd{flex:1;min-width:0;padding-top:1px}
+.hrow{display:flex;align-items:center;gap:9px}
+h1{margin:0;font-size:30px;font-weight:800;letter-spacing:-.6px;color:var(--ink);line-height:1.1}
+.hrow svg{flex:none;color:var(--spark)}
+.lede{margin:3px 0 0;font-size:15px;color:var(--muted);line-height:1.35}
+
+/* ── search ── */
+.searchwrap{display:none;margin-bottom:14px}
+.searchwrap.show{display:block}
+.searchwrap input{
+  width:100%;min-height:50px;padding:0 16px;
+  border:0;border-radius:var(--r-pill);background:var(--surface);
+  font-family:inherit;font-size:16px;color:var(--text);
+  box-shadow:0 6px 16px rgba(31,41,70,.10), inset 0 0 0 1px rgba(255,255,255,.9);
+  outline:none;
+}
+[data-theme="dark"] .searchwrap input{box-shadow:none;border:1px solid var(--line)}
+.searchwrap input:focus{box-shadow:0 0 0 3px rgba(99,102,241,.38)}
+.searchwrap input::placeholder{color:#5A6B86;opacity:1}
+
+/* ── filters ── */
+.filters{
+  display:flex;gap:6px;margin-bottom:16px;
+  overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px;
+}
+.filters::-webkit-scrollbar{display:none}
+.chip{
+  flex:none;display:flex;align-items:center;gap:6px;
+  min-height:46px;padding:0 11px;border:0;border-radius:var(--r-pill);
+  background:var(--surface);color:var(--ink);
+  font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;
+  box-shadow:0 5px 14px rgba(31,41,70,.10);
+  -webkit-tap-highlight-color:transparent;
+}
+[data-theme="dark"] .chip{box-shadow:none;border:1px solid var(--line)}
+.chip[aria-pressed="true"]{
+  background:linear-gradient(135deg,var(--cta-from),var(--cta-to));
+  color:#fff;box-shadow:0 6px 16px rgba(76,58,200,.34);
+}
+.chip:focus-visible{outline:3px solid #4C3BD8;outline-offset:2px}
+.chip svg{flex:none}
+.cnt{
+  flex:none;min-width:21px;padding:0 5px;border-radius:var(--r-pill);
+  background:#E6EBFA;color:#43506A;                 /* 6.6 on the badge */
+  font-size:12.5px;font-weight:800;line-height:20px;text-align:center;
+}
+.chip[aria-pressed="true"] .cnt{background:rgba(255,255,255,.26);color:#fff}
+[data-theme="dark"] .cnt{background:rgba(255,255,255,.12);color:#D7DEEE}
+
+/* ── rows ── */
+.list{display:flex;flex-direction:column;gap:11px}
+.item{
+  background:var(--surface);border-radius:19px;
+  box-shadow:0 7px 20px rgba(31,41,70,.09), inset 0 0 0 1px rgba(255,255,255,.9);
+  overflow:hidden;
+}
+[data-theme="dark"] .item{box-shadow:none;border:1px solid var(--line)}
+.item.open{box-shadow:0 12px 30px rgba(31,41,70,.15), inset 0 0 0 1px rgba(255,255,255,.95)}
+.head{
+  width:100%;border:0;background:none;text-align:left;font-family:inherit;
+  display:flex;align-items:center;gap:13px;padding:13px 14px;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.head:focus-visible{outline:3px solid #4C3BD8;outline-offset:-3px}
+.disc{flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center}
+.disc.hospital{background:var(--hosp-disc);color:var(--hosp-ink)}
+.disc.train   {background:var(--train-disc);color:var(--train-ink)}
+.disc.bus     {background:var(--bus-disc);color:var(--bus-ink)}
+.body{flex:1;min-width:0}
+.t{font-size:18px;font-weight:800;color:var(--ink);line-height:1.25}
+.d{font-size:15px;color:var(--muted-tint);line-height:1.35;margin-top:1px;
+   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.when{display:flex;align-items:center;gap:5px;margin-top:3px;font-size:13.5px;color:var(--muted)}
+.when svg{flex:none}
+.chev{flex:none;color:var(--muted);transition:transform .2s ease}
+.head[aria-expanded="true"] .chev{transform:rotate(180deg)}
+
+/* ── the expanded record ── */
+.more{display:none;padding:0 12px 12px}
+.more.show{display:block}
+.panel{background:var(--panel);border-radius:16px;padding:13px}
+[data-theme="dark"] .panel{background:var(--panel)}
+.ptitle{
+  display:flex;align-items:center;gap:7px;margin-bottom:10px;
+  font-size:15.5px;font-weight:800;color:var(--ink);
+}
+.ptitle svg{flex:none;color:var(--spark)}
+
+.said{
+  display:flex;align-items:flex-start;gap:11px;
+  background:var(--surface);border-radius:13px;padding:11px;margin-bottom:10px;
+}
+[data-theme="dark"] .said{background:rgba(255,255,255,.05)}
+.waved{
+  flex:none;width:38px;height:38px;border-radius:50%;
+  background:#E2E9FB;color:var(--spark);display:grid;place-items:center;
+}
+[data-theme="dark"] .waved{background:rgba(255,255,255,.09)}
+.saidtxt{flex:1;min-width:0;font-size:15px;line-height:1.45;color:var(--text)}
+.saidtxt[lang="te"]{font-family:var(--f-indic);line-height:1.6}
+.kindchip{
+  flex:none;display:inline-flex;align-items:center;gap:5px;
+  padding:4px 9px;border-radius:var(--r-pill);
+  font-size:12.5px;font-weight:800;
+}
+.kindchip.hospital{background:var(--hosp-disc);color:var(--hosp-ink)}
+.kindchip.train   {background:var(--train-disc);color:var(--train-ink)}
+.kindchip.bus     {background:var(--bus-disc);color:var(--bus-ink)}
+
+/* player */
+.player{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.play{
+  flex:none;width:44px;height:44px;border:0;padding:0;border-radius:50%;
+  background:linear-gradient(135deg,var(--cta-from),var(--cta-to));
+  color:#fff;display:grid;place-items:center;cursor:pointer;
+  box-shadow:0 6px 16px rgba(76,58,200,.36);
+  -webkit-tap-highlight-color:transparent;
+}
+.play:focus-visible{outline:3px solid #16215A;outline-offset:2px}
+.bars{flex:1;min-width:0;display:flex;align-items:center;gap:2px;height:30px;overflow:hidden}
+.bars i{
+  flex:1;min-width:2px;border-radius:2px;background:#AFBBD6;
+}
+[data-theme="dark"] .bars i{background:#4A5673}
+.bars.playing i{animation:lively 1.1s ease-in-out infinite}
+@keyframes lively{0%,100%{background:#AFBBD6}50%{background:var(--spark)}}
+.elapsed{flex:none;font-size:13.5px;font-weight:700;color:var(--muted);min-width:34px;text-align:right}
+.langtag{
+  flex:none;padding:4px 9px;border-radius:var(--r-pill);
+  background:#E6EBFA;color:#43506A;font-size:12.5px;font-weight:800;
+  font-family:var(--f-indic);
+}
+[data-theme="dark"] .langtag{background:rgba(255,255,255,.10);color:#D7DEEE}
+
+/* facts */
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.fact{background:var(--tile);border-radius:12px;padding:9px 10px;min-width:0}
+[data-theme="dark"] .fact{background:var(--tile)}
+.fact .k{
+  display:block;font-size:10.5px;font-weight:800;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:2px;
+}
+.fact .v{display:block;font-size:13px;font-weight:700;color:var(--ink);line-height:1.3;
+         overflow-wrap:anywhere}
+
+/* ── empty ── */
+.empty{
+  text-align:center;padding:40px 20px;background:var(--surface);border-radius:20px;
+  box-shadow:0 7px 20px rgba(31,41,70,.09), inset 0 0 0 1px rgba(255,255,255,.9);
+}
+[data-theme="dark"] .empty{box-shadow:none;border:1px solid var(--line)}
+.empty svg{color:#9AA7BD;margin-bottom:10px}
+.empty h2{margin:0 0 6px;font-size:19px;font-weight:800;color:var(--ink)}
+.empty p{margin:0 0 18px;font-size:15.5px;color:var(--muted);line-height:1.45}
+.empty a{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:50px;padding:0 24px;border-radius:var(--r-pill);
+  background:linear-gradient(135deg,var(--cta-from),var(--cta-to));
+  color:#fff;text-decoration:none;font-size:17px;font-weight:700;
+  box-shadow:0 10px 22px rgba(60,52,170,.32);
+}
+
+/* ── bottom bar ── */
+.nav{
+  position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(env(safe-area-inset-bottom) + 12px);
+  width:min(372px,calc(100% - 28px));
+  display:grid;grid-template-columns:repeat(3,1fr);
+  border-radius:26px;background:rgba(255,255,255,.90);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  box-shadow:0 10px 30px rgba(31,41,70,.15), inset 0 0 0 1px rgba(255,255,255,.95);
+  z-index:30;
+}
+[data-theme="dark"] .nav{background:rgba(25,30,46,.94);box-shadow:none;border:1px solid var(--line)}
+.nav a{
+  min-height:var(--navh);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  text-decoration:none;color:var(--muted);font-size:13px;font-weight:600;
+  -webkit-tap-highlight-color:transparent;
+}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+
+<div class="sky" aria-hidden="true"></div>
+
+<main class="screen">
+
+  <div class="top">
+    <button class="tile" id="back" type="button" aria-label="Go back">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5M12 5l-7 7 7 7"/>
+      </svg>
+    </button>
+    <div class="hd">
+      <div class="hrow">
+        <h1>History</h1>
+        <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3.2 9.3V4.4"/>
+          <path d="M3.2 9.3h4.9"/>
+          <path d="M4.3 9.3a8.6 8.6 0 113.3 9.1"/>
+          <path d="M12 7.3V12l3.4 2"/>
+        </svg>
+      </div>
+      <p class="lede">Your recent searches and interactions</p>
+    </div>
+    <button class="tile" id="searchBtn" type="button"
+            aria-label="Search history" aria-pressed="false" aria-controls="searchwrap">
+      <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.3" stroke-linecap="round">
+        <circle cx="11" cy="11" r="6.8"/><path d="M16.2 16.2l4.3 4.3"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="searchwrap" id="searchwrap">
+    <label for="q" hidden>Search history</label>
+    <input id="q" type="search" autocomplete="off" placeholder="Search a number, room or place">
+  </div>
+
+  <div class="filters" id="filters" role="group" aria-label="Filter by kind"></div>
+
+  <div class="list" id="list"></div>
+
+</main>
+
+<nav class="nav" aria-label="Main">
+  <a href="home.html">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M3 10.5L12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-6h4v6"/>
+    </svg>
+    Home
+  </a>
+  <a href="ask.html">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linejoin="round" aria-hidden="true">
+      <path d="M4 6.5A2.5 2.5 0 016.5 4h11A2.5 2.5 0 0120 6.5v7a2.5 2.5 0 01-2.5 2.5H11l-4.2 3.4a.5.5 0 01-.8-.4V16h-.5A1.5 1.5 0 014 14.5z"/>
+      <path d="M16.1 10c-3.1 1.76-3.17 1.82-4.6 5.28C10.07 11.82 10 11.76 6.9 10c3.1-1.49 3.17-1.55 4.6-4.92C12.93 8.45 13 8.51 16.1 10z"
+            fill="currentColor" stroke="none"/>
+    </svg>
+    Nova
+  </a>
+  <a href="settings.html">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3.2"/>
+      <path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4L5.3 5.3"/>
+    </svg>
+    Settings
+  </a>
+</nav>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   SCREEN 10 — HISTORY
+
+   Reads seva.history, written by confirmed.html as
+     { kind, title, detail, at, verdict, spoken, lang }
+   Newest first, 50 max. Nothing is generated. Every node is
+   built with textContent, never innerHTML.
+   ══════════════════════════════════════════════════════════ */
+
+/* ───────── DEMO SEED — for filming only ─────────
+   Reached with ?demo=1. Held in memory for this page view and
+   NEVER written to localStorage, so it cannot be mistaken for
+   a real alert. Delete once Tenali audio is in.            */
+var DEMO = [
+  {kind:"train",   title:"12739", detail:"Platform 4 · Hyderabad", _m:0,    lang:"en",
+   spoken:"Train 12739 to Hyderabad is arriving on platform 4. Please move to platform 4 now."},
+  {kind:"bus",     title:"582",   detail:"Bay 3 · Route 12",       _m:1090, lang:"en",
+   spoken:"Bus 582 on route 12 is at bay 3. Please board now."},
+  {kind:"hospital",title:"306",   detail:"Counter 3",              _m:1430, lang:"en",
+   spoken:"Your token number is 306. Please proceed to Counter 3 for registration."},
+  {kind:"train",   title:"12517", detail:"Guntur",                 _m:975,  lang:"en",
+   spoken:"Train 12517 to Guntur is arriving. The platform number was not heard. Please check the display board."},
+  {kind:"train",   title:"6428",  detail:"Platform 2 · Vijayawada",_m:1387, lang:"en",
+   spoken:"Train 6428 to Vijayawada is arriving on platform 2. Please move to platform 2 now."},
+  {kind:"hospital",title:"A-47",  detail:"Room 204",               _m:9,    lang:"te",
+   spoken:"మీ నంబర్ వచ్చింది. A-47. గది నంబర్ 204. సామాను తీసుకొని ఇప్పుడే బయలుదేరండి."}
+];
+
+var KIND = {
+  hospital:{ word:"Token", chip:"Hospital", icon:
+    'M6.5 4.5h11A3.5 3.5 0 0121 8v9.5a3.5 3.5 0 01-3.5 3.5h-11A3.5 3.5 0 013 17.5V8a3.5 3.5 0 013.5-3.5zM10.8 8.75h2.4v2.8H16v2.4h-2.8v2.8h-2.4v-2.8H8v-2.4h2.8z' },
+  train:{ word:"Train", chip:"Train", icon:
+    'M9.5 2h5A5.5 5.5 0 0120 7.5v8a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 15.5v-8A5.5 5.5 0 019.5 2zM8.5 6.5a1.2 1.2 0 00-1.2 1.2v2.6a1.2 1.2 0 001.2 1.2h7a1.2 1.2 0 001.2-1.2V7.7a1.2 1.2 0 00-1.2-1.2zm-1.3 8.1a1.3 1.3 0 102.6 0 1.3 1.3 0 10-2.6 0zm7 0a1.3 1.3 0 102.6 0 1.3 1.3 0 10-2.6 0z' },
+  bus:{ word:"Bus", chip:"Bus", icon:
+    'M7 2.5h10A3.5 3.5 0 0120.5 6v10.5a2.5 2.5 0 01-1.6 2.33V20.4a1.4 1.4 0 01-2.8 0v-1.4H7.9v1.4a1.4 1.4 0 01-2.8 0v-1.57A2.5 2.5 0 013.5 16.5V6A3.5 3.5 0 017 2.5zM6.6 6.8v4.6a1 1 0 001 1h8.8a1 1 0 001-1V6.8a1 1 0 00-1-1H7.6a1 1 0 00-1 1zm.3 8.3a1.35 1.35 0 102.7 0 1.35 1.35 0 10-2.7 0zm7.8 0a1.35 1.35 0 102.7 0 1.35 1.35 0 10-2.7 0z' }
+};
+var LANGNAME = { te:"తెలుగు", en:"English", hi:"हिन्दी" };
+var SPARK = "M23.2 12C15.7 15.58 15.58 15.7 12 23.2C8.3 15.58 8.42 15.7 0.8 12C8.3 8.42 8.42 8.3 12 0.8C15.7 8.42 15.58 8.3 23.2 12Z";
+var NS = "http://www.w3.org/2000/svg";
+
+function sv(w,h,attrs){
+  var s=document.createElementNS(NS,"svg");
+  s.setAttribute("viewBox","0 0 24 24");
+  s.setAttribute("width",w); s.setAttribute("height",h);
+  s.setAttribute("aria-hidden","true");
+  for (var k in attrs) s.setAttribute(k, attrs[k]);
+  return s;
+}
+function filled(d,size){
+  var s=sv(size,size,{fill:"currentColor"});
+  var p=document.createElementNS(NS,"path");
+  p.setAttribute("fill-rule","evenodd"); p.setAttribute("d",d);
+  s.appendChild(p); return s;
+}
+function stroked(ds,size,w){
+  var s=sv(size,size,{fill:"none",stroke:"currentColor","stroke-width":w||2.1,
+                      "stroke-linecap":"round","stroke-linejoin":"round"});
+  ds.forEach(function(d){
+    var p=document.createElementNS(NS,"path"); p.setAttribute("d",d); s.appendChild(p);
+  });
+  return s;
+}
+function clockSvg(){
+  var s=sv(14,14,{fill:"none",stroke:"currentColor","stroke-width":2.1,"stroke-linecap":"round"});
+  var c=document.createElementNS(NS,"circle");
+  c.setAttribute("cx","12"); c.setAttribute("cy","12"); c.setAttribute("r","8.6");
+  var p=document.createElementNS(NS,"path"); p.setAttribute("d","M12 7v5.3l3.4 2");
+  s.appendChild(c); s.appendChild(p); return s;
+}
+function el(tag, cls, text){
+  var n=document.createElement(tag);
+  if (cls) n.className=cls;
+  if (text !== undefined) n.textContent=text;    /* never innerHTML */
+  return n;
+}
+
+/* ---- when ---- */
+function midnight(d){ var x=new Date(d); x.setHours(0,0,0,0); return x.getTime(); }
+function clock(ts){
+  var d=new Date(ts), h=d.getHours(), m=d.getMinutes();
+  var ap = h<12 ? "AM":"PM"; h=h%12; if(h===0) h=12;
+  return h+":"+(m<10?"0"+m:m)+" "+ap;
+}
+function whenText(ts){
+  var days=Math.round((midnight(Date.now())-midnight(ts))/86400000), day;
+  if (days<=0) day="Today";
+  else if (days===1) day="Yesterday";
+  else if (days<7) day=days+" days ago";
+  else { var d=new Date(ts);
+    day=d.getDate()+" "+["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()]; }
+  return day+" \u00B7 "+clock(ts);
+}
+function mmss(sec){ var m=Math.floor(sec/60), s=sec%60; return m+":"+(s<10?"0"+s:s); }
+
+/* ---- data ---- */
+function load(){
+  if (new URLSearchParams(location.search).get("demo")==="1"){
+    var now=Date.now();
+    return DEMO.map(function(r){
+      return {kind:r.kind,title:r.title,detail:r.detail,verdict:"mine",
+              spoken:r.spoken,lang:r.lang,at:now-r._m*60000};
+    }).sort(function(a,b){ return b.at-a.at; });
+  }
+  var raw;
+  try{ raw=JSON.parse(localStorage.getItem("seva.history")||"[]"); }catch(e){ raw=[]; }
+  if (!Array.isArray(raw)) raw=[];
+  return raw.filter(function(r){
+    return r && typeof r==="object" && KIND[r.kind] && typeof r.at==="number";
+  });
+}
+
+var ALL=load(), kind="all", term="";
+function rowTitle(r){ var w=KIND[r.kind].word; return r.title ? (w+" "+r.title) : w; }
+
+/* ---- one shared voice, so two rows cannot talk over each other ---- */
+var speakingBtn=null, tick=null;
+function stopAll(){
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  if (tick){ clearInterval(tick); tick=null; }
+  if (speakingBtn){
+    speakingBtn.btn.setAttribute("aria-pressed","false");
+    speakingBtn.btn.setAttribute("aria-label","Play what Seva said");
+    while (speakingBtn.btn.firstChild) speakingBtn.btn.removeChild(speakingBtn.btn.firstChild);
+    speakingBtn.btn.appendChild(filled("M8 5.1v13.8a1 1 0 001.53.85l10.6-6.9a1 1 0 000-1.7L9.53 4.25A1 1 0 008 5.1z",20));
+    speakingBtn.bars.classList.remove("playing");
+    speakingBtn.time.textContent="0:00";
+    speakingBtn=null;
+  }
+}
+
+/* ───────── REAL AUDIO GOES HERE ─────────
+   GET /api/replay?at=<timestamp> returns the clip Gnani
+   Timbre already produced. new Audio(url) gives a real
+   duration, and the counter can then read "0:04 / 0:12".
+   Until then the phone's own voice speaks the stored line
+   and reports no duration, so only elapsed time is shown —
+   an invented total would be a lie on screen.           */
+function play(r, btn, bars, time){
+  if (speakingBtn && speakingBtn.btn===btn){ stopAll(); return; }
+  stopAll();
+  if (!window.speechSynthesis || !r.spoken){
+    time.textContent="—";
+    return;
+  }
+  var u=new SpeechSynthesisUtterance(r.spoken);
+  u.lang = r.lang==="te" ? "te-IN" : (r.lang==="hi" ? "hi-IN" : "en-IN");
+  u.rate = 0.92;
+  u.onend = stopAll;
+  /* engine refused the job: say nothing played rather than leave 0:00 up */
+  u.onerror = function(){ stopAll(); time.textContent="\u2014"; };
+
+  speakingBtn={btn:btn,bars:bars,time:time};
+  btn.setAttribute("aria-pressed","true");
+  btn.setAttribute("aria-label","Stop");
+  while (btn.firstChild) btn.removeChild(btn.firstChild);
+  btn.appendChild(filled("M7.2 5.6h3.4v12.8H7.2zM13.4 5.6h3.4v12.8h-3.4z",20));
+  bars.classList.add("playing");
+
+  var t0=Date.now(), started=false;
+  time.textContent="0:00";
+  u.onstart=function(){ started=true; t0=Date.now(); };
+  tick=setInterval(function(){
+    time.textContent=mmss(Math.floor((Date.now()-t0)/1000));
+  },250);
+
+  /* some phones have a speech engine that accepts the job and
+     stays silent. If nothing has started in 1.2s, say so rather
+     than leave the button stuck on Stop. */
+  setTimeout(function(){
+    if (!started && speakingBtn && speakingBtn.btn===btn){
+      stopAll(); time.textContent="\u2014";
+    }
+  },1200);
+
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+}
+
+/* ---- the expanded record ---- */
+function buildPanel(r){
+  var panel=el("div","panel");
+
+  if (r.spoken){
+    var pt=el("div","ptitle");
+    pt.appendChild(filled(SPARK,15));
+    pt.appendChild(el("span",null,"What Seva told you"));
+    panel.appendChild(pt);
+
+    var said=el("div","said");
+    var wd=el("span","waved");
+    wd.appendChild(filled(
+      "M2.6 10.4h1.6v3.2H2.6zM6 7.6h1.6v8.8H6zM9.4 4.4H11v15.2H9.4zM12.8 8.4h1.6v7.2h-1.6zM16.2 6.4h1.6v11.2h-1.6zM19.6 9.6h1.6v4.8h-1.6z",20));
+    said.appendChild(wd);
+    var st=el("div","saidtxt", r.spoken);
+    if (r.lang) st.setAttribute("lang", r.lang);
+    said.appendChild(st);
+    var kc=el("span","kindchip "+r.kind);
+    kc.appendChild(filled(KIND[r.kind].icon,14));
+    kc.appendChild(el("span",null,KIND[r.kind].chip));
+    said.appendChild(kc);
+    panel.appendChild(said);
+
+    var pl=el("div","player");
+    var btn=document.createElement("button");
+    btn.type="button"; btn.className="play";
+    btn.setAttribute("aria-pressed","false");
+    btn.setAttribute("aria-label","Play what Seva said");
+    btn.appendChild(filled("M8 5.1v13.8a1 1 0 001.53.85l10.6-6.9a1 1 0 000-1.7L9.53 4.25A1 1 0 008 5.1z",20));
+    var bars=el("div","bars");
+    /* decorative, deterministic — a playing indicator, not a progress bar */
+    for (var k=0;k<34;k++){
+      var b=document.createElement("i");
+      var env=Math.sin((k+1)/34*Math.PI);
+      var hgt=Math.round(5+22*env*(0.45+0.55*Math.abs(Math.sin(k*2.7))));
+      b.style.height=hgt+"px";
+      b.style.animationDelay=(k*0.03).toFixed(2)+"s";
+      bars.appendChild(b);
+    }
+    var time=el("span","elapsed","0:00");
+    var lt=el("span","langtag", LANGNAME[r.lang] || "English");
+    btn.addEventListener("click", function(){ play(r,btn,bars,time); });
+    pl.appendChild(btn); pl.appendChild(bars); pl.appendChild(time); pl.appendChild(lt);
+    panel.appendChild(pl);
+  }
+
+  var facts=el("div","facts");
+  function fact(k,v){
+    var f=el("div","fact");
+    f.appendChild(el("span","k",k));
+    f.appendChild(el("span","v",v));
+    return f;
+  }
+  facts.appendChild(fact("Date & time", whenText(r.at)));
+  facts.appendChild(fact("Source", "Voice input"));
+  facts.appendChild(fact("Status", r.verdict==="mine" ? "Confirmed" : String(r.verdict||"—")));
+  panel.appendChild(facts);
+
+  return panel;
+}
+
+/* ---- filters, with real counts ---- */
+function counts(){
+  var c={all:ALL.length,hospital:0,train:0,bus:0};
+  ALL.forEach(function(r){ c[r.kind]++; });
+  return c;
+}
+function buildFilters(){
+  var box=document.getElementById("filters");
+  while (box.firstChild) box.removeChild(box.firstChild);
+  var c=counts();
+  [["all","All",null],["hospital","Hospital","hospital"],
+   ["train","Train","train"],["bus","Bus","bus"]].forEach(function(row){
+    var b=document.createElement("button");
+    b.type="button"; b.className="chip";
+    b.setAttribute("data-kind",row[0]);
+    b.setAttribute("aria-pressed", row[0]===kind ? "true":"false");
+    /* no icon here: the count has to fit, and the word already
+       names the kind. The icon still leads every row below.   */
+    b.appendChild(el("span",null,row[1]));
+    b.appendChild(el("span","cnt", String(c[row[0]])));
+    b.addEventListener("click", function(){
+      kind=row[0]; stopAll(); buildFilters(); render();
+    });
+    box.appendChild(b);
+  });
+}
+
+function render(){
+  var list=document.getElementById("list");
+  while (list.firstChild) list.removeChild(list.firstChild);
+
+  var rows=ALL.filter(function(r){
+    if (kind!=="all" && r.kind!==kind) return false;
+    if (!term) return true;
+    return (rowTitle(r)+" "+(r.detail||"")+" "+(r.spoken||"")).toLowerCase().indexOf(term)!==-1;
+  });
+  if (!rows.length){ list.appendChild(emptyCard()); return; }
+
+  rows.forEach(function(r,i){
+    var item=el("div","item");
+    var head=document.createElement("button");
+    head.type="button"; head.className="head";
+    head.setAttribute("aria-expanded","false");
+    head.setAttribute("aria-controls","more"+i);
+
+    var disc=el("span","disc "+r.kind);
+    disc.appendChild(filled(KIND[r.kind].icon,28));
+
+    var body=el("div","body");
+    body.appendChild(el("div","t", rowTitle(r)));
+    if (r.detail) body.appendChild(el("div","d", r.detail));
+    var when=el("div","when");
+    when.appendChild(clockSvg());
+    when.appendChild(el("span",null,whenText(r.at)));
+    body.appendChild(when);
+
+    var chev=el("span","chev");
+    chev.appendChild(stroked(["M6 9l6 6 6-6"],20,2.5));
+
+    head.appendChild(disc); head.appendChild(body); head.appendChild(chev);
+
+    var more=el("div","more"); more.id="more"+i;
+    more.appendChild(buildPanel(r));
+
+    head.addEventListener("click", function(){
+      var open=head.getAttribute("aria-expanded")==="true";
+      if (open) stopAll();
+      head.setAttribute("aria-expanded", open?"false":"true");
+      more.classList.toggle("show", !open);
+      item.classList.toggle("open", !open);
+    });
+
+    item.appendChild(head); item.appendChild(more);
+    list.appendChild(item);
+  });
+}
+
+function emptyCard(){
+  var box=el("div","empty");
+  box.appendChild(stroked(["M12 6.6V12l3.8 2.2"],46,1.7));
+  var c=document.createElementNS(NS,"circle");
+  c.setAttribute("cx","12"); c.setAttribute("cy","12"); c.setAttribute("r","9");
+  box.firstChild.insertBefore(c, box.firstChild.firstChild);
+  if (ALL.length && (kind!=="all" || term)){
+    box.appendChild(el("h2",null,"Nothing matches"));
+    box.appendChild(el("p",null,"Try another filter, or clear the search."));
+  } else {
+    box.appendChild(el("h2",null,"No alerts yet"));
+    box.appendChild(el("p",null,
+      "When Seva hears your number, it is saved here so you can check it again later."));
+    var a=document.createElement("a");
+    a.href="listen.html"; a.textContent="Start listening";
+    box.appendChild(a);
+  }
+  return box;
+}
+
+/* ---- search ---- */
+var searchBtn=document.getElementById("searchBtn");
+var wrap=document.getElementById("searchwrap");
+var q=document.getElementById("q");
+searchBtn.addEventListener("click", function(){
+  var open=searchBtn.getAttribute("aria-pressed")==="true";
+  searchBtn.setAttribute("aria-pressed", open?"false":"true");
+  wrap.classList.toggle("show", !open);
+  if (!open) q.focus(); else { q.value=""; term=""; stopAll(); render(); }
+});
+q.addEventListener("input", function(){
+  term=q.value.trim().toLowerCase(); stopAll(); render();
+});
+
+document.getElementById("back").addEventListener("click", function(){
+  stopAll();
+  if (document.referrer && history.length>1) void 0;
+  else window.location.href="home.html";
+});
+window.addEventListener("pagehide", stopAll);
+
+buildFilters();
+render();
+</script>
+</body>
+</html>
+

@@ -1,0 +1,344 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="application-name" content="Seva">
+<meta name="apple-mobile-web-app-title" content="Seva">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ECEFFC">
+<title>Seva — Select Language</title>
+
+<script>
+  try{ if(localStorage.getItem("seva.darkMode")==="1")
+         document.documentElement.setAttribute("data-theme","dark"); }catch(e){}
+</script>
+
+<style>
+/* ══════════════════════════════════════════════════════════
+   SCREEN 12 — SELECT LANGUAGE
+
+   WHAT CHANGED FROM THE MOCKUP, AND WHY
+
+   1. EACH ROW LEADS WITH THE LANGUAGE'S OWN NAME. The mockup
+      lists them as "Telugu", "Tamil", "Bengali" — in Latin
+      script. Someone who cannot read Latin script cannot find
+      their own language on the language screen. So the row
+      reads తెలుగు first, with Telugu underneath for everyone
+      else. This is the one screen that must work for a person
+      who reads no English at all.
+
+   2. THE GUJARATI BADGE FAILED. #A85206 on #FBE0C4 was 4.27.
+      Deepened to #8A4404. Every other badge was already 4.8+.
+
+   3. CHOICE IS SAVED THE MOMENT IT IS TAPPED, not on Done. If
+      she backs out with the hardware button the choice still
+      holds — which is what "will be remembered" promises.
+
+   4. No 9:41 status bar, and no bottom bar. This screen is a
+      sub-page of Settings; back and Done both already leave.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --ink:#16215A;
+  --bg:#ECEFFC;
+  --surface:#FFFFFF;
+  --line:#E3E8F7;
+  --text:#1F2937;
+  --muted:#50607D;
+  --muted-tint:#43506A;
+
+  --sel-bg:#EDE7FD;
+  --sel-ink:#5B21B6;
+
+  --cta-from:#2563EB;         /* house gradient — white on it 5.17:1 */
+  --cta-to:#7C3AED;           /* house gradient — white on it 5.70:1 */
+
+  --f:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --f-indic:"Noto Sans Telugu","Noto Sans Devanagari","Noto Sans Tamil","Noto Sans Kannada",
+            "Noto Sans Malayalam","Noto Sans Bengali","Noto Sans Gujarati","Noto Sans Gurmukhi",
+            "Nirmala UI","Gautami","Latha","Vrinda","Shruti",sans-serif;
+
+  --tap:56px;
+  --r-pill:999px;
+}
+[data-theme="dark"]{
+  --bg:#10131F; --surface:#191E2E; --line:#2A3146;
+  --text:#F2F5FA; --muted:#A8B4C8; --muted-tint:#A8B4C8; --ink:#DCE4F5;
+  --sel-bg:#2B2450; --sel-ink:#C4A7FF;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--f); font-size:18px; line-height:1.6;
+  background:var(--bg); color:var(--text);
+  min-height:100vh; min-height:100dvh;
+  -webkit-font-smoothing:antialiased;
+}
+.sky{position:fixed;inset:0;z-index:-2;pointer-events:none;overflow:hidden}
+.sky::before{
+  content:"";position:absolute;inset:0;
+  background:
+    radial-gradient(56% 24% at 6% 1%,   rgba(206,216,253,.78) 0%, rgba(206,216,253,0) 64%),
+    radial-gradient(62% 30% at 102% 6%, rgba(198,208,252,.86) 0%, rgba(198,208,252,0) 62%);
+}
+[data-theme="dark"] .sky::before{
+  background:radial-gradient(62% 30% at 102% 6%,rgba(60,54,124,.52) 0%,rgba(60,54,124,0) 62%);
+}
+
+.screen{
+  max-width:400px;margin:0 auto;
+  padding:calc(env(safe-area-inset-top) + 16px) 16px
+          calc(env(safe-area-inset-bottom) + 104px);
+}
+
+.back{
+  width:44px;height:44px;margin:0 0 10px -8px;border:0;padding:0;background:none;
+  display:grid;place-items:center;color:var(--ink);cursor:pointer;border-radius:12px;
+  -webkit-tap-highlight-color:transparent;
+}
+.back:focus-visible{outline:3px solid #4C3BD8;outline-offset:2px}
+
+h1{margin:0 0 6px;font-size:29px;font-weight:800;letter-spacing:-.5px;color:var(--ink)}
+.lede{margin:0 0 4px;font-size:16px;color:var(--muted)}
+.note{margin:0 0 18px;font-size:14px;color:var(--muted-tint)}
+
+.list{
+  background:var(--surface);border-radius:20px;overflow:hidden;
+  box-shadow:0 8px 22px rgba(31,41,70,.09), inset 0 0 0 1px rgba(255,255,255,.9);
+}
+[data-theme="dark"] .list{box-shadow:none;border:1px solid var(--line)}
+
+.opt{
+  width:100%;border:0;background:none;text-align:left;font-family:inherit;
+  display:flex;align-items:center;gap:13px;
+  min-height:var(--tap);padding:10px 15px;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.opt + .opt{border-top:1px solid var(--line)}
+.opt:focus-visible{outline:3px solid #4C3BD8;outline-offset:-3px}
+.opt .badge{
+  flex:none;width:40px;height:40px;border-radius:13px;
+  display:grid;place-items:center;
+  font-family:var(--f-indic);font-size:19px;font-weight:700;line-height:1;
+}
+.opt .nm{flex:1;min-width:0;display:flex;flex-direction:column}
+.opt .own{font-family:var(--f-indic);font-size:18px;font-weight:700;color:var(--ink);line-height:1.35}
+.opt .eng{font-size:13px;color:var(--muted-tint);line-height:1.3}
+.opt .radio{
+  flex:none;width:24px;height:24px;border-radius:50%;
+  box-shadow:inset 0 0 0 2px #79839A;          /* 3.9 on white */
+  display:grid;place-items:center;
+}
+.opt[aria-checked="true"]{background:var(--sel-bg)}
+.opt[aria-checked="true"] .own{color:var(--sel-ink)}
+.opt[aria-checked="true"] .radio{box-shadow:inset 0 0 0 2px var(--sel-ink)}
+.opt[aria-checked="true"] .radio::after{
+  content:"";width:12px;height:12px;border-radius:50%;background:var(--sel-ink);
+}
+
+.b-te{background:#E4D9FB;color:#5B21B6}   /* 6.68 */
+.b-hi{background:#FDE4C3;color:#8A4B04}   /* 5.52 */
+.b-ta{background:#CFEFE1;color:#0A6E42}   /* 5.14 */
+.b-kn{background:#D6E3FD;color:#1D4ED8}   /* 5.19 */
+.b-ml{background:#FBD6E6;color:#A3195B}   /* 5.57 */
+.b-mr{background:#E0DCF6;color:#4C3BD8}   /* 5.24 */
+.b-bn{background:#CDECEC;color:#0F6E6E}   /* 4.83 */
+.b-gu{background:#FBE3CC;color:#8A4404}   /* deepened from #A85206 */
+.b-pa{background:#EDDAFB;color:#6B21A8}   /* 6.65 */
+.b-en{background:#DFE5F2;color:#3F4C66}   /* 6.82 */
+[data-theme="dark"] .opt .badge{background:rgba(255,255,255,.10);color:#D7DEEE}
+
+/* ── Done ── */
+.donewrap{
+  position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(env(safe-area-inset-bottom) + 14px);
+  width:min(368px,calc(100% - 32px));z-index:20;
+}
+.done{
+  width:100%;min-height:58px;border:0;border-radius:var(--r-pill);
+  background:linear-gradient(135deg,var(--cta-from),var(--cta-to));
+  color:#fff;font-family:inherit;font-size:19px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  cursor:pointer;box-shadow:0 12px 28px rgba(60,52,170,.36);
+  position:relative;overflow:hidden;isolation:isolate;
+  -webkit-tap-highlight-color:transparent;
+}
+.done::after{
+  content:"";position:absolute;top:-20%;bottom:-20%;left:-65%;width:46%;
+  z-index:1;transform:skewX(-18deg);pointer-events:none;
+  background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.30) 50%,rgba(255,255,255,0));
+  animation:sheen 6s cubic-bezier(.42,.02,.28,1) infinite;
+}
+@keyframes sheen{0%{left:-65%}58%,100%{left:135%}}
+.done > *{position:relative;z-index:2}
+.done:focus-visible{outline:3px solid #16215A;outline-offset:3px}
+
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+
+<div class="sky" aria-hidden="true"></div>
+
+<main class="screen">
+
+  <button class="back" id="back" type="button" aria-label="Go back">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 12H5M12 5l-7 7 7 7"/>
+    </svg>
+  </button>
+
+  <h1>Select Language</h1>
+  <p class="lede">Choose your preferred language</p>
+  <p class="note">(Your choice will be remembered)</p>
+
+  <div class="list" id="list" role="radiogroup" aria-label="Language">
+
+    <button class="opt" type="button" role="radio" aria-checked="false" data-code="te-IN">
+      <span class="badge b-te" aria-hidden="true">తె</span>
+      <span class="nm"><span class="own">తెలుగు</span><span class="eng">Telugu</span></span>
+      <span class="radio" aria-hidden="true"></span>
+    </button>
+
+    <button class="opt" type="button" role="radio" aria-checked="false" data-code="hi-IN">
+      <span class="badge b-hi" aria-hidden="true">हि</span>
+      <span class="nm"><span class="own">हिन्दी</span><span class="eng">Hindi</span></span>
+      <span class="radio" aria-hidden="true"></span>
+    </button>
+
+    <button class="opt" type="button" role="radio" aria-checked="false" data-code="ta-IN">
+      <span class="badge b-ta" aria-hidden="true">த</span>
+      <span class="nm"><span class="own">தமிழ்</span><span class="eng">Tamil</span></span>
+      <span class="radio" aria-hidden="true"></span>
+    </button>
+
+    <button class="opt" type="button" role="radio" aria-checked="false" data-code="kn-IN">
+      <span class="badge b-kn" aria-hidden="true">ಕ</span>
+      <span class="nm"><span class="own">ಕನ್ನಡ</span><span class="eng">Kannada</span></span>
+      <span class="radio" aria-hidden="true"></span>
+    </button>
+
+    <button class="opt" type="button" role="radio" aria-checked="false" data-code="ml-IN">
+      <span class="badge b-ml" aria-hidden="true">മ</span>
+      <span class="nm"><span class="own">മലയാളം</span><span class="eng">Malayalam</span></span>
+      <span class="radio" aria-hidden="true"></span>
+    </button>
+
+    <button class="opt" type="button" role="radio" aria-checked="false" data-code="mr-IN">
+      <span class="badge b-mr" aria-hidden="true">म</span>
+      <span class="nm"><span class="own">मराठी</span><span class="eng">Marathi</span></span>
+      <span class="radio" aria-hidden="true"></span>
+    </button>
+
+    <button class="opt" type="button" role="radio" aria-checked="false" data-code="bn-IN">
+      <span class="badge b-bn" aria-hidden="true">বা</span>
+      <span class="nm"><span class="own">বাংলা</span><span class="eng">Bengali</span></span>
+      <span class="radio" aria-hidden="true"></span>
+    </button>
+
+    <button class="opt" type="button" role="radio" aria-checked="false" data-code="gu-IN">
+      <span class="badge b-gu" aria-hidden="true">ગુ</span>
+      <span class="nm"><span class="own">ગુજરાતી</span><span class="eng">Gujarati</span></span>
+      <span class="radio" aria-hidden="true"></span>
+    </button>
+
+    <button class="opt" type="button" role="radio" aria-checked="false" data-code="pa-IN">
+      <span class="badge b-pa" aria-hidden="true">ਪੰ</span>
+      <span class="nm"><span class="own">ਪੰਜਾਬੀ</span><span class="eng">Punjabi</span></span>
+      <span class="radio" aria-hidden="true"></span>
+    </button>
+
+    <button class="opt" type="button" role="radio" aria-checked="false" data-code="en-IN">
+      <span class="badge b-en" aria-hidden="true">A</span>
+      <span class="nm"><span class="own">English</span><span class="eng">English</span></span>
+      <span class="radio" aria-hidden="true"></span>
+    </button>
+
+  </div>
+
+</main>
+
+<div class="donewrap">
+  <button class="done" id="done" type="button">
+    <span>Done</span>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M5 12h13M12 5l7 7-7 7"/>
+    </svg>
+  </button>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   SCREEN 12 — SELECT LANGUAGE
+
+   The facts are stored once in English. This only records
+   which language she should be SPOKEN TO in; it never
+   translates the stored data.
+   ══════════════════════════════════════════════════════════ */
+
+var opts = Array.prototype.slice.call(document.querySelectorAll(".opt"));
+
+function get(k, dflt){
+  try{ var v = localStorage.getItem(k); return v === null ? dflt : v; }
+  catch(e){ return dflt; }
+}
+function set(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+
+function paint(code){
+  for (var i = 0; i < opts.length; i++){
+    var hit = opts[i].getAttribute("data-code") === code;
+    opts[i].setAttribute("aria-checked", hit ? "true" : "false");
+    opts[i].tabIndex = hit ? 0 : -1;
+  }
+}
+
+var current = get("seva.language", "en-IN");
+if (!document.querySelector('.opt[data-code="' + current + '"]')) current = "en-IN";
+paint(current);
+
+function choose(code){
+  current = code;
+  paint(code);
+  /* saved on tap, not on Done — the screen promises it is
+     remembered, so backing out must not throw it away */
+  set("seva.language", code);
+  if (get("seva.vibration","1") === "1" && navigator.vibrate) navigator.vibrate(18);
+}
+
+opts.forEach(function(o){
+  o.addEventListener("click", function(){ choose(o.getAttribute("data-code")); });
+});
+
+/* arrow keys walk the group, the way a radio group should */
+document.getElementById("list").addEventListener("keydown", function(e){
+  var i = opts.indexOf(document.activeElement);
+  if (i < 0) return;
+  var n = null;
+  if (e.key === "ArrowDown" || e.key === "ArrowRight") n = (i + 1) % opts.length;
+  if (e.key === "ArrowUp"   || e.key === "ArrowLeft")  n = (i - 1 + opts.length) % opts.length;
+  if (n === null) return;
+  e.preventDefault();
+  opts[n].focus();
+  choose(opts[n].getAttribute("data-code"));
+});
+
+function leave(){
+  if (document.referrer && history.length > 1) void 0;
+  else window.location.href = "settings.html";
+}
+document.getElementById("back").addEventListener("click", leave);
+document.getElementById("done").addEventListener("click", leave);
+</script>
+</body>
+</html>
+

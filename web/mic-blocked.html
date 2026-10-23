@@ -1,0 +1,370 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="application-name" content="Seva">
+<meta name="apple-mobile-web-app-title" content="Seva">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#FCE4E7">
+<title>Seva — Microphone blocked</title>
+
+<script>
+  try{ if(localStorage.getItem("seva.darkMode")==="1")
+         document.documentElement.setAttribute("data-theme","dark"); }catch(e){}
+</script>
+
+<style>
+/* ══════════════════════════════════════════════════════════
+   SCREEN 7 — MICROPHONE BLOCKED
+
+   WHAT CHANGED FROM THE MOCK, AND WHY
+
+   1. "Open Settings" is gone. A web page cannot open the
+      phone's settings app — the button would have done
+      nothing. In its place are the real steps, written for
+      the browser she is actually holding.
+
+   2. There is a way out that still helps. The microphone
+      being off does not make Seva useless: Ask is typed.
+      So the screen offers it instead of being a dead end.
+
+   3. It fixes itself. If she grants the permission in
+      another tab or from the address bar, the screen
+      notices and turns green on its own — no third tap.
+
+   4. The mock's red #EF4444 as a heading is 3.12:1 and
+      fails. #B42318 reads the same and measures 5.44:1.
+
+   DESIGN TOKENS — identical to every other screen.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --primary:#6C3D95;
+  --ink:#16215A;
+
+  --bg:#F8FAFF;
+  --surface:#FFFFFF;
+  --line:#E6EBF5;
+
+  --text:#1F2937;
+  --muted:#43506A;            /* 6.70:1 on the rose card */
+
+  --rose-head:#FCE4E7;
+  --err-fg:#B42318;           /* 5.44:1 on the card */
+  --stop-from:#DC2626;        /* white label 4.83:1 */
+  --stop-to:#B42318;          /* white label 6.57:1 */
+
+  --ok-head:#E6F7EE;
+  --ok-fg:#0A6E42;            /* 5.69:1 */
+  --ok-disc-from:#19A84E;
+  --ok-disc-to:#0E7A39;
+
+  --ask-fg:#6D28D9;           /* 7.10:1 on white */
+
+  --f-sans:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",sans-serif;
+  --f-telugu:"Noto Sans Telugu","Nirmala UI","Gautami",sans-serif;
+
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px;
+  --r-pill:28px; --r-lg:16px; --r-xl:26px;
+  --tap:56px;
+}
+html[data-theme="dark"]{
+  --bg:#10131F; --surface:#191E2E; --line:#2A3146;
+  --text:#F2F5FA; --muted:#C2CBDB; --ink:#DCE4F5;
+  --rose-head:#35161A; --err-fg:#FF9B92; --ok-head:#13302A; --ok-fg:#5BE49B;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:var(--f-sans); font-size:18px; line-height:1.6;
+  display:flex; justify-content:center;
+}
+.screen{
+  position:relative; width:100%; max-width:400px; min-height:100dvh;
+  display:flex; flex-direction:column; gap:var(--s3);
+  background:linear-gradient(170deg,#EFF1FF 0%,#F4F5FF 44%,var(--bg) 74%);
+  padding:calc(env(safe-area-inset-top) + 18px) 20px
+          calc(env(safe-area-inset-bottom) + 20px);
+}
+html[data-theme="dark"] .screen{
+  background:linear-gradient(170deg,#1B1A2E 0%,#15192A 46%,var(--bg) 74%);
+}
+
+/* ══════ THE CARD ══════ */
+.card{
+  border-radius:var(--r-xl);
+  background:linear-gradient(180deg,var(--rose-head) 0%,var(--surface) 58%);
+  border:1px solid var(--line);
+  box-shadow:0 14px 34px rgba(130,25,20,.12);
+  padding:var(--s6) var(--s4);
+  text-align:center;
+  animation:rise .45s cubic-bezier(.2,.8,.3,1) both;
+}
+@keyframes rise{
+  from{opacity:0;transform:translateY(14px)}
+  to  {opacity:1;transform:none}
+}
+
+.disc{
+  width:74px;height:74px;margin:0 auto var(--s3);
+  display:grid;place-items:center;
+  color:var(--stop-to);
+  animation:pop .45s cubic-bezier(.2,1.5,.4,1) .1s both;
+}
+@keyframes pop{
+  from{opacity:0;transform:scale(.5)}
+  to  {opacity:1;transform:scale(1)}
+}
+
+h1{
+  font-size:28px; line-height:1.2; font-weight:800; letter-spacing:-.5px;
+  color:var(--err-fg);                     /* 5.44:1 */
+  max-width:11ch; margin:0 auto;
+}
+.lead{
+  margin-top:var(--s3);
+  font-size:19px; line-height:1.42;
+  color:var(--muted);                      /* 6.70:1 */
+}
+
+/* ══════ THE REAL STEPS ══════
+   Written for the browser she is holding, filled in by the
+   script below. This is what replaced the Open Settings
+   button, which could never have worked.                   */
+.steps{
+  margin-top:var(--s4);
+  text-align:left;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r-lg);
+  padding:var(--s4) var(--s4) var(--s3);
+}
+.steps h2{
+  font-size:14px;font-weight:750;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:var(--s3);
+}
+.steps ol{list-style:none;display:flex;flex-direction:column;gap:var(--s3)}
+.steps li{display:flex;gap:var(--s3);align-items:flex-start;
+          font-size:17px;line-height:1.4;color:var(--ink)}   /* 15.0:1 */
+.steps .n{
+  flex:none;width:26px;height:26px;margin-top:2px;
+  display:grid;place-items:center;border-radius:50%;
+  background:var(--stop-to);color:#fff;                      /* 6.57:1 */
+  font-size:14px;font-weight:750;
+}
+
+/* ══════ THE QUIET PROMISE ══════ */
+.note{
+  display:flex;gap:var(--s2);align-items:flex-start;
+  margin-top:var(--s3);padding:0 var(--s1);
+  font-size:15px;line-height:1.4;color:var(--muted);
+}
+.note svg{flex:none;margin-top:3px;color:var(--ask-fg)}
+
+/* ══════ BUTTONS ══════ */
+.btn{
+  position:relative;
+  display:flex;align-items:center;justify-content:center;gap:var(--s2);
+  width:100%;min-height:var(--tap);
+  border:0;border-radius:var(--r-pill);
+  font-family:inherit;font-size:18px;font-weight:750;cursor:pointer;
+  transition:transform .14s ease, box-shadow .14s ease;
+}
+.btn:active{transform:translateY(2px) scale(.99)}
+.btn:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+
+.btn.try{
+  background:linear-gradient(100deg,var(--stop-from),var(--stop-to));
+  color:#fff;                              /* 4.83:1 / 6.57:1 */
+  box-shadow:0 0 0 6px rgba(220,38,38,.12), 0 10px 26px rgba(180,35,24,.34);
+}
+.btn.ask{
+  background:var(--surface);
+  border:1px solid var(--line);
+  color:var(--ink);                        /* 15.0:1 */
+  box-shadow:0 6px 16px rgba(22,33,90,.08);
+}
+.btn.ask .sub{display:block;font-size:14px;font-weight:600;color:var(--muted)}
+.btn.ask .wrap{display:flex;flex-direction:column;align-items:center;line-height:1.25}
+
+/* ══════ IT FIXED ITSELF ══════ */
+.card.ok{background:linear-gradient(180deg,var(--ok-head) 0%,var(--surface) 58%)}
+.card.ok .disc{color:var(--ok-disc-to)}
+.card.ok h1{color:var(--ok-fg)}            /* 5.69:1 */
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+@media (max-height:760px){
+  .card{padding:var(--s4)}
+  .disc{width:60px;height:60px}
+  h1{font-size:25px}
+  .lead{font-size:17px}
+  .steps{padding:var(--s3)}
+  .steps li{font-size:16px}
+}
+</style>
+</head>
+
+<body>
+<main class="screen">
+
+  <section class="card" id="card">
+    <div class="disc" id="disc" aria-hidden="true">
+      <svg width="68" height="68" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12.87 2.6a1 1 0 00-1.74 0L1.3 20.0A1 1 0 002.17 21.5h19.66a1 1 0 00.87-1.5z"/>
+        <path d="M12 8.3a1.1 1.1 0 00-1.1 1.16l.3 4.6a.8.8 0 001.6 0l.3-4.6A1.1 1.1 0 0012 8.3z" fill="#fff"/>
+        <circle cx="12" cy="17.4" r="1.25" fill="#fff"/>
+      </svg>
+    </div>
+
+    <h1 id="title">Microphone Blocked</h1>
+    <p class="lead" id="lead">Seva cannot hear the hall until the microphone is allowed.</p>
+
+    <div class="steps" id="steps">
+      <h2 id="stepsHead">How to allow it</h2>
+      <ol id="stepList"></ol>
+    </div>
+  </section>
+
+  <p class="note">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 2.8l7.5 3v6c0 4.4-3.1 8.2-7.5 9.4-4.4-1.2-7.5-5-7.5-9.4v-6z"/>
+    </svg>
+    Seva only listens while the listening screen is open. Nothing is recorded and nothing is kept.
+  </p>
+
+  <button class="btn try" id="try" type="button">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M20 11.5A8 8 0 116.6 5.9L4 8.4"/><path d="M4 3.4v5h5"/>
+    </svg>
+    <span id="tryLbl">Try Again</span>
+  </button>
+
+  <a class="btn ask" href="ask.html">
+    <span class="wrap">
+      Use Nova instead
+      <span class="sub">Type your question &mdash; no microphone needed</span>
+    </span>
+  </a>
+
+</main>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   SCREEN 7 — MICROPHONE BLOCKED
+   ══════════════════════════════════════════════════════════ */
+
+var card    = document.getElementById("card");
+var title   = document.getElementById("title");
+var lead    = document.getElementById("lead");
+var steps   = document.getElementById("steps");
+var list    = document.getElementById("stepList");
+var tryBtn  = document.getElementById("try");
+var tryLbl  = document.getElementById("tryLbl");
+
+/* ---- 1. which browser is she holding? ----
+   The steps are useless if they describe the wrong one.   */
+function stepsForThisBrowser(){
+  var ua = navigator.userAgent;
+  var android = /Android/i.test(ua);
+  var ios     = /iPhone|iPad|iPod/i.test(ua);
+  var safari  = /Safari/i.test(ua) && !/Chrome|CriOS|Chromium|Edg/i.test(ua);
+
+  if (android){
+    return ["Tap the lock icon next to the web address at the top.",
+            "Tap Permissions, then Microphone.",
+            "Choose Allow, then come back and press Try Again."];
+  }
+  if (ios && safari){
+    return ["Open the iPhone Settings app.",
+            "Go to Safari, then Microphone.",
+            "Set Seva to Allow, then come back and press Try Again."];
+  }
+  if (ios){
+    return ["Open the iPhone Settings app.",
+            "Scroll to this browser and turn Microphone on.",
+            "Come back and press Try Again."];
+  }
+  return ["Click the lock or the microphone icon in the address bar.",
+          "Set Microphone to Allow.",
+          "Press Try Again."];
+}
+
+(function(){
+  var items = stepsForThisBrowser();
+  for (var i = 0; i < items.length; i++){
+    var li = document.createElement("li");
+    var n  = document.createElement("span");
+    n.className = "n";
+    n.textContent = String(i + 1);
+    var t  = document.createElement("span");
+    t.textContent = items[i];                 /* textContent, never innerHTML */
+    li.appendChild(n);
+    li.appendChild(t);
+    list.appendChild(li);
+  }
+})();
+
+/* ---- 2. it turned green on its own ---- */
+function recovered(){
+  card.classList.add("ok");
+  title.textContent = "Microphone is on";
+  lead.textContent  = "Taking you back to listening\u2026";
+  steps.hidden = true;
+  tryLbl.textContent = "Continue";
+  setTimeout(function(){ window.location.href = "listen.html"; }, 1200);
+}
+
+/* ---- 3. Try Again really asks ----
+   This is the one screen where opening the microphone IS
+   the content, so it genuinely calls for it. It needs
+   https or localhost; over a plain http LAN address the
+   browser refuses, and the message below says so instead
+   of blaming her.                                         */
+function askForMic(){
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    lead.textContent = "This browser will only open a microphone on a secure address (https).";
+    return;
+  }
+  tryLbl.textContent = "Checking\u2026";
+  navigator.mediaDevices.getUserMedia({ audio:true }).then(function(stream){
+    stream.getTracks().forEach(function(t){ t.stop(); });   /* let it go at once */
+    recovered();
+  }).catch(function(err){
+    tryLbl.textContent = "Try Again";
+    if (err && err.name === "NotFoundError"){
+      title.textContent = "No Microphone Found";
+      lead.textContent  = "This device is not reporting a microphone.";
+      steps.hidden = true;
+    } else {
+      lead.textContent = "Still blocked. Follow the steps above, then press Try Again.";
+    }
+  });
+}
+tryBtn.addEventListener("click", askForMic);
+
+/* ---- 4. watch the permission, so she never taps twice ---- */
+(function(){
+  if (!navigator.permissions || !navigator.permissions.query) return;
+  try{
+    navigator.permissions.query({ name:"microphone" }).then(function(st){
+      if (st.state === "granted") recovered();
+      st.onchange = function(){ if (st.state === "granted") recovered(); };
+    }).catch(function(){ /* some browsers do not know this name — fine */ });
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
+

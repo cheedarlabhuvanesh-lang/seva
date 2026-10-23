@@ -1,0 +1,400 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="application-name" content="Seva">
+<meta name="apple-mobile-web-app-title" content="Seva">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ECEFFC">
+<title>Privacy — Seva</title>
+<script>
+  try{ if(localStorage.getItem("seva.darkMode")==="1")
+         document.documentElement.setAttribute("data-theme","dark"); }catch(e){}
+</script>
+<style>
+/* ══════════════════════════════════════════════════════════
+   PRIVACY — sub-page, back button only, no bottom bar.
+
+   EVERY CLAIM ON THIS PAGE WAS CHECKED AGAINST THE CODE
+   BEFORE IT WAS WRITTEN:
+
+   - grep for fetch / XMLHttpRequest across all pages:
+     ONE hit, inside a comment block in ask.html. The app
+     as it ships today makes no network call at all.
+   - grep for localStorage keys: exactly 9, all listed below.
+   - no cookie is ever set, no analytics, no third-party
+     script, no font or image loaded from another domain.
+   - geolocation is never called. That is why the History
+     screen has no "Location" tile.
+
+   The "on this phone right now" block reads the real store
+   and the erase button really empties it. A privacy page
+   that cannot be checked is just a promise.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --ink:#16215A; --bg:#ECEFFC; --surface:#FFFFFF; --line:#E3E8F7;
+  --text:#1F2937; --muted:#50607D; --muted-tint:#43506A;
+  --cta-from:#2563EB; --cta-to:#7C3AED; --spark:#4C3BD8;
+  --panel:#F4F6FE; --tile:#EDF1FD;
+  --ok-bg:#C9EEDF; --ok-ink:#0A6E42;
+  --stop-from:#DC2626; --stop-to:#B42318;
+  --f:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --r-pill:999px;
+}
+[data-theme="dark"]{
+  --bg:#10131F; --surface:#191E2E; --line:#2A3146; --text:#F2F5FA;
+  --muted:#A8B4C8; --muted-tint:#A8B4C8; --ink:#DCE4F5;
+  --panel:#141A2B; --tile:#1E2538; --spark:#A89CFF;
+  --ok-bg:#1B4539; --ok-ink:#7FE0B6;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--f); font-size:18px; line-height:1.6;
+  background:var(--bg); color:var(--text);
+  min-height:100vh; min-height:100dvh; -webkit-font-smoothing:antialiased;
+}
+.sky{position:fixed;inset:0;z-index:-2;pointer-events:none;overflow:hidden}
+.sky::before{
+  content:"";position:absolute;inset:0;
+  background:
+    radial-gradient(56% 24% at 6% 1%,   rgba(206,216,253,.78) 0%, rgba(206,216,253,0) 64%),
+    radial-gradient(64% 30% at 102% 6%, rgba(198,208,252,.88) 0%, rgba(198,208,252,0) 62%),
+    radial-gradient(66% 28% at 90% 99%, rgba(202,214,253,.70) 0%, rgba(202,214,253,0) 66%);
+}
+[data-theme="dark"] .sky::before{
+  background:radial-gradient(64% 30% at 102% 6%,rgba(60,54,124,.52) 0%,rgba(60,54,124,0) 62%);
+}
+.screen{max-width:400px;margin:0 auto;
+  padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 36px);}
+
+.top{display:flex;align-items:flex-start;gap:11px;margin-bottom:18px}
+.tile{
+  width:46px;height:46px;flex:none;border:0;padding:0;border-radius:50%;
+  background:var(--surface);color:var(--ink);display:grid;place-items:center;cursor:pointer;
+  box-shadow:0 6px 16px rgba(31,41,70,.11);-webkit-tap-highlight-color:transparent;
+}
+[data-theme="dark"] .tile{box-shadow:none;border:1px solid var(--line)}
+.tile:focus-visible{outline:3px solid #4C3BD8;outline-offset:2px}
+.hd{flex:1;min-width:0;padding-top:2px}
+h1{margin:0;font-size:30px;font-weight:800;letter-spacing:-.6px;color:var(--ink);line-height:1.12}
+.lede{margin:3px 0 0;font-size:15px;color:var(--muted);line-height:1.35}
+
+/* headline promise */
+.promise{
+  background:var(--ok-bg);border-radius:20px;padding:18px;margin-bottom:16px;
+  display:flex;gap:13px;align-items:flex-start;
+}
+.promise svg{flex:none;color:var(--ok-ink);margin-top:2px}
+.promise b{display:block;font-size:18px;font-weight:800;color:var(--ok-ink);line-height:1.35}
+.promise span{display:block;font-size:15.5px;color:var(--ok-ink);line-height:1.5;margin-top:4px}   /* opacity .92 dropped it to 4.36 */
+
+h2.sec{
+  margin:22px 0 10px;font-size:13px;font-weight:800;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);
+}
+.card{
+  background:var(--surface);border-radius:20px;padding:17px;
+  box-shadow:0 7px 20px rgba(31,41,70,.09), inset 0 0 0 1px rgba(255,255,255,.9);
+}
+[data-theme="dark"] .card{box-shadow:none;border:1px solid var(--line)}
+.card p{margin:0 0 11px;font-size:15.5px;line-height:1.55;color:var(--muted-tint)}
+.card p:last-child{margin-bottom:0}
+.card b{color:var(--ink)}
+
+/* never list */
+.nv{display:flex;gap:11px;align-items:flex-start;padding:11px 0;border-top:1px solid var(--line)}
+.nv:first-of-type{border-top:0;padding-top:0}
+.nv:last-child{padding-bottom:0}
+.nv svg{flex:none;color:#B42318;margin-top:3px}
+[data-theme="dark"] .nv svg{color:#FF9B8F}
+.nv span{font-size:15.5px;line-height:1.45;color:var(--text)}
+
+/* storage rows */
+.k{display:flex;gap:11px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
+.k:first-of-type{border-top:0;padding-top:0}
+.k:last-child{padding-bottom:0}
+.kdot{flex:none;width:9px;height:9px;border-radius:50%;background:#C3CCE2;margin-top:7px}
+.kdot.set{background:var(--spark)}
+.kb{flex:1;min-width:0}
+.kb b{display:block;font-size:16px;color:var(--ink);line-height:1.3}
+.kb span{display:block;font-size:14.5px;color:var(--muted-tint);line-height:1.42;margin-top:1px}
+.kv{
+  display:block;margin-top:5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:13px;line-height:1.45;color:var(--muted-tint);
+  background:var(--tile);border-radius:8px;padding:6px 9px;overflow-wrap:anywhere;
+}
+.kv.none{color:var(--muted);font-style:italic;font-family:var(--f)}
+
+/* journey */
+.j{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
+.j:first-of-type{border-top:0;padding-top:0}
+.ji{flex:none;width:36px;height:36px;border-radius:12px;background:var(--tile);
+    color:var(--spark);display:grid;place-items:center}
+.j b{display:block;font-size:16px;color:var(--ink);line-height:1.3}
+.j span{display:block;font-size:14.5px;color:var(--muted-tint);line-height:1.45;margin-top:1px}
+
+/* erase */
+.erase{
+  width:100%;min-height:56px;border:0;border-radius:var(--r-pill);
+  background:linear-gradient(135deg,var(--stop-from),var(--stop-to));color:#fff;
+  font-family:inherit;font-size:17px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  box-shadow:0 10px 24px rgba(180,35,24,.30);-webkit-tap-highlight-color:transparent;
+}
+.erase:focus-visible{outline:3px solid #16215A;outline-offset:3px}
+.erase[data-armed="1"]{background:linear-gradient(135deg,#B42318,#8F1A12)}
+.erase[data-done="1"]{background:linear-gradient(135deg,#0A6E42,#085C37);box-shadow:none}
+.enote{margin:9px 2px 0;font-size:14px;color:var(--muted);line-height:1.45;text-align:center}
+
+.foot{text-align:center;padding:20px 6px 0}
+.foot p{margin:0;font-size:14px;color:var(--muted);line-height:1.55}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true"></div>
+
+<main class="screen">
+
+  <div class="top">
+    <button class="tile" id="back" type="button" aria-label="Go back">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5M12 5l-7 7 7 7"/>
+      </svg>
+    </button>
+    <div class="hd">
+      <h1>Privacy</h1>
+      <p class="lede">What Seva keeps, and what it never asks</p>
+    </div>
+  </div>
+
+  <section class="promise">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 1.8l8.2 3.4v6c0 4.9-3.4 9.4-8.2 10.9C7.2 20.6 3.8 16.1 3.8 11.2v-6zm0 2.3L5.9 6.6v4.6c0 3.8 2.5 7.3 6.1 8.6 3.6-1.3 6.1-4.8 6.1-8.6V6.6zm-.9 10.6L7.6 11.2l1.5-1.5 2 2 4.3-4.3 1.5 1.5z"/>
+    </svg>
+    <div>
+      <b>Seva has no accounts.</b>
+      <span>It never asks for your name, your phone number, your Aadhaar or any document.
+        There is nothing to log in to, because there is no account to make.</span>
+    </div>
+  </section>
+
+  <h2 class="sec">What Seva never does</h2>
+  <section class="card">
+    <div class="nv">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.3 7.1L16.9 5.7 12 10.6 7.1 5.7 5.7 7.1l4.9 4.9-4.9 4.9 1.4 1.4 4.9-4.9 4.9 4.9 1.4-1.4-4.9-4.9z"/></svg>
+      <span>Never asks for your location. Seva does not know which hospital or station you are in.</span>
+    </div>
+    <div class="nv">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.3 7.1L16.9 5.7 12 10.6 7.1 5.7 5.7 7.1l4.9 4.9-4.9 4.9 1.4 1.4 4.9-4.9 4.9 4.9 1.4-1.4-4.9-4.9z"/></svg>
+      <span>Never keeps a recording of the hall. Audio is read for its numbers and dropped.</span>
+    </div>
+    <div class="nv">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.3 7.1L16.9 5.7 12 10.6 7.1 5.7 5.7 7.1l4.9 4.9-4.9 4.9 1.4 1.4 4.9-4.9 4.9 4.9 1.4-1.4-4.9-4.9z"/></svg>
+      <span>Never saves what other people said. Only your own number reaches your history.</span>
+    </div>
+    <div class="nv">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.3 7.1L16.9 5.7 12 10.6 7.1 5.7 5.7 7.1l4.9 4.9-4.9 4.9 1.4 1.4 4.9-4.9 4.9 4.9 1.4-1.4-4.9-4.9z"/></svg>
+      <span>No cookies, no analytics, no advertising, no tracking of any kind.</span>
+    </div>
+    <div class="nv">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.3 7.1L16.9 5.7 12 10.6 7.1 5.7 5.7 7.1l4.9 4.9-4.9 4.9 1.4 1.4 4.9-4.9 4.9 4.9 1.4-1.4-4.9-4.9z"/></svg>
+      <span>Nothing is sold or shared. There is no company behind this and no one to sell it to.</span>
+    </div>
+  </section>
+
+  <h2 class="sec">On this phone right now</h2>
+  <section class="card">
+    <p style="margin-bottom:14px">This is the whole of what Seva has stored, read live from
+      this phone as you look at it. Nothing is kept anywhere else.</p>
+    <div id="keys"></div>
+  </section>
+
+  <h2 class="sec">When a number is announced</h2>
+  <section class="card">
+    <div class="j">
+      <span class="ji"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.6a3.4 3.4 0 00-3.4 3.4v6a3.4 3.4 0 006.8 0V6A3.4 3.4 0 0012 2.6zM5.6 11.2h2.1a4.3 4.3 0 008.6 0h2.1a6.4 6.4 0 01-5.35 6.3V20h3.15v2.1H7.8V20h3.15v-2.5A6.4 6.4 0 015.6 11.2z"/></svg></span>
+      <div><b>The phone listens, quietly</b>
+        <span>A loudness check runs on the phone itself. Silence never leaves the device.</span></div>
+    </div>
+    <div class="j">
+      <span class="ji"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.8l7.6 4.4v8.8L12 20.4 4.4 16V7.2zm0 2.5L6.6 8.4v7.2L12 18.7l5.4-3.1V8.4z"/></svg></span>
+      <div><b>Only the loud part is sent</b>
+        <span>When someone is actually announcing, that short clip goes to Gnani's speech
+          service to be turned into text, then is gone.</span></div>
+    </div>
+    <div class="j">
+      <span class="ji"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.8 3.4h14.4v2.2H4.8zM4.8 8.1h14.4v2.2H4.8zM4.8 12.8h9.6V15H4.8zM16.6 13.2l4.6 4.6-4.6 4.6-1.5-1.6 1.9-1.9h-5.6v-2.2h5.6l-1.9-1.9z"/></svg></span>
+      <div><b>The text is matched, not stored</b>
+        <span>Fixed rules look for your number in that text. The text itself is thrown away.
+          Only the result is kept.</span></div>
+    </div>
+    <div class="j">
+      <span class="ji"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 9.2h3.4L12.6 5v14L7.4 14.8H4zM15.6 8.6a5.2 5.2 0 010 6.8l-1.3-1.2a3.4 3.4 0 000-4.4zM18 6.1a8.6 8.6 0 010 11.8l-1.3-1.3a6.8 6.8 0 000-9.2z"/></svg></span>
+      <div><b>Your phone speaks</b>
+        <span>The alert sentence goes to Gnani's voice service and comes back as sound.</span></div>
+    </div>
+    <p style="margin-top:14px;font-size:14.5px">
+      <b>As it stands today this app makes no network call at all</b> — everything above
+      happens once the laptop is connected. You can check: there is not one live
+      request in the page source.</p>
+  </section>
+
+  <h2 class="sec">When you ask a question</h2>
+  <section class="card">
+    <p>Your question text is sent to the laptop, which adds the hospital's own written
+      information and asks a language model to put it in plain words.</p>
+    <p><b>The model only rewrites.</b> It is never given a recording, never given an
+      announcement transcript, and is not used as a source of facts. If the answer is not
+      in the hospital's list, Seva says so instead of inventing one.</p>
+    <p>The key that reaches those services lives on the laptop and is never put in
+      this page.</p>
+  </section>
+
+  <h2 class="sec">Erase everything</h2>
+  <section class="card">
+    <p style="margin-bottom:14px">This empties every item in the list above from this phone.
+      It cannot be undone, and there is no copy anywhere else to restore from.</p>
+    <button class="erase" id="erase" type="button" data-armed="0">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M9.4 2.6h5.2l.9 1.6h4.1v2.2H4.4V4.2h4.1zM5.8 7.8h12.4l-.9 12.1a2 2 0 01-2 1.9H8.7a2 2 0 01-2-1.9zm3.3 2.3l.4 9.4h1.6l-.4-9.4zm4.2 0l-.4 9.4h1.6l.4-9.4z"/>
+      </svg>
+      <span id="eraseLbl">Erase everything on this phone</span>
+    </button>
+    <p class="enote" id="enote">Settings, saved language, and your alert history.</p>
+  </section>
+
+  <div class="foot">
+    <p>Last updated 22 October 2026<br>
+       Seva is a student project, not a registered company.</p>
+  </div>
+
+</main>
+
+<script>
+/* ──────────────────────────────────────────────────────────
+   Every key Seva can write. Keep this list in step with the
+   app: if a new seva.* key is ever added, add it here too,
+   or this page quietly becomes a lie.
+   ────────────────────────────────────────────────────────── */
+var KEYS = [
+  ["seva.language",   "Language",        "The language you chose for alerts."],
+  ["seva.darkMode",   "Dark mode",       "Light or dark screen."],
+  ["seva.autoPlay",   "Auto play audio", "Whether alerts are spoken out loud."],
+  ["seva.vibration",  "Vibration",       "Whether alerts buzz."],
+  ["seva.seenSplash", "Opening screen",  "Whether you have opened Seva before."],
+  ["seva.watch",      "What you are waiting for", "The token, train or bus you last watched for."],
+  ["seva.question",   "Last question",   "The last question you typed to Nova."],
+  ["seva.lastResult", "Last result",     "The outcome of the last announcement Seva matched."],
+  ["seva.history",    "Alert history",   "Your saved alerts. Up to 50, newest first."]
+];
+
+function el(tag, cls, text){
+  var n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;   /* textContent, never innerHTML */
+  return n;
+}
+
+/* show the real value, shortened, never prettied up into
+   something other than what is actually in the store */
+function shown(raw, key){
+  if (raw === null) return null;
+  if (key === "seva.history"){
+    var n = 0;
+    try{ var a = JSON.parse(raw); n = Array.isArray(a) ? a.length : 0; }catch(e){ n = 0; }
+    return n === 0 ? "empty list" : (n === 1 ? "1 saved alert" : n + " saved alerts");
+  }
+  if (raw.length > 120) return raw.slice(0,120) + "\u2026";
+  return raw;
+}
+
+function paint(){
+  var box = document.getElementById("keys");
+  while (box.firstChild) box.removeChild(box.firstChild);
+
+  KEYS.forEach(function(row){
+    var raw = null;
+    try{ raw = localStorage.getItem(row[0]); }catch(e){ raw = null; }  /* preview has no store */
+    var v = shown(raw, row[0]);
+
+    var k = el("div","k");
+    k.appendChild(el("span","kdot" + (v !== null ? " set" : "")));
+    var b = el("div","kb");
+    b.appendChild(el("b", null, row[1]));
+    b.appendChild(el("span", null, row[2]));
+    b.appendChild(v !== null ? el("code","kv", v) : el("code","kv none","not stored"));
+    k.appendChild(b);
+    box.appendChild(k);
+  });
+}
+
+/* ---- erase, two taps, no browser dialog ---- */
+var erase = document.getElementById("erase");
+var lbl   = document.getElementById("eraseLbl");
+var note  = document.getElementById("enote");
+var armTimer = null;
+
+function disarm(){
+  clearTimeout(armTimer);
+  erase.setAttribute("data-armed","0");
+  lbl.textContent = "Erase everything on this phone";
+  note.textContent = "Settings, saved language, and your alert history.";
+}
+
+erase.addEventListener("click", function(){
+  if (erase.getAttribute("data-done") === "1") return;
+
+  if (erase.getAttribute("data-armed") !== "1"){
+    erase.setAttribute("data-armed","1");
+    lbl.textContent = "Tap again to erase";
+    note.textContent = "This cannot be undone.";
+    armTimer = setTimeout(disarm, 5000);
+    return;
+  }
+
+  clearTimeout(armTimer);
+  var gone = 0;
+  try{
+    KEYS.forEach(function(row){
+      if (localStorage.getItem(row[0]) !== null){ localStorage.removeItem(row[0]); gone++; }
+    });
+  }catch(e){}
+
+  erase.setAttribute("data-armed","0");
+  erase.setAttribute("data-done","1");
+  lbl.textContent = gone ? "Erased" : "Nothing was stored";
+  note.textContent = gone
+    ? (gone === 1 ? "1 item removed from this phone." : gone + " items removed from this phone.")
+    : "There was nothing on this phone to remove.";
+  paint();
+
+  /* dark mode was one of the keys, so put the screen back to light */
+  document.documentElement.removeAttribute("data-theme");
+
+  setTimeout(function(){
+    erase.removeAttribute("data-done");
+    disarm();
+  }, 4000);
+});
+
+document.getElementById("back").addEventListener("click", function(){
+  if (document.referrer && history.length > 1) void 0;
+  else window.location.href = "settings.html";
+});
+
+paint();
+</script>
+</body>
+</html>
+

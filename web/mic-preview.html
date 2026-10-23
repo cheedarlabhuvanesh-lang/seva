@@ -1,0 +1,189 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="application-name" content="Seva">
+<meta name="apple-mobile-web-app-title" content="Seva">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Seva — mic motion</title>
+<style>
+:root{
+  --primary:#6C3D95; --accent:#3B82F6; --ink:#16215A;
+  --bg:#F8FAFF; --surface:#FFFFFF; --line:#E6EBF5;
+  --text:#1F2937; --muted:#5A6B86;
+  --cta-from:#2563EB; --cta-to:#7C3AED;
+  --f-sans:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{
+  min-height:100dvh;
+  font-family:var(--f-sans);
+  color:var(--text);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.72) 38%, var(--bg) 62%),
+    linear-gradient(170deg,#E9F0FF 0%,#EFF3FF 40%,var(--bg) 70%);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:34px; padding:40px 20px;
+}
+.label{font-size:14px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.row{display:flex;align-items:center;gap:52px;flex-wrap:wrap;justify-content:center}
+
+/* ── the stage, copied from listen.html ── */
+.stage{display:flex;flex-direction:column;align-items:center;gap:14px}
+.micwrap{--t:.72;position:relative;display:grid;place-items:center}
+.stage.on .micwrap{--t:.36}
+.micwrap.big{width:290px;height:290px}
+.micwrap.real{width:190px;height:190px}
+.micwrap::before{
+  content:"";position:absolute;border-radius:50%;
+  background:radial-gradient(circle,rgba(59,130,246,.22) 0%,rgba(59,130,246,0) 70%);
+}
+.micwrap.big::before{width:272px;height:272px}
+.micwrap.real::before{width:176px;height:176px}
+
+
+/* ripple: one soft ring leaves the mic every 2s on a 6s cycle */
+.ring{--ro:.42;--rs:1.40;position:absolute;border-radius:50%;border:3px solid currentColor;
+      filter:blur(2px);opacity:0;pointer-events:none;
+      animation:ripple calc(16.8s * var(--t)) cubic-bezier(.16,.72,.3,1) infinite}
+.micwrap.big .ring{width:204px;height:204px;border-width:4px;filter:blur(3px)}
+.micwrap.real .ring{width:132px;height:132px}
+.ring.r1{color:rgba(34,211,238,.55)}
+.ring.r2{color:rgba(167,139,250,.55);animation-delay:calc(5.6s  * var(--t))}
+.ring.r3{color:rgba(244,114,208,.45);animation-delay:calc(11.2s * var(--t))}
+.stage.on .ring{--ro:.85;--rs:1.58}
+@keyframes ripple{
+  0%  {transform:scale(1);         opacity:0}
+  8%  {                            opacity:var(--ro)}
+  78% {transform:scale(var(--rs)); opacity:0}
+  100%{transform:scale(var(--rs)); opacity:0}
+}
+.micwrap::before{animation:halo calc(16.8s * var(--t)) ease-in-out infinite}
+@keyframes halo{
+  0%,100%{transform:scale(1);   opacity:.75}
+  50%    {transform:scale(1.14);opacity:1}
+}
+
+.mic{
+  position:relative;
+  display:grid;place-items:center;
+  border:0;border-radius:50%;
+  overflow:hidden;isolation:isolate;
+  background:linear-gradient(150deg,#4C86F8 0%,#1B45C7 100%);
+  color:#fff;cursor:pointer;
+  box-shadow:0 16px 38px rgba(26,62,180,.44),
+             inset 0 2px 8px rgba(255,255,255,.30),
+             inset 0 -16px 30px rgba(8,26,86,.40);
+  transition:transform .16s ease;
+}
+.micwrap.big .mic{width:204px;height:204px}
+.micwrap.real .mic{width:132px;height:132px}
+.mic:active{transform:scale(.96)}
+.mic:focus-visible{outline:3px solid var(--primary);outline-offset:4px}
+.stage.on .mic{animation:breathe 6s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1)} 50%{transform:scale(1.04)}}
+
+.orb{position:absolute;inset:0;border-radius:50%;overflow:hidden;z-index:1;pointer-events:none}
+.swirls{position:absolute;inset:-28%;filter:blur(18px);animation:orbSpin calc(72s * var(--t)) linear infinite}
+.micwrap.big .swirls{filter:blur(26px)}
+.sw{position:absolute;width:74%;height:74%;border-radius:50%;mix-blend-mode:screen}
+.sw.c{top:4%;left:2%;background:radial-gradient(circle,rgba(34,211,238,.95) 0%,rgba(34,211,238,0) 68%);
+      animation:drift1 calc(24s * var(--t)) ease-in-out infinite}
+.sw.m{bottom:0;left:16%;background:radial-gradient(circle,rgba(244,114,208,.95) 0%,rgba(244,114,208,0) 68%);
+      animation:drift2 calc(36s * var(--t)) ease-in-out infinite}
+.sw.v{top:12%;right:0;background:radial-gradient(circle,rgba(167,139,250,.95) 0%,rgba(167,139,250,0) 68%);
+      animation:drift3 calc(48s * var(--t)) ease-in-out infinite}
+.sw.w{bottom:8%;right:8%;width:56%;height:56%;background:radial-gradient(circle,rgba(226,255,247,.90) 0%,rgba(226,255,247,0) 66%);
+      animation:drift4 calc(72s * var(--t)) ease-in-out infinite}
+@keyframes orbSpin{to{transform:rotate(360deg)}}
+@keyframes drift1{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(22%,16%) scale(1.18)}66%{transform:translate(-14%,10%) scale(.92)}}
+@keyframes drift2{0%,100%{transform:translate(0,0) scale(1.05)}40%{transform:translate(18%,-20%) scale(.88)}70%{transform:translate(-20%,-8%) scale(1.20)}}
+@keyframes drift3{0%,100%{transform:translate(0,0) scale(.95)}50%{transform:translate(-24%,22%) scale(1.22)}}
+@keyframes drift4{0%,100%{transform:translate(0,0) scale(1)}45%{transform:translate(-18%,-18%) scale(1.30)}}
+
+.gloss{
+  position:absolute;inset:0;border-radius:50%;z-index:2;pointer-events:none;
+  background:
+    radial-gradient(130% 90% at 28% 16%, rgba(255,255,255,.60) 0%, rgba(255,255,255,.12) 34%, rgba(255,255,255,0) 58%),
+    radial-gradient(circle at 50% 54%, rgba(10,32,108,.68) 0%, rgba(10,32,108,.30) 36%, rgba(10,32,108,0) 64%);
+}
+.mic .glyph{position:relative;z-index:3;filter:drop-shadow(0 2px 6px rgba(6,22,80,.5))}
+
+.toggle{
+  min-height:56px;padding:0 30px;border:0;border-radius:28px;
+  background:linear-gradient(100deg,var(--cta-from),var(--cta-to));
+  color:#fff;font-family:inherit;font-size:17px;font-weight:700;cursor:pointer;
+  box-shadow:0 10px 24px rgba(42,56,160,.28);
+}
+.toggle:active{transform:translateY(2px)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="row">
+  <div class="stage" id="s1">
+    <div class="micwrap big">
+      <span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span>
+      <button class="mic" type="button" aria-label="Toggle listening">
+        <span class="orb"><span class="swirls">
+          <span class="sw c"></span><span class="sw m"></span><span class="sw v"></span><span class="sw w"></span>
+        </span></span>
+        <span class="gloss"></span>
+        <svg class="glyph" width="86" height="86" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <rect x="9" y="2" width="6" height="11.5" rx="3"/>
+          <path d="M5.6 10.5a.9.9 0 011.8 0 4.6 4.6 0 009.2 0 .9.9 0 011.8 0 6.4 6.4 0 01-5.5 6.34V20h2.6a.9.9 0 010 1.8H8.5a.9.9 0 010-1.8h2.6v-3.16a6.4 6.4 0 01-5.5-6.34z"/>
+        </svg>
+      </button>
+    </div>
+    <div class="label" id="lab1">Resting</div>
+  </div>
+
+  <div class="stage" id="s2">
+    <div class="micwrap real">
+      <span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span>
+      <button class="mic" type="button" aria-label="Toggle listening">
+        <span class="orb"><span class="swirls">
+          <span class="sw c"></span><span class="sw m"></span><span class="sw v"></span><span class="sw w"></span>
+        </span></span>
+        <span class="gloss"></span>
+        <svg class="glyph" width="56" height="56" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <rect x="9" y="2" width="6" height="11.5" rx="3"/>
+          <path d="M5.6 10.5a.9.9 0 011.8 0 4.6 4.6 0 009.2 0 .9.9 0 011.8 0 6.4 6.4 0 01-5.5 6.34V20h2.6a.9.9 0 010 1.8H8.5a.9.9 0 010-1.8h2.6v-3.16a6.4 6.4 0 01-5.5-6.34z"/>
+        </svg>
+      </button>
+    </div>
+    <div class="label">Real size &mdash; 132px</div>
+  </div>
+</div>
+
+<button class="toggle" id="toggle" type="button">Start listening</button>
+
+<script>
+var s1 = document.getElementById("s1");
+var s2 = document.getElementById("s2");
+var lab1 = document.getElementById("lab1");
+var toggle = document.getElementById("toggle");
+var on = false;
+function flip(){
+  on = !on;
+  s1.classList.toggle("on", on);
+  s2.classList.toggle("on", on);
+  lab1.textContent = on ? "Listening" : "Resting";
+  toggle.textContent = on ? "Stop" : "Start listening";
+}
+toggle.addEventListener("click", flip);
+var mics = document.querySelectorAll(".mic");
+for (var i=0;i<mics.length;i++) mics[i].addEventListener("click", flip);
+</script>
+</body>
+</html>
+

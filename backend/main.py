@@ -8,7 +8,8 @@ import requests
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 load_dotenv()
@@ -47,19 +48,6 @@ def health():
     return {"status": "ok", "gnani_key_configured": bool(api_key())}
 
 
-# ---------- / : serve the website from the same address as the API ----------
-HERE = Path(__file__).resolve().parent
-INDEX_CANDIDATES = [HERE.parent / "index.html", HERE / "index.html"]
-
-
-@app.get("/", include_in_schema=False)
-def home():
-    for page in INDEX_CANDIDATES:
-        if page.is_file():
-            return FileResponse(page, media_type="text/html", headers={"Cache-Control": "no-store"})
-    return fail(404, "no_page", "index.html was not found next to the backend folder.")
-
-
 # ---------- /listen : audio -> transcript (Gnani Prisma) ----------
 @app.post("/listen")
 async def listen(audio: UploadFile = File(...), language_code: str = Form("te-IN")):
@@ -94,39 +82,76 @@ async def listen(audio: UploadFile = File(...), language_code: str = Form("te-IN
     return {"transcript": transcript}
 
 
-# ---------- /detect : transcript -> structured announcement ----------
+# ---------- /detect : transcript -> structured announcement (hospital, train, bus) ----------
 class DetectIn(BaseModel):
     transcript: str = Field(max_length=2000)
-    my_token: str | None = Field(default=None, max_length=12)
+    mode: str = "hospital"
+    value: str | None = Field(default=None, max_length=40)       # token / train number / bus destination
+    my_token: str | None = Field(default=None, max_length=12)    # older name, still accepted
 
 
 ROOM_WORDS = r"(?:room(?:\s*(?:number|no\.?))?|గది|రూమ్|कमरा|कक्ष)"
 TOKEN_RE = re.compile(r"\b([A-Za-z])\s*-?\s*(\d{1,3})\b")
 ROOM_RE = re.compile(ROOM_WORDS + r"\s*(?:number|no\.?|నంబర్|नंबर)?\s*[:\-]?\s*(\d{1,4})", re.IGNORECASE)
+PLAT_RE = re.compile(r"(?:platform|ప్లాట్\u200cఫామ్|ప్లాట్ఫామ్|ప్లాట్\u200cఫాం|प्लेटफॉर्म|प्लेटफार्म)\s*(?:number|no\.?|నంబర్|नंबर)?\s*[:\-]?\s*(\d{1,2})", re.IGNORECASE)
+BAY_RE = re.compile(r"(?:bay|platform|బే)\s*(?:number|no\.?|నంబర్)?\s*[:\-]?\s*(\d{1,2})", re.IGNORECASE)
+BUS_WORD = re.compile(r"\bbus\b|బస్సు|बस", re.IGNORECASE)
 
 
 def norm(token: str | None):
     return re.sub(r"[\s\-]", "", token).upper() if token else None
 
 
+def find_trains(text: str):
+    found = [m.group(1) for m in re.finditer(r"(?<!\d)(\d{5})(?!\d)", text)]
+    if not found:  # digits read out one by one, e.g. "1 2 7 3 9"
+        found = [re.sub(r"\D", "", m.group(0)) for m in re.finditer(r"(?<!\d)(?:\d[\s\-]){4}\d(?!\d)", text)]
+    return found
+
+
 @app.post("/detect")
 def detect(body: DetectIn):
     text = body.transcript
-    t = TOKEN_RE.search(text)
-    token = f"{t.group(1).upper()}-{t.group(2)}" if t else None
-    r = ROOM_RE.search(text)
-    room = r.group(1) if r else None
-    mine = norm(body.my_token)
-    match = None
-    if token and mine:
-        match = "yours" if norm(token) == mine else "other"
-    return {
-        "schemaVersion": 1,
-        "type": "announcement" if token else "unclear",
-        "token": token,
-        "room": room,
-        "match": match,
-    }
+    value = (body.value or body.my_token or "").strip()
+    mode = body.mode if body.mode in ("hospital", "train", "bus") else "hospital"
+    out = {"schemaVersion": 1, "verdict": "none", "certain": False, "token": None, "room": None,
+           "train_no": None, "platform": None, "destination": None}
+    if mode == "hospital":
+        t = TOKEN_RE.search(text)
+        token = f"{t.group(1).upper()}-{t.group(2)}" if t else None
+        r = ROOM_RE.search(text)
+        room = r.group(1) if r else None
+        if token:
+            out["token"] = token
+            if norm(token) == norm(value):
+                out["verdict"] = "mine" if room else "missing"
+                out["room"] = room
+            else:
+                out["verdict"] = "other"
+    elif mode == "train":
+        trains = find_trains(text)
+        want = re.sub(r"\D", "", value)
+        p = PLAT_RE.search(text)
+        if trains:
+            if want and want in trains:
+                out.update(verdict="mine", train_no=want, platform=p.group(1) if p else None)
+            else:
+                out.update(verdict="other", train_no=trains[0])
+    else:
+        v = value
+        if v and v.isascii():
+            hit = re.search(r"(?<![A-Za-z0-9])" + re.escape(v) + r"(?![A-Za-z0-9])", text, re.IGNORECASE)
+        else:
+            hit = bool(v) and v.lower() in text.lower()
+        if hit:
+            b = BAY_RE.search(text)
+            out.update(verdict="mine", destination=(v.title() if v.isascii() else v), platform=b.group(1) if b else None)
+        elif BUS_WORD.search(text):
+            out["verdict"] = "other"
+    out["certain"] = out["verdict"] == "mine"
+    out["type"] = "unclear" if out["verdict"] == "none" else "announcement"          # older fields
+    out["match"] = {"mine": "yours", "missing": "yours", "other": "other"}.get(out["verdict"])
+    return out
 
 
 # ---------- /tts : text -> audio (Gnani Timbre) ----------
@@ -200,3 +225,9 @@ def ask(body: AskIn):
                "en": "Sorry, I do not have this information. Please ask the help desk."}[body.lang]
         return {"found": False, "answer": msg, "lang": body.lang, "source": None}
     return {"found": True, "answer": best[body.lang], "lang": body.lang, "source": "sample FAQ (demo data)"}
+
+
+# ---------- the website itself: the pages in the ../web folder (keep this at the very end) ----------
+WEB = Path(__file__).resolve().parent.parent / "web"
+if WEB.is_dir():
+    app.mount("/", StaticFiles(directory=str(WEB), html=True), name="web")

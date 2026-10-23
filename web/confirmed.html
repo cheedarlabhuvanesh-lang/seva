@@ -1,0 +1,483 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="application-name" content="Seva">
+<meta name="apple-mobile-web-app-title" content="Seva">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#EAF8F0">
+<title>Seva — Your number is called</title>
+
+<script>
+  try{ if(localStorage.getItem("seva.darkMode")==="1")
+         document.documentElement.setAttribute("data-theme","dark"); }catch(e){}
+</script>
+
+<style>
+/* ══════════════════════════════════════════════════════════
+   SCREEN 5 — CONFIRMED.
+
+   The whole app exists for this screen. One rule governs it:
+   NOTHING IS PRINTED THAT THE DATA DOES NOT CONTAIN.
+   If the room is missing, the Room block is not drawn at all
+   — it is never guessed, and never left blank.
+
+   DESIGN TOKENS — identical to every other screen.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --primary:#6C3D95;
+  --accent:#3B82F6;
+  --ink:#16215A;
+
+  --bg:#F8FAFF;
+  --surface:#FFFFFF;
+  --line:#E6EBF5;
+
+  --text:#1F2937;
+  --muted:#4A5A73;            /* 6.30:1 on the green card */
+
+  /* success — the mock's #22C55E as a headline is 2.05:1 and
+     fails badly. Bright green stays on the disc where it is
+     only an icon; the words take the dark green.           */
+  --ok-disc-from:#19A84E;
+  --ok-disc-to:#0E7A39;
+  --ok-fg:#0A6E42;            /* 5.69:1 on the card head */
+  --ok-head:#E6F7EE;
+
+  --cta-from:#2563EB;
+  --cta-to:#7C3AED;
+  --mode-from:#2563EB;        /* house gradient — 5.17:1 with white */
+  --mode-to:#7C3AED;          /* 5.70:1 with white */
+  --play-fg:#6D28D9;          /* 7.10:1 on white */
+
+  --f-sans:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",sans-serif;
+  --f-telugu:"Noto Sans Telugu","Nirmala UI","Gautami",sans-serif;
+
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px;
+  --r-pill:28px; --r-xl:26px;
+  --tap:56px;
+}
+html[data-theme="dark"]{
+  --bg:#10131F; --surface:#191E2E; --line:#2A3146;
+  --text:#F2F5FA; --muted:#A8B4C8; --ink:#DCE4F5;
+  --ok-fg:#5BE49B; --ok-head:#13302A;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:var(--f-sans); font-size:18px; line-height:1.6;
+  display:flex; justify-content:center;
+}
+.screen{
+  position:relative; width:100%; max-width:400px; min-height:100dvh;
+  display:flex; flex-direction:column; gap:var(--s4);
+  background:linear-gradient(170deg,#EAF6FF 0%,#F2F6FF 44%,var(--bg) 74%);
+  padding:calc(env(safe-area-inset-top) + 18px) 20px
+          calc(env(safe-area-inset-bottom) + 20px);
+}
+html[data-theme="dark"] .screen{
+  background:linear-gradient(170deg,#16243A 0%,#141A2B 46%,var(--bg) 74%);
+}
+
+/* ══════ THE CARD ══════ */
+.card{
+  border-radius:var(--r-xl);
+  background:linear-gradient(180deg,var(--ok-head) 0%,var(--surface) 62%);
+  border:1px solid var(--line);
+  box-shadow:0 14px 34px rgba(18,70,50,.12);
+  padding:var(--s8) var(--s4) var(--s6);
+  text-align:center;
+  animation:rise .5s cubic-bezier(.2,.8,.3,1) both;
+}
+@keyframes rise{
+  from{opacity:0;transform:translateY(14px)}
+  to  {opacity:1;transform:none}
+}
+
+.tick{
+  width:76px;height:76px;margin:0 auto var(--s4);
+  display:grid;place-items:center;border-radius:50%;
+  background:linear-gradient(150deg,var(--ok-disc-from),var(--ok-disc-to));
+  color:#fff;
+  box-shadow:0 10px 22px rgba(14,122,57,.34);
+  animation:pop .5s cubic-bezier(.2,1.5,.4,1) .12s both;
+}
+@keyframes pop{
+  from{opacity:0;transform:scale(.5)}
+  to  {opacity:1;transform:scale(1)}
+}
+
+h1{
+  font-size:28px; line-height:1.22; font-weight:800; letter-spacing:-.4px;
+  color:var(--ok-fg);                      /* 5.69:1 */
+  max-width:13ch; margin:0 auto;
+}
+
+/* the one thing she came for */
+.hero{
+  margin-top:var(--s4);
+  font-size:76px; line-height:1.04; font-weight:800; letter-spacing:-3px;
+  color:var(--ink);                        /* 13.5:1 */
+  font-variant-numeric:lining-nums tabular-nums;
+}
+.sub{margin-top:var(--s3)}
+.sub .lab{font-size:21px;font-weight:650;color:var(--muted)}   /* 6.30:1 */
+.sub .val{
+  font-size:46px;line-height:1.1;font-weight:800;letter-spacing:-1.5px;
+  color:var(--ink);
+  font-variant-numeric:lining-nums tabular-nums;
+}
+
+/* ══════ PLAY ══════ */
+.play{
+  display:flex;align-items:center;gap:var(--s3);
+  width:100%;min-height:var(--tap);padding:0 var(--s4);
+  border:1px solid var(--line);border-radius:var(--r-pill);
+  background:var(--surface);
+  color:var(--play-fg);                    /* 7.10:1 */
+  font-family:inherit;font-size:18px;font-weight:700;cursor:pointer;
+  box-shadow:0 4px 14px rgba(22,33,90,.07);
+  transition:transform .14s ease;
+}
+.play:active{transform:scale(.98)}
+.play:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+.play .pbadge{
+  flex:none;width:44px;height:44px;display:grid;place-items:center;
+  border-radius:50%;color:#fff;
+  background:linear-gradient(150deg,#8B5CF6,#6D28D9);
+  box-shadow:0 6px 14px rgba(109,40,217,.32);
+}
+.play[aria-pressed="true"] .pbadge{animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{
+  0%,100%{box-shadow:0 6px 14px rgba(109,40,217,.32)}
+  50%    {box-shadow:0 6px 22px rgba(109,40,217,.62)}
+}
+
+/* ══════ WHAT SHE WILL HEAR ══════
+   Telugu needs room to breathe: line-height 1.4 and no
+   fixed height anywhere near it, or the vowel marks clip. */
+.spoken{
+  font-family:var(--f-telugu),var(--f-sans);
+  font-size:20px;
+  line-height:1.4;
+  text-align:center;
+  color:var(--text);                       /* 14.7:1 */
+  padding:0 var(--s2);
+}
+.spoken:lang(en){font-family:var(--f-sans)}
+
+/* ══════ GOT IT ══════ */
+.got{
+  margin-top:auto;
+  display:grid;place-items:center;
+  width:100%;min-height:var(--tap);
+  border:0;border-radius:var(--r-pill);
+  background:linear-gradient(100deg,var(--mode-from),var(--mode-to));
+  color:#fff;                              /* 5.17:1 / 5.70:1 */
+  font-family:inherit;font-size:19px;font-weight:750;cursor:pointer;
+  box-shadow:0 10px 24px rgba(60,52,170,.30);
+  transition:transform .14s ease;
+}
+.got:active{transform:translateY(2px) scale(.99)}
+.got:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+@media (max-height:740px){
+  .card{padding:var(--s6) var(--s4) var(--s4)}
+  .tick{width:62px;height:62px}
+  h1{font-size:25px}
+  .hero{font-size:62px}
+  .sub .val{font-size:38px}
+  .spoken{font-size:18px}
+}
+</style>
+</head>
+
+<body>
+<main class="screen">
+
+  <section class="card">
+    <div class="tick" aria-hidden="true">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12.5l4.5 4.5L19 7.5"/>
+      </svg>
+    </div>
+
+    <h1 id="headline">Your number is called!</h1>
+
+    <!-- filled from the result. never hard-coded. -->
+    <div class="hero" id="hero"></div>
+
+    <div class="sub" id="sub" hidden>
+      <div class="lab" id="subLab"></div>
+      <div class="val" id="subVal"></div>
+    </div>
+  </section>
+
+  <button class="play" id="play" type="button" aria-pressed="false">
+    <span class="pbadge" id="pbadge" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M8 5.5v13l11-6.5z"/>
+      </svg>
+    </span>
+    <span id="playLbl">Play Announcement</span>
+  </button>
+
+  <p class="spoken" id="spoken"></p>
+
+  <button class="got" id="got" type="button">Got it</button>
+
+</main>
+
+<template id="icoPlay">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>
+</template>
+<template id="icoStop">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="3"/></svg>
+</template>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   SCREEN 5 — CONFIRMED
+
+   THE RULE: never print a number the result does not carry.
+   Every block below is drawn only if its value is there.
+   ══════════════════════════════════════════════════════════ */
+
+/* ---------- 1. where the result comes from ----------
+   Normally the listening screen writes seva.lastResult.
+   Until the microphone and /api/listen are wired up, this
+   stand-in lets the screen be built and filmed. It is the
+   ONLY invented data in the app, and it is right here in
+   the open so it cannot be mistaken for a real reading.   */
+var DEMO_RESULT = {
+  schemaVersion:1,
+  verdict:"mine",
+  certain:true,
+  token:"A-47",
+  room:"204",
+  train_no:null,
+  platform:null,
+  destination:null
+};
+
+function readJSON(key){
+  try{ return JSON.parse(localStorage.getItem(key) || "null"); }catch(e){ return null; }
+}
+
+var result = readJSON("seva.lastResult") || DEMO_RESULT;
+var watch  = readJSON("seva.watch") || { mode:"hospital", value:"" };
+var lang   = (function(){ try{ return localStorage.getItem("seva.language") || "en-IN"; }
+                          catch(e){ return "en-IN"; } })();
+
+/* a value only counts if it is really there.
+   0 and "" are not values — the schema forbids them.      */
+function has(v){ return v !== null && v !== undefined && v !== "" && v !== 0; }
+
+/* ---------- 2. what each place shows ---------- */
+var VIEW = {
+  hospital:{ headline:"Your number is called!",
+             heroFrom:"token",  subLab:"Room Number", subFrom:"room" },
+  train:   { headline:"Your train is here!",
+             heroFrom:"train_no", subLab:"Platform Number", subFrom:"platform" },
+  bus:     { headline:"Your bus is here!",
+             heroFrom:"destination", subLab:"Bay", subFrom:"platform" }
+};
+var view = VIEW[watch.mode] || VIEW.hospital;
+
+/* ---------- 3. paint it ---------- */
+var hero = result[view.heroFrom];
+if (!has(hero)) hero = watch.value;              /* fall back to what she typed */
+
+document.getElementById("headline").textContent = view.headline;
+document.getElementById("hero").textContent     = has(hero) ? String(hero) : "";
+
+if (has(result[view.subFrom])){
+  document.getElementById("subLab").textContent = view.subLab;
+  document.getElementById("subVal").textContent = String(result[view.subFrom]);
+  document.getElementById("sub").hidden = false;
+}
+/* if it is not there, the block stays hidden. no blank, no guess. */
+
+/* ---------- 4. the line she will hear ----------
+   Telugu is used only where the wording has been checked
+   word for word. Hospital is checked. Train and bus are
+   not yet, so they speak English until they are.          */
+function spokenLine(){
+  var tok  = has(hero) ? String(hero) : null;
+  var room = has(result.room) ? String(result.room) : null;
+  var plat = has(result.platform) ? String(result.platform) : null;
+  var dest = has(result.destination) ? String(result.destination) : null;
+
+  if (watch.mode === "hospital" && lang === "te-IN"){
+    return { lang:"te",
+      text:"మీ నంబర్ వచ్చింది." + (tok ? " " + tok + "." : "")
+         + (room ? " గది నంబర్ " + room + "." : "")
+         + " సామాను తీసుకొని ఇప్పుడే బయలుదేరండి." };
+  }
+  if (watch.mode === "hospital"){
+    return { lang:"en",
+      text:"Your number has been called." + (tok ? " " + tok + "." : "")
+         + (room ? " Room number " + room + "." : "")
+         + " Take your things and leave now." };
+  }
+  if (watch.mode === "train"){
+    return { lang:"en",
+      text:"Your train" + (tok ? " " + tok : "") + (dest ? " to " + dest : "")
+         + " is arriving." + (plat ? " Platform number " + plat + "." : "")
+         + " Take your things and go now." };
+  }
+  return { lang:"en",
+    text:"Your bus" + (dest ? " to " + dest : "") + " is here."
+       + (plat ? " Bay " + plat + "." : "")
+       + " Take your things and go now." };
+}
+
+var line = spokenLine();
+if (result.verdict === "missing"){
+  var _t = has(hero) ? " " + hero + "." : ".";
+  line = (lang === "te-IN")
+    ? { lang:"te", text:"మీ టోకెన్ పిలిచారు" + _t + " కానీ గది నంబర్ వినపడలేదు. దయచేసి డిస్‌ప్లే బోర్డు చూడండి." }
+    : { lang:"en", text:"Your token was called" + _t + " But the room number was not heard. Please check the display board." };
+  document.getElementById("headline").textContent = "Your token was called";
+  document.getElementById("subLab").textContent = "Room Number";
+  document.getElementById("subVal").textContent = "Not heard";
+  document.getElementById("sub").hidden = false;
+} else if (watch.mode !== "hospital" && !has(result.platform)){
+  line.text += " The platform number was not heard. Please check the display board.";
+}
+var spokenEl = document.getElementById("spoken");
+spokenEl.textContent = line.text;                /* textContent, never innerHTML */
+spokenEl.setAttribute("lang", line.lang);
+
+/* ---------- 5. only a confirmed match may buzz ---------- */
+(function(){
+  if (result.verdict !== "mine") return;
+  var on = true;
+  try{ on = localStorage.getItem("seva.vibration") !== "0"; }catch(e){}
+  if (on && navigator.vibrate) navigator.vibrate([90,70,90]);
+})();
+
+/* ---------- 6. remember it, newest first, 50 max ----------
+   Only a confirmed match is stored, and never the raw
+   transcript.                                             */
+(function(){
+  if (result.verdict !== "mine") return;
+  var detail = [];
+  if (has(result.room))     detail.push("Room " + result.room);
+  if (has(result.platform)) detail.push("Platform " + result.platform);
+  if (has(result.destination)) detail.push(String(result.destination));
+
+  var entry = {
+    kind: watch.mode,
+    title: has(hero) ? String(hero) : "",
+    detail: detail.join(" · "),
+    at: Date.now(),
+    verdict: "mine",
+    /* the exact sentence she was told, so the History screen can
+       show and replay it without inventing the wording */
+    spoken: line.text,
+    lang:   line.lang
+  };
+  try{
+    var list = readJSON("seva.history") || [];
+    /* do not write the same hit twice if she reloads */
+    if (!(list[0] && list[0].title === entry.title &&
+          (entry.at - list[0].at) < 60000)){
+      list.unshift(entry);
+      localStorage.setItem("seva.history", JSON.stringify(list.slice(0,50)));
+    }
+  }catch(e){}
+})();
+
+/* ---------- 7. play it again ----------
+   REAL AUDIO GOES HERE: GET /api/replay returns the clip
+   Gnani Timbre already produced, and this plays that file.
+   Until the backend is up it falls back to the phone's own
+   voice, so the button is never dead.                     */
+var play     = document.getElementById("play");
+var pbadge   = document.getElementById("pbadge");
+var playLbl  = document.getElementById("playLbl");
+var speaking = false;
+
+function swapBadge(id){
+  var frag = document.getElementById(id).content.cloneNode(true);
+  while (pbadge.firstChild) pbadge.removeChild(pbadge.firstChild);
+  pbadge.appendChild(frag);
+}
+
+function stopSpeaking(){ if(typeof srvAudio!=="undefined"&&srvAudio){try{srvAudio.pause()}catch(e){} srvAudio=null;}
+  speaking = false;
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  play.setAttribute("aria-pressed","false");
+  playLbl.textContent = "Play Announcement";
+  swapBadge("icoPlay");
+}
+
+function browserSpeak(){
+  if (!window.speechSynthesis){
+    playLbl.textContent = "Audio needs the backend";
+    return;
+  }
+  var u = new SpeechSynthesisUtterance(line.text);
+  u.lang = (line.lang === "te") ? "te-IN" : "en-IN";
+  u.rate = 0.92;
+  u.onend = stopSpeaking;
+  u.onerror = stopSpeaking;
+
+  speaking = true;
+  play.setAttribute("aria-pressed","true");
+  playLbl.textContent = "Playing\u2026";
+  swapBadge("icoStop");
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+}
+
+var srvAudio = null;
+function tryServerVoice(){
+  var code = line.lang === "te" ? "te-IN" : "en-IN";
+  speaking = true;
+  play.setAttribute("aria-pressed","true");
+  playLbl.textContent = "Playing\u2026";
+  swapBadge("icoStop");
+  fetch("/tts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:line.text,language:code})})
+    .then(function(r){ if(!r.ok) throw 0; return r.blob(); })
+    .then(function(b){
+      if(!speaking) return;
+      srvAudio = new Audio(URL.createObjectURL(b));
+      srvAudio.onended = stopSpeaking; srvAudio.onerror = stopSpeaking;
+      return srvAudio.play();
+    })
+    .catch(function(e){
+      if(!speaking) return;
+      if(e && e.name === "NotAllowedError"){ stopSpeaking(); return; }
+      speaking = false; browserSpeak();
+    });
+}
+function startSpeaking(){ tryServerVoice(); }
+try{ if (localStorage.getItem("seva.autoPlay") !== "0") setTimeout(startSpeaking, 500); }catch(e){}
+play.addEventListener("click", function(){
+  speaking ? stopSpeaking() : startSpeaking();
+});
+
+/* ---------- 8. done ---------- */
+document.getElementById("got").addEventListener("click", function(){
+  stopSpeaking();
+  window.location.href = "home.html";
+});
+</script>
+</body>
+</html>
+

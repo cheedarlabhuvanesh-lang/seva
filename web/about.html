@@ -1,0 +1,296 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="application-name" content="Seva">
+<meta name="apple-mobile-web-app-title" content="Seva">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ECEFFC">
+<title>About Seva</title>
+<script>
+  try{ if(localStorage.getItem("seva.darkMode")==="1")
+         document.documentElement.setAttribute("data-theme","dark"); }catch(e){}
+</script>
+<style>
+/* ══════════════════════════════════════════════════════════
+   ABOUT — a sub-page, reached from Settings, the Home banner
+   and the Nova menu.
+
+   NO BOTTOM BAR. Same rule as select-language.html: a
+   sub-page gets a back button, not a second copy of the nav.
+   Nothing here links to Home, Nova or Settings.
+
+   Every number on this page is one I can point at in the
+   repository. Nothing is rounded up for effect.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --ink:#16215A; --bg:#ECEFFC; --surface:#FFFFFF; --line:#E3E8F7;
+  --text:#1F2937; --muted:#50607D; --muted-tint:#43506A;
+  --cta-from:#2563EB; --cta-to:#7C3AED; --spark:#4C3BD8;
+  --panel:#F4F6FE; --tile:#EDF1FD;
+  --ok-bg:#C9EEDF; --ok-ink:#0A6E42;
+  --wait-bg:#FBDFC2; --wait-ink:#8A4404;   /* 5.65 on the tint. #A85206 was 4.24 — icons only */
+  --f:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --f-indic:"Noto Sans Telugu","Nirmala UI","Gautami",sans-serif;
+  --r-pill:999px;
+}
+[data-theme="dark"]{
+  --bg:#10131F; --surface:#191E2E; --line:#2A3146; --text:#F2F5FA;
+  --muted:#A8B4C8; --muted-tint:#A8B4C8; --ink:#DCE4F5;
+  --panel:#141A2B; --tile:#1E2538; --spark:#A89CFF;
+  --ok-bg:#1B4539; --ok-ink:#7FE0B6; --wait-bg:#4A3317; --wait-ink:#F6B872;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--f); font-size:18px; line-height:1.6;
+  background:var(--bg); color:var(--text);
+  min-height:100vh; min-height:100dvh; -webkit-font-smoothing:antialiased;
+}
+.sky{position:fixed;inset:0;z-index:-2;pointer-events:none;overflow:hidden}
+.sky::before{
+  content:"";position:absolute;inset:0;
+  background:
+    radial-gradient(56% 24% at 6% 1%,   rgba(206,216,253,.78) 0%, rgba(206,216,253,0) 64%),
+    radial-gradient(64% 30% at 102% 6%, rgba(198,208,252,.88) 0%, rgba(198,208,252,0) 62%),
+    radial-gradient(66% 28% at 90% 99%, rgba(202,214,253,.70) 0%, rgba(202,214,253,0) 66%);
+}
+[data-theme="dark"] .sky::before{
+  background:radial-gradient(64% 30% at 102% 6%,rgba(60,54,124,.52) 0%,rgba(60,54,124,0) 62%);
+}
+.screen{max-width:400px;margin:0 auto;
+  padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 36px);}
+
+.top{display:flex;align-items:flex-start;gap:11px;margin-bottom:20px}
+.tile{
+  width:46px;height:46px;flex:none;border:0;padding:0;border-radius:50%;
+  background:var(--surface);color:var(--ink);display:grid;place-items:center;cursor:pointer;
+  box-shadow:0 6px 16px rgba(31,41,70,.11);-webkit-tap-highlight-color:transparent;
+}
+[data-theme="dark"] .tile{box-shadow:none;border:1px solid var(--line)}
+.tile:focus-visible{outline:3px solid #4C3BD8;outline-offset:2px}
+.hd{flex:1;min-width:0;padding-top:2px}
+h1{margin:0;font-size:30px;font-weight:800;letter-spacing:-.6px;color:var(--ink);line-height:1.12}
+.lede{margin:3px 0 0;font-size:15px;color:var(--muted);line-height:1.35}
+
+/* hero */
+.hero{
+  position:relative;overflow:hidden;isolation:isolate;
+  background:linear-gradient(135deg,var(--cta-from),var(--cta-to));
+  border-radius:22px;padding:22px 18px;color:#fff;margin-bottom:16px;
+  box-shadow:0 14px 32px rgba(60,52,170,.30);
+}
+.hero::after{
+  content:"";position:absolute;top:-20%;bottom:-20%;left:-65%;width:46%;z-index:1;
+  transform:skewX(-18deg);pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.72) 50%,transparent);
+  animation:sheen 12s cubic-bezier(.42,.02,.28,1) infinite;
+}
+@keyframes sheen{0%{left:-65%}58%,100%{left:135%}}
+.hero h2{margin:0 0 6px;font-size:26px;font-weight:800;letter-spacing:-.4px;position:relative;z-index:2}
+.hero p{margin:0;font-size:16px;line-height:1.5;color:rgba(255,255,255,.95);position:relative;z-index:2}
+.hero .sp{display:inline-flex;vertical-align:-2px;margin-right:6px}
+
+/* cards */
+.card{
+  background:var(--surface);border-radius:20px;padding:17px;margin-bottom:14px;
+  box-shadow:0 7px 20px rgba(31,41,70,.09), inset 0 0 0 1px rgba(255,255,255,.9);
+}
+[data-theme="dark"] .card{box-shadow:none;border:1px solid var(--line)}
+.ct{display:flex;align-items:center;gap:8px;margin:0 0 10px;
+    font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ct svg{flex:none;color:var(--spark)}
+.card p{margin:0 0 11px;font-size:16px;line-height:1.55;color:var(--text)}
+.card p:last-child{margin-bottom:0}
+.quote{
+  border-left:4px solid var(--spark);padding:2px 0 2px 13px;margin:0;
+  font-size:16px;line-height:1.55;color:var(--muted-tint);font-style:italic;
+}
+
+/* steps */
+.step{display:flex;gap:13px;align-items:flex-start;padding:11px 0;border-top:1px solid var(--line)}
+.step:first-of-type{border-top:0;padding-top:2px}
+.num{
+  flex:none;width:30px;height:30px;border-radius:50%;
+  background:linear-gradient(135deg,var(--cta-from),var(--cta-to));color:#fff;
+  display:grid;place-items:center;font-size:14.5px;font-weight:800;
+}
+.step b{display:block;font-size:16.5px;color:var(--ink);line-height:1.3}
+.step span{display:block;font-size:15px;color:var(--muted-tint);line-height:1.45;margin-top:2px}
+
+/* model rows */
+.m{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
+.m:first-of-type{border-top:0;padding-top:2px}
+.mi{flex:none;width:38px;height:38px;border-radius:12px;background:var(--tile);
+    color:var(--spark);display:grid;place-items:center}
+.m b{display:block;font-size:16.5px;color:var(--ink);line-height:1.3}
+.m span{display:block;font-size:14.5px;color:var(--muted-tint);line-height:1.45;margin-top:1px}
+.m code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13.5px;
+        background:var(--tile);padding:1px 6px;border-radius:6px;color:var(--muted-tint)}
+
+/* status list */
+.s{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:16px}
+.s:first-of-type{border-top:0}
+.s span{flex:1;color:var(--text)}
+.pill{flex:none;padding:3px 10px;border-radius:var(--r-pill);font-size:12.5px;font-weight:800}
+.pill.ok{background:var(--ok-bg);color:var(--ok-ink)}
+.pill.wait{background:var(--wait-bg);color:var(--wait-ink)}
+
+/* languages */
+.langs{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}
+.lg{padding:6px 12px;border-radius:var(--r-pill);background:var(--tile);
+    color:var(--muted-tint);font-size:14.5px;font-weight:700;font-family:var(--f-indic);line-height:1.5}
+.lg.on{background:linear-gradient(135deg,var(--cta-from),var(--cta-to));color:#fff}
+
+.foot{text-align:center;padding:8px 0 0}
+.foot p{margin:0 0 4px;font-size:14px;color:var(--muted);line-height:1.5}
+.foot b{color:var(--ink)}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true"></div>
+
+<main class="screen">
+
+  <div class="top">
+    <button class="tile" id="back" type="button" aria-label="Go back">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5M12 5l-7 7 7 7"/>
+      </svg>
+    </button>
+    <div class="hd">
+      <h1>About Seva</h1>
+      <p class="lede">Why it exists and how it works</p>
+    </div>
+  </div>
+
+  <section class="hero">
+    <h2>
+      <span class="sp"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.2 12C15.7 15.58 15.58 15.7 12 23.2C8.3 15.58 8.42 15.7 0.8 12C8.3 8.42 8.42 8.3 12 0.8C15.7 8.42 15.58 8.3 23.2 12Z"/></svg></span>Seva
+    </h2>
+    <p>An ear that waits for your number, so you do not have to strain to hear it.</p>
+  </section>
+
+  <section class="card">
+    <h3 class="ct">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.2 12C15.7 15.58 15.58 15.7 12 23.2C8.3 15.58 8.42 15.7 0.8 12C8.3 8.42 8.42 8.3 12 0.8C15.7 8.42 15.58 8.3 23.2 12Z"/></svg>
+      The problem
+    </h3>
+    <p class="quote">She waits for exactly one piece of information. It is announced once or twice
+      over a bad speaker in a loud hall, mixed with dozens of announcements for other people,
+      possibly in a language she does not follow. If she misses it she loses a day's wages,
+      a seat, or the journey.</p>
+    <p style="margin-top:12px">Indian Railways' own handbook requires announcements to run 15 to 25&nbsp;dB
+      above background noise. In a crowded hall they often do not. Seva listens when a person cannot.</p>
+  </section>
+
+  <section class="card">
+    <h3 class="ct">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      How it works
+    </h3>
+    <div class="step"><span class="num">1</span><div>
+      <b>You tell it what you are waiting for</b>
+      <span>A token like A-47, a train number, or a bus route. One thing.</span></div></div>
+    <div class="step"><span class="num">2</span><div>
+      <b>It listens, and ignores the quiet</b>
+      <span>A loudness gate on the phone only sends audio when someone is actually
+        announcing. An hour of waiting costs about 7.5 minutes of speech recognition.</span></div></div>
+    <div class="step"><span class="num">3</span><div>
+      <b>It reads the number out of the sentence</b>
+      <span>Fixed rules, not guesswork. If two train numbers appear in one announcement,
+        it refuses rather than pick one.</span></div></div>
+    <div class="step"><span class="num">4</span><div>
+      <b>It buzzes and speaks, in your language</b>
+      <span>Your phone vibrates and says the number aloud, slowly.</span></div></div>
+  </section>
+
+  <section class="card">
+    <h3 class="ct">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.2l2.3 6.1 6.5.3-5.1 4.1 1.8 6.3L12 15.4 6.5 19l1.8-6.3-5.1-4.1 6.5-.3z"/></svg>
+      The one promise
+    </h3>
+    <p style="font-size:17.5px;font-weight:700;color:var(--ink);line-height:1.45">
+      A missed number is survivable. An invented one is not.</p>
+    <p>If Seva did not clearly hear the platform, it says so and tells you to check the board.
+      It will never print a number the announcement did not contain.</p>
+  </section>
+
+  <section class="card">
+    <h3 class="ct">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.6a4.2 4.2 0 014.2 4.2v4a4.2 4.2 0 01-8.4 0v-4A4.2 4.2 0 0112 2.6zM5.2 10.4h2.1a4.7 4.7 0 009.4 0h2.1a6.8 6.8 0 01-5.75 6.72V20h3.15v2.1H7.8V20h3.15v-2.88A6.8 6.8 0 015.2 10.4z"/></svg>
+      What is inside
+    </h3>
+    <div class="m">
+      <span class="mi"><svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2.6 10.4h1.6v3.2H2.6zM6 7.6h1.6v8.8H6zM9.4 4.4H11v15.2H9.4zM12.8 8.4h1.6v7.2h-1.6zM16.2 6.4h1.6v11.2h-1.6zM19.6 9.6h1.6v4.8h-1.6z"/></svg></span>
+      <div><b>The ear</b><span>Gnani Prisma speech-to-text, tuned for noisy halls and biased
+        toward local place names like Tenali and Vijayawada.</span></div>
+    </div>
+    <div class="m">
+      <span class="mi"><svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9.5 2.4a4.1 4.1 0 00-4 3.2 3.6 3.6 0 00-2 6.2 3.8 3.8 0 002.4 6.5 3.7 3.7 0 007.1-1.5V5.9a3.5 3.5 0 00-3.5-3.5zm5 0A3.5 3.5 0 0011 5.9v10.9a3.7 3.7 0 007.1 1.5 3.8 3.8 0 002.4-6.5 3.6 3.6 0 00-2-6.2 4.1 4.1 0 00-4-3.2z"/></svg></span>
+      <div><b>The words</b><span>A language model rephrases the hospital's own written facts
+        into a plain answer. It is a rewriter, never a source of facts.</span></div>
+    </div>
+    <div class="m">
+      <span class="mi"><svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 9.2h3.4L12.6 5v14L7.4 14.8H4zM15.6 8.6a5.2 5.2 0 010 6.8l-1.3-1.2a3.4 3.4 0 000-4.4zM18 6.1a8.6 8.6 0 010 11.8l-1.3-1.3a6.8 6.8 0 000-9.2z"/></svg></span>
+      <div><b>The voice</b><span>Gnani Timbre <code>v3.0</code>, voice <b>Chetana</b> — chosen
+        because it is the gentle, unhurried one.</span></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3 class="ct">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.4a9.6 9.6 0 100 19.2 9.6 9.6 0 000-19.2zm0 2.1c1 0 2.3 1.9 2.9 5H9.1c.6-3.1 1.9-5 2.9-5zM6.9 7.5H4.9a7.6 7.6 0 013.6-2.8 12 12 0 00-1.6 2.8zm-2.8 2.1h2.4a19 19 0 000 4.8H4.1a7.6 7.6 0 010-4.8zm4.5 0h6.8a17 17 0 010 4.8H8.6a17 17 0 010-4.8zm8.9 0h2.4a7.6 7.6 0 010 4.8h-2.4a19 19 0 000-4.8zm-.4-2.1a12 12 0 00-1.6-2.8 7.6 7.6 0 013.6 2.8zM9.1 16.5h5.8c-.6 3.1-1.9 5-2.9 5s-2.3-1.9-2.9-5zm-2.2 0a12 12 0 001.6 2.8 7.6 7.6 0 01-3.6-2.8zm8.4 2.8a12 12 0 001.6-2.8h2a7.6 7.6 0 01-3.6 2.8z"/></svg>
+      Languages
+    </h3>
+    <p style="font-size:15px;color:var(--muted-tint)">Spoken alerts are checked word for word in
+      three languages today. The rest are in the picker and will follow.</p>
+    <div class="langs">
+      <span class="lg on">తెలుగు</span><span class="lg on">English</span><span class="lg on">हिन्दी</span>
+      <span class="lg">தமிழ்</span><span class="lg">ಕನ್ನಡ</span><span class="lg">മലയാളം</span>
+      <span class="lg">मराठी</span><span class="lg">বাংলা</span><span class="lg">ગુજરાતી</span>
+      <span class="lg">ਪੰਜਾਬੀ</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3 class="ct">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.2 4.4h17.6v2.2H3.2zM3.2 10.9h17.6v2.2H3.2zM3.2 17.4h11.4v2.2H3.2z"/></svg>
+      Where it has got to
+    </h3>
+    <div class="s"><span>Hospital token announcements</span><span class="pill ok">Proven</span></div>
+    <div class="s"><span>Railway announcements</span><span class="pill ok">Proven</span></div>
+    <div class="s"><span>Bus stand announcements</span><span class="pill ok">Proven</span></div>
+    <div class="s"><span>Live microphone on a phone</span><span class="pill wait">Next</span></div>
+    <p style="margin-top:12px;font-size:14.5px;color:var(--muted)">
+      "Proven" means the number-reading rules pass their tests on recorded and written
+      announcements. The live microphone is the last piece.</p>
+  </section>
+
+  <div class="foot">
+    <p>Built by <b>Bhuvanesh Cheedarla</b></p>
+    <p>For the Great Indian AI Internship Challenge</p>
+    <p style="margin-top:8px">Version 0.9 &middot; October 2026</p>
+  </div>
+
+</main>
+
+<script>
+document.getElementById("back").addEventListener("click", function(){
+  if (document.referrer && history.length > 1) void 0;
+  else window.location.href = "home.html";
+});
+</script>
+</body>
+</html>
+
