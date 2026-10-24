@@ -466,10 +466,11 @@ document.getElementById("mic").addEventListener("click", stop);
   function J(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}}
   var watch=J("seva.watch");if(!watch||!watch.value)return;
   var lang="en-IN";try{lang=localStorage.getItem("seva.language")||"en-IN"}catch(e){}
-  var WIN=10,EVERY=5,QUIET=0.004;
+  var WIN=10,EVERY=4,QUIET=0.003,DBG=/[?&]debug/.test(location.search),lvl=0,pinUntil=0;
   var big=document.querySelector(".status .big"),small=document.querySelector(".status .small");
   var ctx,stream,node,chunks=[],total=0,timer,busy=false,fails=0,done=false;
-  function say(a,b){if(a)big.textContent=a;if(b!==undefined)small.textContent=b}
+  function say(a,b){if(a)big.textContent=a;if(b!==undefined){small.textContent=b;pinUntil=Date.now()+3500}}
+  function dbg(t){var p=document.getElementById("dbg");if(!p){p=document.createElement("p");p.id="dbg";p.style.cssText="margin:12px 16px;font-size:15px;text-align:center;word-break:break-word";document.body.appendChild(p)}p.textContent=t}
   function rms(f){var s=0;for(var i=0;i<f.length;i++)s+=f[i]*f[i];return Math.sqrt(s/Math.max(1,f.length))}
   function resample(f,from,to){var r=from/to,n=Math.floor(f.length/r),o=new Float32Array(n);
     for(var i=0;i<n;i++){var a=Math.floor(i*r),e=Math.max(a+1,Math.min(Math.floor((i+1)*r),f.length)),s=0;for(var j=a;j<e;j++)s+=f[j];o[i]=s/(e-a)}return o}
@@ -494,10 +495,12 @@ document.getElementById("mic").addEventListener("click", stop);
     var fd=new FormData();fd.append("audio",wav(resample(win,sr,16000),16000),"clip.wav");fd.append("language_code",lang);
     fetch("/listen",{method:"POST",body:fd}).then(function(r){if(!r.ok)throw r;return r.json()}).then(function(j){
       if(typeof j.transcript!=="string")throw 0;
+      if(DBG)dbg("Heard: "+(j.transcript.trim()||"(nothing)"));
       if(!j.transcript.trim()){say(null,"Please wait for your announcement");return null}
       return fetch("/detect",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({transcript:j.transcript,mode:watch.mode,value:watch.value})}).then(function(r){if(!r.ok)throw r;return r.json()})
     }).then(function(r){
       fails=0;if(done||!r)return;
+      if(DBG){var _p=document.getElementById("dbg");dbg((_p?_p.textContent:"")+"  =>  "+r.verdict+(r.token?" "+r.token:"")+(r.room?" room "+r.room:""))}
       if(!valid(r))throw 0;
       if(r.verdict==="mine"||r.verdict==="missing"){try{localStorage.setItem("seva.lastResult",JSON.stringify(r))}catch(e){}release();location.href="confirmed.html"}
       else if(r.verdict==="other"){release();location.href="another.html"}
@@ -511,10 +514,13 @@ document.getElementById("mic").addEventListener("click", stop);
   navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
     stream=s;var C=window.AudioContext||window.webkitAudioContext;ctx=new C();if(ctx.resume)ctx.resume();
     var src=ctx.createMediaStreamSource(s);node=ctx.createScriptProcessor(4096,1,1);var mute=ctx.createGain();mute.gain.value=0;
-    node.onaudioprocess=function(e){var d=new Float32Array(e.inputBuffer.getChannelData(0));chunks.push(d);total+=d.length;
+    node.onaudioprocess=function(e){var d=new Float32Array(e.inputBuffer.getChannelData(0));chunks.push(d);total+=d.length;lvl=rms(d);
       var max=ctx.sampleRate*WIN;while(chunks.length>1&&total-chunks[0].length>=max)total-=chunks.shift().length};
     src.connect(node);node.connect(mute);mute.connect(ctx.destination);
     timer=setInterval(tick,EVERY*1000);
+    setInterval(function(){if(done||Date.now()<pinUntil)return;
+      small.textContent=ctx.state!=="running"?"Tap the screen once to start listening":(lvl>0.01?"Hearing sound\u2026":"No sound yet. Speak or play the announcement close to the microphone.")},600);
+    document.addEventListener("pointerdown",function(e){if(!done&&ctx.state!=="running"){e.preventDefault();e.stopPropagation();ctx.resume()}},true);
     try{if(navigator.wakeLock)navigator.wakeLock.request("screen").catch(function(){})}catch(e){}
   }).catch(function(){location.replace("mic-blocked.html")});
 })();

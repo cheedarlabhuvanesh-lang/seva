@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Seva microphone test</title>
+<style>
+body{font:17px/1.5 "Segoe UI",system-ui,sans-serif;background:linear-gradient(170deg,#EDE8FC,#E6EEFE 42%,#FBF8FF) fixed;color:#1F2937;margin:0;padding:16px 16px 48px}
+main{max-width:440px;margin:0 auto}h1{font-size:28px;color:#16215A;margin:8px 0 4px}h2{font-size:19px;color:#16215A;margin:0 0 8px}
+p.sub{color:#5A6B86;margin:0 0 16px}.card{background:rgba(255,255,255,.85);border:1px solid #fff;border-radius:20px;padding:16px;margin-top:14px;box-shadow:0 8px 24px rgba(60,40,140,.10)}
+button,select,input{font:inherit;min-height:48px;border-radius:14px;border:2px solid #DCD6F3;padding:0 14px;background:#fff;color:#1F2937}
+button{background:linear-gradient(95deg,#2563EB,#7C3AED);color:#fff;border:0;font-weight:650;cursor:pointer}button:disabled{opacity:.5}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.row>*{flex:1;min-width:120px}
+.bar{height:14px;border-radius:9px;background:#E5DAF3;overflow:hidden;margin-top:10px}.bar i{display:block;height:100%;width:0;background:#6C3D95;transition:width .08s}
+.ln{margin:4px 0}.ok{color:#087F5B}.bad{color:#B42318;font-weight:600}pre{background:#F4F1FD;border-radius:12px;padding:10px;font-size:14px;white-space:pre-wrap;word-break:break-word;margin:6px 0 0}
+</style></head><body><main>
+<h1>Microphone test</h1><p class="sub">Finds exactly where listening stops: the microphone, Gnani, or the matching.</p>
+<div class="card"><h2>1. Microphone</h2><button id="go">Start microphone</button>
+<div id="s1"></div><div class="bar"><i id="lv"></i></div></div>
+<div class="card"><h2>2. Say an announcement</h2>
+<p class="sub" style="margin:0">Press Record, then say or play: <b>"Token A 47, please go to room 204"</b></p>
+<div class="row"><select id="lang"><option value="en-IN">English</option><option value="te-IN">Telugu</option></select><input id="tok" value="A-47" aria-label="Your token"></div>
+<div class="row"><button id="rec" disabled>Record 6 seconds</button></div><div id="s2"></div></div>
+<div class="card"><h2>3. Server</h2><button id="srv">Check server</button><div id="s3"></div></div>
+</main>
+<script>
+var $=function(i){return document.getElementById(i)};
+function line(el,t,c){var p=document.createElement("div");p.className="ln "+(c||"");p.textContent=t;$(el).appendChild(p)}
+function pre(el,t){var p=document.createElement("pre");p.textContent=t;$(el).appendChild(p)}
+var ctx,stream,node,buf=[],keep=false,lvl=0;
+function rms(f){var s=0;for(var i=0;i<f.length;i++)s+=f[i]*f[i];return Math.sqrt(s/Math.max(1,f.length))}
+function resample(f,a,b){var r=a/b,n=Math.floor(f.length/r),o=new Float32Array(n);for(var i=0;i<n;i++){var x=Math.floor(i*r),e=Math.max(x+1,Math.min(Math.floor((i+1)*r),f.length)),s=0;for(var j=x;j<e;j++)s+=f[j];o[i]=s/(e-x)}return o}
+function wav(f,sr){var b=new ArrayBuffer(44+f.length*2),v=new DataView(b);function w(o,t){for(var i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))}
+w(0,"RIFF");v.setUint32(4,36+f.length*2,true);w(8,"WAVE");w(12,"fmt ");v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,"data");v.setUint32(40,f.length*2,true);
+for(var i=0;i<f.length;i++){var x=Math.max(-1,Math.min(1,f[i]));v.setInt16(44+i*2,x<0?x*32768:x*32767,true)}return new Blob([b],{type:"audio/wav"})}
+$("go").onclick=function(){
+  $("s1").textContent="";
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){line("s1","Microphone not available. This page must be opened over https (or localhost).","bad");return}
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
+    stream=s;line("s1","Microphone permission: allowed","ok");
+    var C=window.AudioContext||window.webkitAudioContext;ctx=new C();ctx.resume&&ctx.resume();
+    line("s1","Audio engine: "+ctx.state+" ("+ctx.sampleRate+" Hz)",ctx.state==="running"?"ok":"bad");
+    if(ctx.state!=="running"){line("s1","The browser is holding the audio engine. Tap this page once.","bad");document.addEventListener("pointerdown",function(){ctx.resume()},{once:true})}
+    var src=ctx.createMediaStreamSource(s);node=ctx.createScriptProcessor(4096,1,1);var m=ctx.createGain();m.gain.value=0;
+    node.onaudioprocess=function(e){var d=new Float32Array(e.inputBuffer.getChannelData(0));lvl=rms(d);$("lv").style.width=Math.min(100,Math.round(lvl*500))+"%";if(keep)buf.push(d)};
+    src.connect(node);node.connect(m);m.connect(ctx.destination);$("rec").disabled=false;$("go").disabled=true;
+    line("s1","Speak now. The bar should move. If it stays flat, the microphone is not picking you up (check Windows sound input and the browser's microphone choice).");
+  }).catch(function(e){line("s1","Microphone blocked or missing: "+(e&&e.name||e),"bad")});
+};
+$("rec").onclick=function(){
+  $("s2").textContent="";buf=[];keep=true;$("rec").disabled=true;var n=6;
+  var t=setInterval(function(){$("rec").textContent="Recording… "+(--n);if(n<=0){clearInterval(t);finish()}},1000);$("rec").textContent="Recording… 6";
+};
+function finish(){
+  keep=false;$("rec").textContent="Record 6 seconds";$("rec").disabled=false;
+  var tot=0;buf.forEach(function(c){tot+=c.length});var all=new Float32Array(tot),o=0;buf.forEach(function(c){all.set(c,o);o+=c.length});
+  var peak=0;for(var i=0;i<all.length;i++)peak=Math.max(peak,Math.abs(all[i]));
+  line("s2","Recorded "+(tot/ctx.sampleRate).toFixed(1)+" s, loudness "+rms(all).toFixed(4)+", peak "+peak.toFixed(2),tot>0&&rms(all)>0.003?"ok":"bad");
+  if(!tot){line("s2","No audio was captured. The audio engine is not running.","bad");return}
+  if(rms(all)<=0.003)line("s2","Very quiet. Speak louder or move closer.","bad");
+  var blob=wav(resample(all,ctx.sampleRate,16000),16000),fd=new FormData();fd.append("audio",blob,"clip.wav");fd.append("language_code",$("lang").value);
+  line("s2","Sending "+Math.round(blob.size/1024)+" KB to Gnani…");
+  fetch("/listen",{method:"POST",body:fd}).then(function(r){return r.text().then(function(t){return{s:r.status,t:t}})}).then(function(x){
+    line("s2","Gnani speech-to-text: HTTP "+x.s,x.s===200?"ok":"bad");pre("s2",x.t);
+    var j;try{j=JSON.parse(x.t)}catch(e){return}
+    if(x.s!==200)return;
+    line("s2","What Seva heard: "+(j.transcript||"(nothing)"),j.transcript?"ok":"bad");
+    return fetch("/detect",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({transcript:j.transcript||"",mode:"hospital",value:$("tok").value})}).then(function(r){return r.json()}).then(function(d){
+      line("s2","Matcher verdict: "+d.verdict+(d.token?" · token "+d.token:"")+(d.room?" · room "+d.room:""),d.verdict==="mine"?"ok":"bad");
+      line("s2",{mine:"This would open 'Your number is called'.",missing:"Your token was heard but not the room.",other:"A different token was heard.",none:"No token number was found in what was heard."}[d.verdict]);
+    });
+  }).catch(function(e){line("s2","Could not reach the server: "+e,"bad")});
+}
+$("srv").onclick=function(){
+  $("s3").textContent="";
+  fetch("/health").then(function(r){return r.json()}).then(function(j){line("s3","Server: "+j.status,"ok");line("s3","Gnani key loaded: "+j.gnani_key_configured,j.gnani_key_configured?"ok":"bad")}).catch(function(){line("s3","Server not reachable","bad")});
+  fetch("/detect",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({transcript:"Token A forty seven room two oh four",mode:"hospital",value:"A-47"})}).then(function(r){return r.json()}).then(function(d){line("s3","Matcher test: "+d.verdict+" room "+d.room,d.verdict==="mine"&&d.room==="204"?"ok":"bad")}).catch(function(){});
+};
+</script></body></html>

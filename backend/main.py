@@ -3,6 +3,7 @@ Rules: the API key stays here (.env). Numbers are returned ONLY if found in the 
 Transcripts and audio are never logged or stored."""
 import os
 import re
+import unicodedata
 from pathlib import Path
 import requests
 from dotenv import load_dotenv
@@ -11,6 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+
+import db
 
 load_dotenv()
 STT_URL = "https://api.vachana.ai/stt/v3"
@@ -90,44 +93,105 @@ class DetectIn(BaseModel):
     my_token: str | None = Field(default=None, max_length=12)    # older name, still accepted
 
 
-ROOM_WORDS = r"(?:room(?:\s*(?:number|no\.?))?|గది|రూమ్|कमरा|कक्ष)"
-TOKEN_RE = re.compile(r"\b([A-Za-z])\s*-?\s*(\d{1,3})\b")
-ROOM_RE = re.compile(ROOM_WORDS + r"\s*(?:number|no\.?|నంబర్|नंबर)?\s*[:\-]?\s*(\d{1,4})", re.IGNORECASE)
+# Speech-to-text sometimes writes numbers as words ("forty seven", "నలభై ఏడు") and letters as sounds ("ay").
+# normalize() turns all of that into plain digits and lower-case letters before anything is matched.
+_U = {"zero": 0, "oh": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
+      "సున్నా": 0, "ఒకటి": 1, "ఒక్కటి": 1, "రెండు": 2, "మూడు": 3, "నాలుగు": 4, "ఐదు": 5, "అయిదు": 5, "ఆరు": 6, "ఏడు": 7,
+      "ఎనిమిది": 8, "తొమ్మిది": 9}
+_T = {"ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15, "sixteen": 16, "seventeen": 17,
+      "eighteen": 18, "nineteen": 19, "పది": 10, "పదకొండు": 11, "పన్నెండు": 12, "పదమూడు": 13, "పద్నాలుగు": 14, "పధ్నాలుగు": 14,
+      "పదిహేను": 15, "పదహారు": 16, "పదిహేడు": 17, "పద్దెనిమిది": 18, "పంతొమ్మిది": 19}
+_Y = {"twenty": 20, "thirty": 30, "forty": 40, "fourty": 40, "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90,
+      "ఇరవై": 20, "ముప్పై": 30, "నలభై": 40, "నలబై": 40, "యాభై": 50, "ఏభై": 50, "అరవై": 60, "డెబ్బై": 70, "ఎనభై": 80, "ఎనబై": 80,
+      "తొంభై": 90, "తొంబై": 90}
+_NUM = {}
+for _d, _k in ((_U, "u"), (_T, "t"), (_Y, "y")):
+    for _w, _v in _d.items():
+        _NUM[_w] = (_k, _v)
+for _w in ("hundred", "వంద", "వందల", "నూరు"):
+    _NUM[_w] = ("h", 100)
+for _w, _v in (("double", 2), ("triple", 3), ("డబుల్", 2), ("ట్రిపుల్", 3)):
+    _NUM[_w] = ("d", _v)
+
+
+def _run_value(run):
+    if all(k in ("u", "d") for k, _ in run):          # digits read one by one: "two oh four" -> 204
+        out, rep = "", 1
+        for k, v in run:
+            if k == "d":
+                rep = v
+            else:
+                out, rep = out + str(v) * rep, 1
+        return out
+    cur = 0
+    for k, v in run:
+        cur = (cur or 1) * 100 if k == "h" else cur + v
+    return str(cur)
+
+
+def normalize(text: str) -> str:
+    text = "".join(str(unicodedata.digit(c)) if unicodedata.category(c) == "Nd" else c for c in text.lower()).replace("-", " ")
+    words = re.split(r"(\s+)", text)
+    key = lambda w: w.strip(",.;:!?\"'()[]")
+    isnum = lambda j: j < len(words) and key(words[j]) in _NUM
+    out, run = [], []
+    for i, w in enumerate(words):
+        if key(w) in _NUM:
+            run.append(_NUM[key(w)])
+        elif run and w.isspace():
+            # stay inside the number if the next word is a number word, or "and" followed by one
+            if not (isnum(i + 1) or (i + 2 < len(words) and key(words[i + 1]) == "and" and isnum(i + 3))):
+                out.append(_run_value(run))
+                run = []
+                out.append(w)
+        elif run and key(w) == "and":
+            continue
+        else:
+            if run:
+                out.append(_run_value(run))
+                run = []
+            out.append(w)
+    if run:
+        out.append(_run_value(run))
+    text = "".join(out)
+    return re.sub(r"(?<!\d)\d(?:\s\d)+(?!\d)", lambda m: re.sub(r"\D", "", m.group(0)), text)   # "4 7" -> "47"
+
+
+_LETTERS = {"ay": "a", "ey": "a", "eh": "a", "ఏ": "a", "ఎ": "a", "bee": "b", "బీ": "b", "see": "c", "సీ": "c",
+            "dee": "d", "డీ": "d", "ee": "e", "ఈ": "e", "ef": "f", "ఎఫ్": "f"}
+TOKEN_RE = re.compile(r"(?<![a-z0-9\u0c00-\u0c7f])([a-z]|" + "|".join(sorted(map(re.escape, _LETTERS), key=len, reverse=True))
+                      + r")[\s\-]*0*(\d{1,3})(?!\d)")
+ROOM_RE = re.compile(r"(?:room(?:\s*(?:number|no\.?))?|గది|రూమ్|कमरा|कक्ष)\s*(?:number|no\.?|నంబర్|नंबर)?\s*[:\-]?\s*(\d{1,4})", re.IGNORECASE)
 PLAT_RE = re.compile(r"(?:platform|ప్లాట్\u200cఫామ్|ప్లాట్ఫామ్|ప్లాట్\u200cఫాం|प्लेटफॉर्म|प्लेटफार्म)\s*(?:number|no\.?|నంబర్|नंबर)?\s*[:\-]?\s*(\d{1,2})", re.IGNORECASE)
 BAY_RE = re.compile(r"(?:bay|platform|బే)\s*(?:number|no\.?|నంబర్)?\s*[:\-]?\s*(\d{1,2})", re.IGNORECASE)
 BUS_WORD = re.compile(r"\bbus\b|బస్సు|बस", re.IGNORECASE)
 
 
-def norm(token: str | None):
-    return re.sub(r"[\s\-]", "", token).upper() if token else None
-
-
 def find_trains(text: str):
-    found = [m.group(1) for m in re.finditer(r"(?<!\d)(\d{5})(?!\d)", text)]
-    if not found:  # digits read out one by one, e.g. "1 2 7 3 9"
-        found = [re.sub(r"\D", "", m.group(0)) for m in re.finditer(r"(?<!\d)(?:\d[\s\-]){4}\d(?!\d)", text)]
-    return found
+    return [m.group(1) for m in re.finditer(r"(?<!\d)(\d{5})(?!\d)", text)]
 
 
 @app.post("/detect")
 def detect(body: DetectIn):
-    text = body.transcript
+    text = normalize(body.transcript)
     value = (body.value or body.my_token or "").strip()
     mode = body.mode if body.mode in ("hospital", "train", "bus") else "hospital"
     out = {"schemaVersion": 1, "verdict": "none", "certain": False, "token": None, "room": None,
            "train_no": None, "platform": None, "destination": None}
     if mode == "hospital":
-        t = TOKEN_RE.search(text)
-        token = f"{t.group(1).upper()}-{t.group(2)}" if t else None
-        r = ROOM_RE.search(text)
-        room = r.group(1) if r else None
-        if token:
-            out["token"] = token
-            if norm(token) == norm(value):
-                out["verdict"] = "mine" if room else "missing"
-                out["room"] = room
-            else:
-                out["verdict"] = "other"
+        found = [(m.start(), m.end(), _LETTERS.get(m.group(1), m.group(1)) + str(int(m.group(2)))) for m in TOKEN_RE.finditer(text)]
+        v = re.match(r"^\s*([A-Za-z])[\s\-]*0*(\d{1,3})\s*$", value)
+        want = (v.group(1).lower() + str(int(v.group(2)))) if v else None
+        shown = lambda t: t[0].upper() + "-" + t[1:]
+        if found:
+            out["token"] = shown(found[0][2])
+            out["verdict"] = "other"
+            for n, (st, en, tok) in enumerate(found):
+                if tok == want:      # your token anywhere in the announcement, even after someone else's
+                    seg = text[en:found[n + 1][0] if n + 1 < len(found) else len(text)]
+                    r = ROOM_RE.search(seg)
+                    out.update(token=shown(tok), room=r.group(1) if r else None, verdict="mine" if r else "missing")
+                    break
     elif mode == "train":
         trains = find_trains(text)
         want = re.sub(r"\D", "", value)
@@ -138,14 +202,14 @@ def detect(body: DetectIn):
             else:
                 out.update(verdict="other", train_no=trains[0])
     else:
-        v = value
+        v = value.lower()
         if v and v.isascii():
-            hit = re.search(r"(?<![A-Za-z0-9])" + re.escape(v) + r"(?![A-Za-z0-9])", text, re.IGNORECASE)
+            hit = re.search(r"(?<![a-z0-9])" + re.escape(v) + r"(?![a-z0-9])", text)
         else:
-            hit = bool(v) and v.lower() in text.lower()
+            hit = bool(v) and v in text
         if hit:
             b = BAY_RE.search(text)
-            out.update(verdict="mine", destination=(v.title() if v.isascii() else v), platform=b.group(1) if b else None)
+            out.update(verdict="mine", destination=(value.title() if value.isascii() else value), platform=b.group(1) if b else None)
         elif BUS_WORD.search(text):
             out["verdict"] = "other"
     out["certain"] = out["verdict"] == "mine"
@@ -183,48 +247,27 @@ def tts(body: TtsIn):
     return Response(content=r.content, media_type="audio/mpeg")
 
 
-# ---------- /ask : help-desk question -> answer ----------
-# SAMPLE DATA for the demo. Replace the facts with your real hospital's details before real use.
-# If nothing matches, Seva says it does not know. It never invents an answer.
-FAQ = [
-    {"keys": ["opd", "outpatient", "ఓపీ", "ఓపి", "ఓ.పి"],
-     "te": "OPD ఉదయం 9 గంటల నుంచి మధ్యాహ్నం 12 గంటల వరకు ఉంటుంది.",
-     "en": "OPD is open from 9 AM to 12 noon."},
-    {"keys": ["pharmacy", "medicine", "ఫార్మసీ", "మందుల", "మెడికల్"],
-     "te": "ఫార్మసీ గ్రౌండ్ ఫ్లోర్‌లో ఉంది.",
-     "en": "The pharmacy is on the ground floor."},
-    {"keys": ["lab", "blood test", "ల్యాబ్", "రక్త పరీక్ష"],
-     "te": "ల్యాబ్ మొదటి అంతస్తులో ఉంది.",
-     "en": "The lab is on the first floor."},
-    {"keys": ["emergency", "casualty", "ఎమర్జెన్సీ", "అత్యవసర"],
-     "te": "ఎమర్జెన్సీ విభాగం ప్రధాన ద్వారం పక్కన ఉంది, 24 గంటలు తెరిచి ఉంటుంది.",
-     "en": "The emergency department is next to the main entrance and is open 24 hours."},
-    {"keys": ["billing", "bill", "payment", "బిల్లు", "బిల్లింగ్"],
-     "te": "బిల్లింగ్ కౌంటర్ గ్రౌండ్ ఫ్లోర్‌లో రిసెప్షన్ దగ్గర ఉంది.",
-     "en": "The billing counter is on the ground floor near reception."},
-]
+# ---------- /ask : help-desk question -> answer, from the database (faq.csv -> seva.db) ----------
+db.init()
 
 
 class AskIn(BaseModel):
     question: str = Field(min_length=1, max_length=300)
     lang: str = "te"
+    venue: str | None = None        # hospital, train or bus; empty searches everything
 
 
 @app.post("/ask")
 def ask(body: AskIn):
     if body.lang not in ("te", "en"):
         return fail(400, "bad_language", "Supported answer languages are te and en.")
-    q = body.question.lower()
-    best, score = None, 0
-    for item in FAQ:
-        s = sum(1 for k in item["keys"] if k in q)
-        if s > score:
-            best, score = item, s
-    if not best:
+    row = db.search(body.question, body.venue)
+    if not row:
         msg = {"te": "క్షమించండి, ఈ సమాచారం నా దగ్గర లేదు. దయచేసి హెల్ప్ డెస్క్‌ను అడగండి.",
                "en": "Sorry, I do not have this information. Please ask the help desk."}[body.lang]
         return {"found": False, "answer": msg, "lang": body.lang, "source": None}
-    return {"found": True, "answer": best[body.lang], "lang": body.lang, "source": "sample FAQ (demo data)"}
+    return {"found": True, "answer": row["answer_" + body.lang], "lang": body.lang,
+            "source": "sample FAQ (demo data)" if row["is_sample"] else "hospital list"}
 
 
 # ---------- the website itself: the pages in the ../web folder (keep this at the very end) ----------
