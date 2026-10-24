@@ -311,7 +311,7 @@ function choose(code){
   paint(code);
   /* saved on tap, not on Done — the screen promises it is
      remembered, so backing out must not throw it away */
-  set("seva.language", code);
+  set("seva.language", code); if (window.sevaI18n) window.sevaI18n.apply();
   if (get("seva.vibration","1") === "1" && navigator.vibrate) navigator.vibrate(18);
 }
 
@@ -333,12 +333,14 @@ document.getElementById("list").addEventListener("keydown", function(e){
 });
 
 function leave(){
-  if (document.referrer && history.length > 1) void 0;
+  var r = document.referrer;
+  if (r && r.indexOf(location.origin) === 0 && r.indexOf("select-language") < 0) window.location.href = r;
   else window.location.href = "settings.html";
 }
 document.getElementById("back").addEventListener("click", leave);
 document.getElementById("done").addEventListener("click", leave);
 </script>
+<script src="i18n.js"></script>
 </body>
 </html>
 

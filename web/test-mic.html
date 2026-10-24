@@ -72,4 +72,5 @@ $("srv").onclick=function(){
   fetch("/health").then(function(r){return r.json()}).then(function(j){line("s3","Server: "+j.status,"ok");line("s3","Gnani key loaded: "+j.gnani_key_configured,j.gnani_key_configured?"ok":"bad")}).catch(function(){line("s3","Server not reachable","bad")});
   fetch("/detect",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({transcript:"Token A forty seven room two oh four",mode:"hospital",value:"A-47"})}).then(function(r){return r.json()}).then(function(d){line("s3","Matcher test: "+d.verdict+" room "+d.room,d.verdict==="mine"&&d.room==="204"?"ok":"bad")}).catch(function(){});
 };
-</script></body></html>
+</script><script src="i18n.js"></script>
+</body></html>

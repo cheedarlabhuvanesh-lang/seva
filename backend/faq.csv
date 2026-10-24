@@ -1,0 +1,11 @@
+﻿venue,keywords,answer_te,answer_en,is_sample
+hospital,opd|outpatient|ఓపీ|ఓపి,OPD ఉదయం 9 గంటల నుంచి మధ్యాహ్నం 12 గంటల వరకు ఉంటుంది.,OPD is open from 9 AM to 12 noon.,1
+hospital,pharmacy|medicine|ఫార్మసీ|మందుల|మెడికల్,ఫార్మసీ గ్రౌండ్ ఫ్లోర్‌లో ఉంది.,The pharmacy is on the ground floor.,1
+hospital,lab|blood test|ల్యాబ్|రక్త పరీక్ష,ల్యాబ్ మొదటి అంతస్తులో ఉంది.,The lab is on the first floor.,1
+hospital,emergency|casualty|ఎమర్జెన్సీ|అత్యవసర,"ఎమర్జెన్సీ విభాగం ప్రధాన ద్వారం పక్కన ఉంది, 24 గంటలు తెరిచి ఉంటుంది.",The emergency department is next to the main entrance and is open 24 hours.,1
+hospital,billing|bill|payment|బిల్లు|బిల్లింగ్,బిల్లింగ్ కౌంటర్ గ్రౌండ్ ఫ్లోర్‌లో రిసెప్షన్ దగ్గర ఉంది.,The billing counter is on the ground floor near reception.,1
+train,ticket|reservation|టికెట్|రిజర్వేషన్,టికెట్ కౌంటర్ ప్రధాన ద్వారం దగ్గర ఉంది.,The ticket counter is near the main entrance.,1
+train,waiting room|rest|వెయిటింగ్ రూమ్|విశ్రాంతి,వెయిటింగ్ రూమ్ మొదటి ప్లాట్‌ఫారం దగ్గర ఉంది.,The waiting room is near platform 1.,1
+bus,ticket|booking|టికెట్|బుకింగ్,టికెట్ బుకింగ్ కౌంటర్ బస్ స్టాండ్ ప్రధాన ద్వారం దగ్గర ఉంది.,The ticket booking counter is near the main gate of the bus stand.,1
+bus,enquiry|timing|route|ఎంక్వైరీ|సమయం|రూట్,బస్సుల సమయాల కోసం ఎంక్వైరీ కౌంటర్ దగ్గర అడగండి.,Please ask at the enquiry counter for bus timings.,1
+all,help desk|enquiry|assistance|హెల్ప్ డెస్క్|సహాయం,హెల్ప్ డెస్క్ ప్రధాన ద్వారం దగ్గర ఉంది.,The help desk is near the main entrance.,1

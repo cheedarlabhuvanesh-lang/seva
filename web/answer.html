@@ -478,7 +478,7 @@ if (speech){
     if (speaking){ stop(); return; }
     if (!window.speechSynthesis){ time.textContent="\u2014"; return; }
     var u = new SpeechSynthesisUtterance(speech);
-    u.lang = "en-IN"; u.rate = 0.94;
+    u.lang = isTe ? "te-IN" : "en-IN"; u.rate = 0.94;
     u.onend = stop;
     u.onerror = function(){ stop(); time.textContent="\u2014"; };
 
@@ -509,6 +509,7 @@ document.getElementById("back").addEventListener("click", function(){
   window.location.href = "ask.html";
 });
 </script>
+<script src="i18n.js"></script>
 </body>
 </html>
 
