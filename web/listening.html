@@ -435,7 +435,7 @@ document.getElementById("mic").addEventListener("click", stop);
   var watch=J("seva.watch");if(!watch||!watch.value)return;
   try{localStorage.removeItem("seva.lastResult")}catch(e){}
   var lang="en-IN";try{lang=localStorage.getItem("seva.language")||"en-IN"}catch(e){}
-  var WIN=10,EVERY=4,QUIET=0.003,DBG=/[?&]debug/.test(location.search),lvl=0,pinUntil=0;
+  var WIN=10,EVERY=4,QUIET=0.003,DBG=/[?&]debug/.test(location.search),lvl=0,pinUntil=0,lastText="";
   var big=document.querySelector(".status .big"),small=document.querySelector(".status .small");
   var ctx,stream,node,chunks=[],total=0,timer,busy=false,fails=0,done=false;
   function say(a,b){if(a)big.textContent=a;if(b!==undefined){small.textContent=b;pinUntil=Date.now()+3500}}
@@ -464,7 +464,8 @@ document.getElementById("mic").addEventListener("click", stop);
     var fd=new FormData();fd.append("audio",wav(resample(win,sr,16000),16000),"clip.wav");fd.append("language_code",lang);
     fetch("/listen",{method:"POST",body:fd}).then(function(r){if(!r.ok)throw r;return r.json()}).then(function(j){
       if(typeof j.transcript!=="string")throw 0;
-      if(DBG)dbg("Heard: "+(j.transcript.trim()||"(nothing)"));
+      lastText=j.transcript.trim();
+      if(DBG)dbg("Heard: "+(lastText||"(nothing)"));
       if(!j.transcript.trim()){say(null,"Please wait for your announcement");return null}
       return fetch("/detect",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({transcript:j.transcript,mode:watch.mode,value:watch.value})}).then(function(r){if(!r.ok)throw r;return r.json()})
     }).then(function(r){
@@ -473,7 +474,7 @@ document.getElementById("mic").addEventListener("click", stop);
       if(!valid(r))throw 0;
       if(r.verdict==="mine"||r.verdict==="missing"){try{localStorage.setItem("seva.lastResult",JSON.stringify(r))}catch(e){}release();location.href="confirmed.html"}
       else if(r.verdict==="other"){release();location.href="another.html"}
-      else say(null,"Heard speech, but not your announcement. Still listening.");
+      else{say(null,"Heard: \u201c"+lastText.slice(0,80)+"\u201d. Not your announcement. Still listening.");pinUntil=Date.now()+8000}
     }).catch(function(){
       fails++;if(done)return;
       if(fails>=2){release();say("Could not reach the server","Check your internet, then tap Stop and try again.")}
