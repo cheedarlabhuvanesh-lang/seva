@@ -27,6 +27,14 @@ origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.s
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["GET", "POST"], allow_headers=["*"])
 
 
+@app.middleware("http")
+async def no_stale_pages(request, call_next):
+    resp = await call_next(request)
+    if request.url.path == "/" or request.url.path.endswith(".html"):
+        resp.headers["Cache-Control"] = "no-cache"      # always check for the newest page
+    return resp
+
+
 def fail(status: int, code: str, message: str):
     return JSONResponse(status_code=status, content={"error": code, "message": message})
 

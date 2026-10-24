@@ -262,22 +262,12 @@ h1{
    stand-in lets the screen be built and filmed. It is the
    ONLY invented data in the app, and it is right here in
    the open so it cannot be mistaken for a real reading.   */
-var DEMO_RESULT = {
-  schemaVersion:1,
-  verdict:"mine",
-  certain:true,
-  token:"A-47",
-  room:"204",
-  train_no:null,
-  platform:null,
-  destination:null
-};
-
 function readJSON(key){
   try{ return JSON.parse(localStorage.getItem(key) || "null"); }catch(e){ return null; }
 }
 
-var result = readJSON("seva.lastResult") || DEMO_RESULT;
+var result = readJSON("seva.lastResult");
+if (!result){ window.location.replace("listen.html"); throw new Error("no result to show"); }
 var watch  = readJSON("seva.watch") || { mode:"hospital", value:"" };
 var lang   = (function(){ try{ return localStorage.getItem("seva.language") || "en-IN"; }
                           catch(e){ return "en-IN"; } })();

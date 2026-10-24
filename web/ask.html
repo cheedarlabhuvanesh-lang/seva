@@ -482,25 +482,14 @@ function ask(){
 
   try{ localStorage.setItem("seva.question", text); localStorage.removeItem("seva.answer"); }catch(e){}
 
-  /* ───────── REAL BRAIN GOES HERE ─────────
-     fetch("/api/ask", {
-       method:"POST",
-       headers:{"Content-Type":"application/json"},
-       body: JSON.stringify({ question: text })
-     })
-     The laptop adds the hospital's own facts and calls the
-     model. Only the question leaves this page — never a
-     transcript, never a recording, never the key.
-
-     On the reply: save it and go to answer.html.
-     ───────────────────────────────────────── */
-
-  /* DEMO STAND-IN — delete with the block above.
-     It does NOT write an answer. It only moves to the next
-     screen, so the walkthrough can be filmed.              */
-  timers.push(setTimeout(function(){
-    window.location.href = "answer.html";
-  }, 1000));
+  
+  /* Live: asks the database on the server, keeps its answer, then opens the answer screen. */
+  var _lg = "en"; try{ _lg = (localStorage.getItem("seva.language") || "en-IN").indexOf("te") === 0 ? "te" : "en"; }catch(e){}
+  fetch("/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:text,lang:_lg})})
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d){ try{ if (d && d.found && typeof d.answer === "string") localStorage.setItem("seva.answer", d.answer); }catch(e){} })
+    .catch(function(){})
+    .then(function(){ window.location.href = "answer.html"; });
 }
 
 send.addEventListener("click", ask);

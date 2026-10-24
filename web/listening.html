@@ -413,38 +413,6 @@ html[data-theme="dark"] .screen{
   }
 })();
 
-/* ─────────────────────────────────────────────────────────
-   DEMO TIMER — THIS IS NOT A REAL DETECTION.
-
-   The microphone is not open. Nothing is being heard. This
-   timer only exists so the screens can be walked through
-   and filmed before /api/listen is wired up.
-
-   When the real ear is connected, delete this whole block.
-   The real code sets seva.lastResult and then goes to the
-   screen that matches the verdict:
-       mine    -> confirmed.html
-       other   -> another.html
-       missing -> missing.html
-   Open this page with ?demo=off to switch the timer off.
-   ───────────────────────────────────────────────────────── */
-var DEMO_AFTER_MS = 7000;
-
-var DEMO_NEXT = {
-  mine:    "confirmed.html",   /* screen 5 — it is hers        */
-  other:   "another.html",     /* screen 6 — somebody else's   */
-  missing: "missing.html",     /* screen 7 — heard, no number  */
-  none:    null                /* nothing heard, stay put      */
-};
-
-(function(){
-  var want = "off";
-  if (want === "off") return;
-  var next = DEMO_NEXT[want] !== undefined ? DEMO_NEXT[want] : DEMO_NEXT.mine;
-  if (!next) return;
-  setTimeout(function(){ window.location.href = next; }, DEMO_AFTER_MS);
-})();
-
 /* ---- stop goes back to screen 3 ---- */
 function stop(){
   /* ───────── REAL MIC STOPS HERE ─────────
@@ -465,6 +433,7 @@ document.getElementById("mic").addEventListener("click", stop);
 (function(){
   function J(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}}
   var watch=J("seva.watch");if(!watch||!watch.value)return;
+  try{localStorage.removeItem("seva.lastResult")}catch(e){}
   var lang="en-IN";try{lang=localStorage.getItem("seva.language")||"en-IN"}catch(e){}
   var WIN=10,EVERY=4,QUIET=0.003,DBG=/[?&]debug/.test(location.search),lvl=0,pinUntil=0;
   var big=document.querySelector(".status .big"),small=document.querySelector(".status .small");

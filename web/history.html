@@ -390,24 +390,7 @@ h1{margin:0;font-size:30px;font-weight:800;letter-spacing:-.6px;color:var(--ink)
    built with textContent, never innerHTML.
    ══════════════════════════════════════════════════════════ */
 
-/* ───────── DEMO SEED — for filming only ─────────
-   Reached with ?demo=1. Held in memory for this page view and
-   NEVER written to localStorage, so it cannot be mistaken for
-   a real alert. Delete once Tenali audio is in.            */
-var DEMO = [
-  {kind:"train",   title:"12739", detail:"Platform 4 · Hyderabad", _m:0,    lang:"en",
-   spoken:"Train 12739 to Hyderabad is arriving on platform 4. Please move to platform 4 now."},
-  {kind:"bus",     title:"582",   detail:"Bay 3 · Route 12",       _m:1090, lang:"en",
-   spoken:"Bus 582 on route 12 is at bay 3. Please board now."},
-  {kind:"hospital",title:"306",   detail:"Counter 3",              _m:1430, lang:"en",
-   spoken:"Your token number is 306. Please proceed to Counter 3 for registration."},
-  {kind:"train",   title:"12517", detail:"Guntur",                 _m:975,  lang:"en",
-   spoken:"Train 12517 to Guntur is arriving. The platform number was not heard. Please check the display board."},
-  {kind:"train",   title:"6428",  detail:"Platform 2 · Vijayawada",_m:1387, lang:"en",
-   spoken:"Train 6428 to Vijayawada is arriving on platform 2. Please move to platform 2 now."},
-  {kind:"hospital",title:"A-47",  detail:"Room 204",               _m:9,    lang:"te",
-   spoken:"మీ నంబర్ వచ్చింది. A-47. గది నంబర్ 204. సామాను తీసుకొని ఇప్పుడే బయలుదేరండి."}
-];
+
 
 var KIND = {
   hospital:{ word:"Token", chip:"Hospital", icon:
@@ -477,14 +460,7 @@ function mmss(sec){ var m=Math.floor(sec/60), s=sec%60; return m+":"+(s<10?"0"+s
 
 /* ---- data ---- */
 function load(){
-  if (new URLSearchParams(location.search).get("demo")==="1"){
-    var now=Date.now();
-    return DEMO.map(function(r){
-      return {kind:r.kind,title:r.title,detail:r.detail,verdict:"mine",
-              spoken:r.spoken,lang:r.lang,at:now-r._m*60000};
-    }).sort(function(a,b){ return b.at-a.at; });
-  }
-  var raw;
+    var raw;
   try{ raw=JSON.parse(localStorage.getItem("seva.history")||"[]"); }catch(e){ raw=[]; }
   if (!Array.isArray(raw)) raw=[];
   return raw.filter(function(r){
