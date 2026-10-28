@@ -437,7 +437,7 @@ document.getElementById("mic").addEventListener("click", stop);
   var lang="en-IN";try{lang=localStorage.getItem("seva.language")||"en-IN"}catch(e){}
   var WIN=10,EVERY=4,QUIET=0.003,DBG=/[?&]debug/.test(location.search),lvl=0,pinUntil=0,lastText="";
   var big=document.querySelector(".status .big"),small=document.querySelector(".status .small");
-  var ctx,stream,node,chunks=[],total=0,timer,busy=false,fails=0,done=false;
+  var ctx,stream,node,chunks=[],total=0,timer,busy=false,fails=0,done=false,pending=null;
   function say(a,b){if(a)big.textContent=a;if(b!==undefined){small.textContent=b;pinUntil=Date.now()+3500}}
   function dbg(t){var p=document.getElementById("dbg");if(!p){p=document.createElement("p");p.id="dbg";p.style.cssText="margin:12px 16px;font-size:15px;text-align:center;word-break:break-word";document.body.appendChild(p)}p.textContent=t}
   function rms(f){var s=0;for(var i=0;i<f.length;i++)s+=f[i]*f[i];return Math.sqrt(s/Math.max(1,f.length))}
@@ -453,8 +453,11 @@ document.getElementById("mic").addEventListener("click", stop);
     try{stream.getTracks().forEach(function(t){t.stop()})}catch(e){}try{ctx.close()}catch(e){}}
   window.addEventListener("pagehide",release);
   function valid(r){return r&&typeof r==="object"&&["mine","other","missing","none"].indexOf(r.verdict)>=0}
+  function finish(r){try{localStorage.setItem("seva.lastResult",JSON.stringify(r))}catch(e){}release();location.href="confirmed.html"}
   function tick(){
-    if(done||busy)return;
+    if(done)return;
+    if(pending&&Date.now()-pending.t>16000){finish(pending.r);return}   /* token heard, room never heard */
+    if(busy)return;
     var sr=ctx.sampleRate,need=Math.min(total,Math.floor(sr*WIN));
     if(need<sr*2)return;
     var all=new Float32Array(total),o=0;chunks.forEach(function(c){all.set(c,o);o+=c.length});
@@ -472,9 +475,10 @@ document.getElementById("mic").addEventListener("click", stop);
       fails=0;if(done||!r)return;
       if(DBG){var _p=document.getElementById("dbg");dbg((_p?_p.textContent:"")+"  =>  "+r.verdict+(r.token?" "+r.token:"")+(r.room?" room "+r.room:""))}
       if(!valid(r))throw 0;
-      if(r.verdict==="mine"||r.verdict==="missing"){try{localStorage.setItem("seva.lastResult",JSON.stringify(r))}catch(e){}release();location.href="confirmed.html"}
-      else if(r.verdict==="other"){release();location.href="another.html"}
-      else{say(null,"Heard: \u201c"+lastText.slice(0,80)+"\u201d. Not your announcement. Still listening.");pinUntil=Date.now()+8000}
+      if(r.verdict==="mine"){finish(r)}
+      else if(r.verdict==="missing"){if(!pending)pending={r:r,t:Date.now()};say("Heard your token","Listening for the room number\u2026")}   /* wait for the announcement to repeat */
+      else if(r.verdict==="other"){if(!pending){release();location.href="another.html"}}
+      else if(!pending){say(null,"Heard: \u201c"+lastText.slice(0,80)+"\u201d. Not your announcement. Still listening.");pinUntil=Date.now()+8000}
     }).catch(function(){
       fails++;if(done)return;
       if(fails>=2){release();say("Could not reach the server","Check your internet, then tap Stop and try again.")}

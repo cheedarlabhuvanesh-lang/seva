@@ -14,8 +14,8 @@ button{background:linear-gradient(95deg,#2563EB,#7C3AED);color:#fff;border:0;fon
 <div class="card"><h2>1. Microphone</h2><button id="go">Start microphone</button>
 <div id="s1"></div><div class="bar"><i id="lv"></i></div></div>
 <div class="card"><h2>2. Say an announcement</h2>
-<p class="sub" style="margin:0">Press Record, then say or play: <b>"Token A 47, please go to room 204"</b></p>
-<div class="row"><select id="lang"><option value="en-IN">English</option><option value="te-IN">Telugu</option></select><input id="tok" value="A-47" aria-label="Your token"></div>
+<p class="sub" style="margin:0">Press Record, then say or play: <b>"Token 47, please go to room 204"</b></p>
+<div class="row"><select id="lang"><option value="en-IN">English</option><option value="te-IN">Telugu</option></select><input id="tok" value="47" aria-label="Your token"></div>
 <div class="row"><button id="rec" disabled>Record 6 seconds</button></div><div id="s2"></div></div>
 <div class="card"><h2>3. Server</h2><button id="srv">Check server</button><div id="s3"></div></div>
 </main>
@@ -70,7 +70,7 @@ function finish(){
 $("srv").onclick=function(){
   $("s3").textContent="";
   fetch("/health").then(function(r){return r.json()}).then(function(j){line("s3","Server: "+j.status,"ok");line("s3","Gnani key loaded: "+j.gnani_key_configured,j.gnani_key_configured?"ok":"bad")}).catch(function(){line("s3","Server not reachable","bad")});
-  fetch("/detect",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({transcript:"Token A forty seven room two oh four",mode:"hospital",value:"A-47"})}).then(function(r){return r.json()}).then(function(d){line("s3","Matcher test: "+d.verdict+" room "+d.room,d.verdict==="mine"&&d.room==="204"?"ok":"bad")}).catch(function(){});
+  fetch("/detect",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({transcript:"Token forty seven room two oh four",mode:"hospital",value:"47"})}).then(function(r){return r.json()}).then(function(d){line("s3","Matcher test: "+d.verdict+" room "+d.room,d.verdict==="mine"&&d.room==="204"?"ok":"bad")}).catch(function(){});
 };
 </script><script src="i18n.js"></script>
 </body></html>

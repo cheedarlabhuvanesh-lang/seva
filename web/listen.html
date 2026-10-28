@@ -319,7 +319,7 @@ h1{font-size:24px;font-weight:750;letter-spacing:-.3px;color:var(--ink);margin-b
   <div class="field">
     <label for="watch" hidden>What to watch for</label>
     <input id="watch" type="text" autocomplete="off" autocapitalize="characters"
-           spellcheck="false" placeholder="Token number (e.g. A-47)">
+           spellcheck="false" placeholder="Token number (e.g. 47)">
     <button class="clear" id="clear" type="button" aria-label="Clear">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
            stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
@@ -391,9 +391,9 @@ h1{font-size:24px;font-weight:750;letter-spacing:-.3px;color:var(--ink);margin-b
    ══════════════════════════════════════════════════════════ */
 
 var MODES = {
-  hospital:{ placeholder:"Token number (e.g. A-47)",
-             helper:"Type the token you are waiting for.",
-             inputmode:"text",    caps:"characters",
+  hospital:{ placeholder:"Token number (e.g. 47)",
+             helper:"Type only the number of your token.",
+             inputmode:"numeric", caps:"off",
              empty:"Type your token number first." },
   train:   { placeholder:"Train number (e.g. 12739)",
              helper:"Five digits, printed on your ticket.",

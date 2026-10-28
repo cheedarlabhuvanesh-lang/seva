@@ -3,7 +3,6 @@ faq.csv is the source of truth (edit it in Excel). seva.db is rebuilt from it, s
 No audio, no transcripts and no personal data are stored here."""
 import csv
 import os
-import re
 import sqlite3
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -49,13 +48,6 @@ def init():
             import_csv(c)
 
 
-def _hit(k, q):
-    """English keywords must begin a word ('lab' matches 'labs' but not 'available'); Telugu keywords match anywhere."""
-    if k.isascii():
-        return re.search(r"(?<![a-z0-9])" + re.escape(k), q) is not None
-    return k in q
-
-
 def search(question, venue=None):
     """Best FAQ row for the question, or None. If venue is given, only that venue plus 'all' is searched."""
     q = question.lower()
@@ -66,7 +58,7 @@ def search(question, venue=None):
             rows = c.execute("SELECT * FROM faq").fetchall()
     best, score = None, 0
     for r in rows:
-        s = sum(1 for k in r["keywords"].split("|") if k and _hit(k, q))
+        s = sum(1 for k in r["keywords"].split("|") if k and k in q)
         if s > score:
             best, score = r, s
     return best
