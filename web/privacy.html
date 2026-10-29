@@ -253,12 +253,12 @@ h2.sec{
   <h2 class="sec">When you ask a question</h2>
   <section class="card">
     <p>Your question text is sent to the laptop, which adds the hospital's own written
-      information and asks a language model to put it in plain words.</p>
+      information and sends both to Google Gemini to put in plain words.</p>
     <p><b>The model only rewrites.</b> It is never given a recording, never given an
       announcement transcript, and is not used as a source of facts. If the answer is not
-      in the hospital's list, Seva says so instead of inventing one.</p>
-    <p>The key that reaches those services lives on the laptop and is never put in
-      this page.</p>
+      in the hospital's list, Seva tries a general answer and says so if it has to invent.</p>
+    <p>The API keys that reach those services live on the laptop and are never put in
+      this page or sent to any third party except Google Gemini.</p>
   </section>
 
   <h2 class="sec">Erase everything</h2>

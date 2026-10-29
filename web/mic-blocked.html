@@ -326,44 +326,15 @@ function recovered(){
   setTimeout(function(){ window.location.href = "listen.html"; }, 1200);
 }
 
-/* ---- 3. Try Again really asks ----
-   This is the one screen where opening the microphone IS
-   the content, so it genuinely calls for it. It needs
-   https or localhost; over a plain http LAN address the
-   browser refuses, and the message below says so instead
-   of blaming her.                                         */
-function askForMic(){
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-    lead.textContent = "This browser will only open a microphone on a secure address (https).";
-    return;
-  }
-  tryLbl.textContent = "Checking\u2026";
-  navigator.mediaDevices.getUserMedia({ audio:true }).then(function(stream){
-    stream.getTracks().forEach(function(t){ t.stop(); });   /* let it go at once */
-    recovered();
-  }).catch(function(err){
-    tryLbl.textContent = "Try Again";
-    if (err && err.name === "NotFoundError"){
-      title.textContent = "No Microphone Found";
-      lead.textContent  = "This device is not reporting a microphone.";
-      steps.hidden = true;
-    } else {
-      lead.textContent = "Still blocked. Follow the steps above, then press Try Again.";
-    }
-  });
+/* ---- 3. Try Again reloads to check server-side ---- */
+function tryAgain(){
+  window.location.reload();
 }
-tryBtn.addEventListener("click", askForMic);
-
-/* ---- 4. watch the permission, so she never taps twice ---- */
-(function(){
-  if (!navigator.permissions || !navigator.permissions.query) return;
-  try{
-    navigator.permissions.query({ name:"microphone" }).then(function(st){
-      if (st.state === "granted") recovered();
-      st.onchange = function(){ if (st.state === "granted") recovered(); };
-    }).catch(function(){ /* some browsers do not know this name — fine */ });
-  }catch(e){}
-})();
+tryBtn.addEventListener("click", tryAgain);
+function tryAgain(){
+  window.location.reload();
+}
+tryBtn.addEventListener("click", tryAgain);
 </script>
 <script src="i18n.js"></script>
 </body>
