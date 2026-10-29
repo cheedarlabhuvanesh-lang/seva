@@ -333,9 +333,27 @@ document.getElementById("list").addEventListener("keydown", function(e){
 });
 
 function leave(){
+  var params = new URLSearchParams(window.location.search);
+  var returnTo = params.get("return");
   var r = document.referrer;
-  if (r && r.indexOf(location.origin) === 0 && r.indexOf("select-language") < 0) window.location.href = r;
-  else window.location.href = "settings.html";
+
+  // If no return param, try to figure it out from referrer
+  if (!returnTo && r && r.indexOf(location.origin) === 0) {
+    // Extract filename from referrer
+    var refPath = r.substring(location.origin.length);
+    var filename = refPath.split('/').pop();
+
+    if (filename && filename !== 'select-language.html') {
+      returnTo = filename;
+    }
+  }
+
+  // Default to home
+  if (!returnTo) {
+    returnTo = 'home.html';
+  }
+
+  window.location.href = returnTo;
 }
 document.getElementById("back").addEventListener("click", leave);
 document.getElementById("done").addEventListener("click", leave);

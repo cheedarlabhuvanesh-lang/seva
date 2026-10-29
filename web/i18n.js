@@ -161,7 +161,12 @@
   ];
   var ATTRS = ["aria-label", "placeholder", "title", "alt"];
   var origText = new WeakMap(), busy = false;
-  function wanted() { try { return (localStorage.getItem("seva.language") || "en-IN").indexOf("te") === 0; } catch (e) { return false; } }
+  function wanted() {
+    try {
+      var lang = localStorage.getItem("seva.language") || "en-IN";
+      return lang.indexOf("te") === 0 ? "te" : lang;
+    } catch (e) { return false; }
+  }
   function lookup(s) {
     var k = s.replace(/\s+/g, " ").trim();
     if (!k) return null;
