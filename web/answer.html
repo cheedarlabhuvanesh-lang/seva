@@ -368,6 +368,7 @@ function match(q){
    — never a recording, never a transcript.
    ───────────────────────────────────────── */
 var backend = get("seva.answer");
+var backendSource = get("seva.source") || "";
 var hit = backend ? null : match(question);
 
 var box = document.getElementById("ans");
@@ -381,6 +382,12 @@ box.appendChild(who);
 if (backend){
   box.appendChild(el("p","atext", backend));
   speech = backend;
+  if (/sample|demo/i.test(backendSource)){
+    var warnDiv = el("div", "src warn");
+    warnDiv.appendChild(icon("M12 2.4a9.6 9.6 0 100 19.2 9.6 9.6 0 000-19.2zm-1.1 5.2h2.2v5.6h-2.2zm0 7h2.2v2.2h-2.2z", 16));
+    warnDiv.appendChild(el("span", null, isTe ? "నమూనా సమాచారం. నిజమైన ఆసుపత్రి నుండి కాదు." : "Sample information. Not from a real hospital."));
+    box.appendChild(warnDiv);
+  }
   var s0 = el("div","src");
   s0.appendChild(icon("M12 1.8l8.2 3.4v6c0 4.9-3.4 9.4-8.2 10.9C7.2 20.6 3.8 16.1 3.8 11.2v-6zm-.9 15.5L7.6 11.2l1.5-1.5 2 2 4.3-4.3 1.5 1.5z",16));
   var t0=el("span");t0.appendChild(el("b",null,PLACE));
