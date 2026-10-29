@@ -98,13 +98,13 @@ print("-" * 70)
 
 def test_gnani_stt(text, language):
     try:
-        url = "https://api.gnani.ai/intent/v2/recognize"
+        url = "https://api.vachana.ai/stt/v3"
         headers = {
-            "Authorization": "Bearer " + GNANI_API_KEY,
-            "Content-Type": "application/json",
+            "X-API-Key-ID": GNANI_API_KEY,
         }
-        payload = {"lang": language, "text": text}
-        resp = requests.post(url, json=payload, headers=headers, timeout=API_TIMEOUT)
+        files = {"file": ("audio.wav", b"\x00" * 1024)}
+        data = {"lang": language}
+        resp = requests.post(url, files=files, data=data, headers=headers, timeout=API_TIMEOUT)
         api_calls["gnani_stt"] += 1
 
         if resp.status_code in (200, 201):
@@ -120,12 +120,12 @@ def test_gnani_stt(text, language):
 
 def test_gnani_tts(text, language):
     try:
-        url = "https://api.gnani.ai/tts/v2/synthesize"
+        url = "https://api.vachana.ai/api/v1/tts/inference"
         headers = {
-            "Authorization": "Bearer " + GNANI_API_KEY,
+            "X-API-Key-ID": GNANI_API_KEY,
             "Content-Type": "application/json",
         }
-        payload = {"text": text, "language": language, "format": "mp3"}
+        payload = {"text": text, "language": language}
         resp = requests.post(url, json=payload, headers=headers, timeout=API_TIMEOUT)
         api_calls["gnani_tts"] += 1
 

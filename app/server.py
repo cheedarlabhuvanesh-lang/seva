@@ -217,9 +217,8 @@ def api_ask():
         return jsonify({"error": "too many questions; please wait a minute"}), 429
     try:
         return jsonify(answer(question, language))
-    except Exception:
-        # Keep internal details out of responses, even if response formatting fails.
-        return jsonify({
+    except Exception as e:
+        resp = {
             "question": question,
             "answer": _localized_fallback(language, False),
             "audio": None,
@@ -227,7 +226,17 @@ def api_ask():
             "timings": {},
             "source": "fallback",
             "fallback": True,
-        })
+        }
+        if os.environ.get("SEVA_DEBUG") == "1":
+            reason = type(e).__name__
+            if isinstance(e, GeminiError):
+                reason = "gemini_error"
+            elif isinstance(e, GnaniError):
+                reason = "gnani_error"
+            resp["debug"] = {"reason": reason}
+            import sys
+            print(f"[api_ask] {reason}: {str(e)[:100]}", file=sys.stderr)
+        return jsonify(resp)
 
 
 @app.post("/api/listen")

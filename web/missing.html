@@ -95,7 +95,7 @@ h1{
 }
 
 .keep{
-  position:relative; overflow:hidden;
+  position:relative;
   display:grid; place-items:center;
   width:100%; min-height:var(--tap); margin-top:var(--s6);
   border:1px solid var(--line); border-radius:var(--r-pill);
@@ -105,16 +105,23 @@ h1{
   box-shadow:0 6px 16px rgba(168,82,6,.12);
   transition:transform .14s ease;
 }
-.keep::before{
-  content:"";
-  position:absolute; inset:0 auto 0 0; width:0;
-  background:var(--keep-fill);
-  animation:fill 8s linear forwards;
-}
 .keep span{position:relative;z-index:1}
-@keyframes fill{ from{width:0} to{width:100%} }
 .keep:active{transform:translateY(2px) scale(.99)}
 .keep:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
+
+.done{
+  position:relative;
+  display:grid; place-items:center;
+  width:100%; min-height:var(--tap); margin-top:var(--s3);
+  border:0; border-radius:var(--r-pill);
+  background:linear-gradient(100deg,#2563EB,#7C3AED);
+  color:#fff;
+  font-family:inherit; font-size:19px; font-weight:750; cursor:pointer;
+  box-shadow:0 10px 24px rgba(42,56,160,.28);
+  transition:transform .14s ease;
+}
+.done:active{transform:translateY(2px) scale(.99)}
+.done:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
@@ -148,18 +155,21 @@ h1{
     </p>
   </section>
 
-  <button class="keep" id="keep" type="button"><span>Keep Waiting</span></button>
+  <button class="keep" id="keep" type="button"><span>Keep Listening</span></button>
+  <button class="done" id="done" type="button">Done</button>
 
 </main>
 
 <script>
-/* No audio, no vibrate, no history write — uncertain match */
-setTimeout(function(){
-  location.href = "listening.html";
-}, 8000);
+var keepBtn = document.getElementById("keep");
+var doneBtn = document.getElementById("done");
 
-document.getElementById("keep").addEventListener("click", function(){
+keepBtn.addEventListener("click", function(){
   location.href = "listening.html";
+});
+
+doneBtn.addEventListener("click", function(){
+  location.href = "home.html";
 });
 </script>
 <script src="i18n.js"></script>

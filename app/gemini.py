@@ -123,6 +123,10 @@ def ask(question: str, language: str, context: str = "", *, model: str | None = 
             json=body,
             timeout=timeout,
         )
+    except requests.Timeout as exc:
+        raise GeminiError("Gemini timeout (network or server slow).") from exc
+    except requests.ConnectionError as exc:
+        raise GeminiError("Gemini connection failed.") from exc
     except requests.RequestException as exc:
         raise GeminiError("Gemini is temporarily unavailable.") from exc
 
