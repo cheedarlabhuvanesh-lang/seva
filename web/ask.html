@@ -483,13 +483,26 @@ function ask(){
   try{ localStorage.setItem("seva.question", text); localStorage.removeItem("seva.answer"); localStorage.removeItem("seva.source"); }catch(e){}
 
   
-  /* Live: asks the database on the server, keeps its answer, then opens the answer screen. */
-  var _lg = "en"; try{ _lg = (localStorage.getItem("seva.language") || "en-IN").indexOf("te") === 0 ? "te" : "en"; }catch(e){}
-  fetch("/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:text,lang:_lg})})
+  /* Live: calls Flask /api/ask, stores answer + source, then opens answer screen. */
+  var _lang = "en-IN";
+  try{ _lang = localStorage.getItem("seva.language") || "en-IN"; }catch(e){}
+  fetch("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:text,language:_lang})})
     .then(function(r){ return r.ok ? r.json() : null; })
-    .then(function(d){ try{ if (d && d.found && typeof d.answer === "string"){ localStorage.setItem("seva.answer", d.answer); localStorage.setItem("seva.source", typeof d.source === "string" ? d.source : ""); } }catch(e){} })
-    .catch(function(){})
-    .then(function(){ window.location.href = "answer.html"; });
+    .then(function(d){
+      stopThinking();
+      asking = false;
+      if (!d || !d.answer) throw 0;
+      try{
+        localStorage.setItem("seva.answer", d.answer);
+        if(d.source) localStorage.setItem("seva.source", d.source);
+      }catch(e){}
+      location.href = "answer.html";
+    })
+    .catch(function(){
+      stopThinking();
+      asking = false;
+      alert("Could not reach the server. Check your internet.");
+    });
 }
 
 send.addEventListener("click", ask);
