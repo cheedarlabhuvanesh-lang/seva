@@ -1,0 +1,106 @@
+{
+  "_note": "Government General Hospital, Vijayawada. Facts in English - the model answers in whatever language the patient used. Keywords carry BOTH scripts so search works either way. VERIFY against the real hospital before any public demo.",
+  "last_checked": "2026-10-14",
+  "schemes": [
+    {
+      "id": "opd-timings",
+      "name_en": "OPD Timings",
+      "name_te": "ఓపీడీ సమయాలు",
+      "who_te": "Any patient seeking outpatient consultation. No appointment needed for general OPD.",
+      "benefit_te": "OPD runs Monday to Saturday, 8 in the morning to 1 in the afternoon. Registration closes at 12:30. Sunday is emergency only.",
+      "how_te": "Come before 11 in the morning to avoid the long queue. Collect a token at the registration counter near the main entrance.",
+      "keywords": ["ఓపీడీ", "సమయం", "టైమింగ్", "ఎన్ని గంటల", "తెరు", "మూసి", "opd", "timing", "time", "open", "close", "hours", "ఓ పి డి"],
+      "url": "https://ggh.ap.gov.in"
+    },
+    {
+      "id": "token-system",
+      "name_en": "Token Number System",
+      "name_te": "టోకెన్ నంబర్",
+      "who_te": "Every OPD patient gets a token at registration.",
+      "benefit_te": "Tokens look like A-47 or B-112. The letter is your department block, the number is your turn. Announcements are made on the speaker in the waiting hall.",
+      "how_te": "Keep the token slip in your hand. If you cannot hear the announcement, show your slip at the help desk and they will check your turn.",
+      "keywords": ["టోకెన్", "నంబర్", "వంతు", "క్యూ", "పిలుపు", "token", "number", "queue", "turn", "called", "announcement"],
+      "url": "https://ggh.ap.gov.in"
+    },
+    {
+      "id": "departments",
+      "name_en": "Department Locations",
+      "name_te": "విభాగాలు ఎక్కడ ఉన్నాయి",
+      "who_te": "Patients looking for a specific department.",
+      "benefit_te": "Ground floor Block A has Orthopaedics and Casualty. First floor Block A has General Medicine. Second floor Block C has the Laboratory and Pharmacy. Cardiology is on the first floor of Block B.",
+      "how_te": "From the main gate, Block A is straight ahead. Block B is to the right past the canteen. Block C is behind Block A. Ask any staff member in a blue coat.",
+      "keywords": ["విభాగం", "ఎక్కడ", "అంతస్తు", "బ్లాక్", "గది", "రూమ్", "ఆర్థో", "గుండె", "ల్యాబ్", "department", "where", "floor", "block", "room", "location", "ortho", "cardiology", "lab"],
+      "url": "https://ggh.ap.gov.in"
+    },
+    {
+      "id": "documents",
+      "name_en": "Documents to Bring",
+      "name_te": "ఏ పత్రాలు తేవాలి",
+      "who_te": "Every patient, new or returning.",
+      "benefit_te": "Bring your Aadhaar card, any old prescriptions and reports, and your Ayushman Bharat card if you have one. A referral slip is needed to see a specialist.",
+      "how_te": "Keep everything in one folder. Without Aadhaar, registration takes much longer.",
+      "keywords": ["పత్రాలు", "కాగితాలు", "ఆధార్", "రిపోర్ట్", "తేవాలి", "కావాలి", "documents", "papers", "aadhaar", "bring", "reports", "id", "card"],
+      "url": "https://ggh.ap.gov.in"
+    },
+    {
+      "id": "emergency",
+      "name_en": "Emergency and Ambulance",
+      "name_te": "అత్యవసరం మరియు అంబులెన్స్",
+      "who_te": "Anyone facing a medical emergency, day or night.",
+      "benefit_te": "Call one zero eight for a free ambulance, any time of day or night. Casualty is open twenty four hours on the ground floor of Block A, to the left of the main gate.",
+      "how_te": "Do not wait in the OPD queue for an emergency. Go straight to Casualty. Tell the guard at the gate it is an emergency and he will let you through.",
+      "keywords": ["అత్యవసర", "అంబులెన్స్", "108", "ప్రమాదం", "నొప్పి", "సీరియస్", "కేజువాలిటీ", "emergency", "ambulance", "urgent", "accident", "casualty", "pain", "serious"],
+      "url": "https://ggh.ap.gov.in"
+    },
+    {
+      "id": "ayushman",
+      "name_en": "Ayushman Bharat Cashless",
+      "name_te": "ఆయుష్మాన్ భారత్ నగదు రహిత చికిత్స",
+      "who_te": "Families listed under Ayushman Bharat PM-JAY.",
+      "benefit_te": "Cashless treatment up to five lakh rupees per family per year. You pay nothing for covered procedures.",
+      "how_te": "Bring your Ayushman card and Aadhaar to the Ayushman help desk near the registration counter. They will verify and open your case.",
+      "keywords": ["ఆయుష్మాన్", "నగదు రహిత", "ఉచిత", "బీమా", "కార్డు", "ayushman", "cashless", "free", "insurance", "pmjay", "scheme"],
+      "url": "https://pmjay.gov.in"
+    },
+    {
+      "id": "appointment",
+      "name_en": "Booking an Appointment",
+      "name_te": "అపాయింట్మెంట్ ఎలా బుక్ చేయాలి",
+      "who_te": "Patients who want to see a specialist rather than general OPD.",
+      "benefit_te": "General OPD needs no appointment, just a token. Specialists need a referral from the general OPD doctor first.",
+      "how_te": "Go to general OPD, get the referral, then book at the specialist counter on the first floor. Booking closes at noon.",
+      "keywords": ["అపాయింట్మెంట్", "బుక్", "ముందుగా", "స్పెషలిస్ట్", "appointment", "book", "booking", "specialist", "referral", "slot"],
+      "url": "https://ggh.ap.gov.in"
+    },
+    {
+      "id": "pharmacy",
+      "name_en": "Pharmacy and Free Medicines",
+      "name_te": "మందుల దుకాణం",
+      "who_te": "Patients with a prescription from a hospital doctor.",
+      "benefit_te": "Most medicines on the essential list are free at the hospital pharmacy. It is on the second floor of Block C, next to the laboratory.",
+      "how_te": "Take your prescription to the pharmacy counter. Pharmacy is open 8 in the morning to 4 in the afternoon.",
+      "keywords": ["మందులు", "ఫార్మసీ", "మెడిసిన్", "ఉచిత మందు", "medicine", "pharmacy", "drugs", "prescription", "tablets", "free medicine"],
+      "url": "https://ggh.ap.gov.in"
+    },
+    {
+      "id": "lab-tests",
+      "name_en": "Laboratory and Tests",
+      "name_te": "ల్యాబ్ పరీక్షలు",
+      "who_te": "Patients with a test request from a doctor.",
+      "benefit_te": "Blood and urine tests are free with a doctor's slip. Sample collection is 8 to 11 in the morning only. Most reports come the same evening.",
+      "how_te": "Laboratory is on the second floor of Block C. Come fasting if the doctor asked for a sugar test.",
+      "keywords": ["ల్యాబ్", "పరీక్ష", "రక్తం", "టెస్ట్", "రిపోర్ట్", "శాంపిల్", "lab", "test", "blood", "report", "sample", "scan", "x-ray"],
+      "url": "https://ggh.ap.gov.in"
+    },
+    {
+      "id": "visiting-hours",
+      "name_en": "Inpatient Visiting Hours",
+      "name_te": "రోగిని చూడటానికి సమయం",
+      "who_te": "Family members visiting an admitted patient.",
+      "benefit_te": "Visiting hours are 11 to 12 in the morning and 5 to 7 in the evening. One attendant may stay overnight with the patient.",
+      "how_te": "Collect a visitor pass from the security desk at the ward entrance. Children under ten are not allowed in the wards.",
+      "keywords": ["చూడటానికి", "సందర్శన", "అడ్మిట్", "వార్డు", "అటెండర్", "visiting", "visitor", "admitted", "ward", "attendant", "inpatient"],
+      "url": "https://ggh.ap.gov.in"
+    }
+  ]
+}

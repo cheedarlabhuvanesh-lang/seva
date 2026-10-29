@@ -1,0 +1,1076 @@
+{
+  "_note": "Place names only. No timings, no fares, no bus numbers. Same layout as rail.json.",
+  "last_checked": "2026-10-16",
+  "routes": [
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Guntur",
+      "te": "గుంటూరు",
+      "hi": "गुंटूर"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Gunturu"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Guntoor"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "గుంటూరు"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "गुंटूर"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Tenali",
+      "te": "తెనాలి",
+      "hi": "तेनाली"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Thenali"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Tenaali"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "తెనాలి"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "तेनाली"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Mangalagiri",
+      "te": "మంగళగిరి",
+      "hi": "मंगलगिरी"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Mangalgiri"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Mangalagiree"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "మంగళగిరి"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "मंगलगिरी"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Ponnur",
+      "te": "పొన్నూరు",
+      "hi": "पोन्नूर"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Ponnuru"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Ponnoor"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "పొన్నూరు"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "पोन्नूर"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Repalle",
+      "te": "రేపల్లె",
+      "hi": "रेपल्ले"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Repalli"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Repale"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "రేపల్లె"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "रेपल्ले"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Sattenapalli",
+      "te": "సత్తెనపల్లి",
+      "hi": "सत्तेनपल्ली"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Sattenapalle"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Satenapalli"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "సత్తెనపల్లి"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "सत्तेनपल्ली"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Piduguralla",
+      "te": "పిడుగురాళ్ళ",
+      "hi": "पिडुगुरल्ला"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Pidugurala"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Piduguraalla"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "పిడుగురాళ్ళ"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "पिडुगुरल्ला"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Macherla",
+      "te": "మాచర్ల",
+      "hi": "माचर्ला"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Macherlaa"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Machrla"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "మాచర్ల"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "माचर्ला"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Vinukonda",
+      "te": "వినుకొండ",
+      "hi": "विनुकोंडा"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Vinukondaa"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Venukonda"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "వినుకొండ"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "विनुकोंडा"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Addanki",
+      "te": "అద్దంకి",
+      "hi": "अद्दंकी"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Addanky"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Adhanki"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "అద్దంకి"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "अद्दंकी"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Kandukur",
+      "te": "కందుకూరు",
+      "hi": "कंदुकूर"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Kandukuru"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Kandukoor"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "కందుకూరు"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "कंदुकूर"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Markapur",
+      "te": "మార్కాపురం",
+      "hi": "मार्कापुर"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Markapuram"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Marakapur"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "మార్కాపురం"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "मार्कापुर"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Giddalur",
+      "te": "గిద్దలూరు",
+      "hi": "गिद्दलूर"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Giddaluru"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Gidalur"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "గిద్దలూరు"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "गिद्दलूर"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Jaggayyapet",
+      "te": "జగ్గయ్యపేట",
+      "hi": "जग्गय्यापेट"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Jaggayyapeta"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Jaggaiahpet"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "జగ్గయ్యపేట"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "जग्गय्यापेट"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Nuzvid",
+      "te": "నూజివీడు",
+      "hi": "नूज़िविड"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Nuzvidu"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Nuziveedu"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "నూజివీడు"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "नूज़िविड"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Hanuman Junction",
+      "te": "హనుమాన్ జంక్షన్",
+      "hi": "हनुमान जंक्शन"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Hanuman Jn"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Hanumanjunction"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "హనుమాన్ జంక్షన్"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "हनुमान जंक्शन"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Kaikaluru",
+      "te": "కైకలూరు",
+      "hi": "कैकलूर"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Kaikalur"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Kaikaloor"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "కైకలూరు"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "कैकलूर"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Pamarru",
+      "te": "పామర్రు",
+      "hi": "पामर्रु"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Pamaru"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Pamarroo"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "పామర్రు"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "पामर्रु"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Avanigadda",
+      "te": "అవనిగడ్డ",
+      "hi": "अवनिगड्डा"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Avanigada"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Avanigaddaa"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "అవనిగడ్డ"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "अवनिगड्डा"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Challapalli",
+      "te": "చల్లపల్లి",
+      "hi": "चल्लपल्ली"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Chalapalli"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Challapali"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "చల్లపల్లి"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "चल्लपल्ली"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Nagayalanka",
+      "te": "నాగాయలంక",
+      "hi": "नागायलंका"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Nagayalanga"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Nagaayalanka"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "నాగాయలంక"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "नागायलंका"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Kodad",
+      "te": "కోదాడ",
+      "hi": "कोदाड"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Kodada"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Khodad"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "కోదాడ"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "कोदाड"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Miryalaguda",
+      "te": "మిర్యాలగూడ",
+      "hi": "मिर्यालगुड़ा"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Miryalguda"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Miryalagooda"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "మిర్యాలగూడ"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "मिर्यालगुड़ा"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Suryapet",
+      "te": "సూర్యాపేట",
+      "hi": "सूर्यापेट"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Suryapeta"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Suryapeth"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "సూర్యాపేట"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "सूर्यापेट"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Nalgonda",
+      "te": "నల్గొండ",
+      "hi": "नलगोंडा"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Nalagonda"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Nalgondaa"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "నల్గొండ"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "नलगोंडा"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Hyderabad",
+      "te": "హైదరాబాద్",
+      "hi": "हैदराबाद"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Haidarabad"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Hydrabad"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "హైదరాబాద్"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "हैदराबाद"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Amaravati",
+      "te": "అమరావతి",
+      "hi": "अमरावती"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Amaraavati"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Amravati"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "అమరావతి"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "अमरावती"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Bhattiprolu",
+      "te": "భట్టిప్రోలు",
+      "hi": "भट्टिप्रोलु"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Bhatiprolu"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Bhattiprolu Town"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "భట్టిప్రోలు"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "भट्टिप्रोलु"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Chilakaluripet",
+      "te": "చిలకలూరిపేట",
+      "hi": "चिलकलूरिपेट"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Chilakaluripeta"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Chilakalurpet"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "చిలకలూరిపేట"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "चिलकलूरिपेट"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Narasaraopet",
+      "te": "నరసరావుపేట",
+      "hi": "नरसरावपेट"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Narasaraopeta"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Narsaraopet"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "నరసరావుపేట"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "नरसरावपेट"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Ongole",
+      "te": "ఒంగోలు",
+      "hi": "ओंगोल"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Ongolu"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Ongol"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "ఒంగోలు"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "ओंगोल"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Chirala",
+      "te": "చీరాల",
+      "hi": "चिराला"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Cheerala"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Chiraala"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "చీరాల"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "चिराला"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Bapatla",
+      "te": "బాపట్ల",
+      "hi": "बापटला"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Baapatla"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "బాపట్ల"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "बापटला"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Gudivada",
+      "te": "గుడివాడ",
+      "hi": "गुडीवाडा"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Gudiwada"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "గుడివాడ"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "गुडीवाडा"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Machilipatnam",
+      "te": "మచిలీపట్నం",
+      "hi": "मछलीपट्टनम"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Masulipatnam"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Bandar"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "మచిలీపట్నం"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "मछलीपट्टनम"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Eluru",
+      "te": "ఏలూరు",
+      "hi": "एलुरु"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Yeluru"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Elooru"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "ఏలూరు"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "एलुरु"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Rajahmundry",
+      "te": "రాజమండ్రి",
+      "hi": "राजमुंद्री"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Rajamundry"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Rajamahendravaram"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "రాజమండ్రి"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "राजमुंद्री"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Visakhapatnam",
+      "te": "విశాఖపట్నం",
+      "hi": "विशाखापत्तनम"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Vizag"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Visakapatnam"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "విశాఖపట్నం"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "विशाखापत्तनम"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Tirupati",
+      "te": "తిరుపతి",
+      "hi": "तिरुपति"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Thirupathi"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Tirupathi"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "తిరుపతి"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "तिरुपति"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Kurnool",
+      "te": "కర్నూలు",
+      "hi": "कुरनूल"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Karnool"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Kurnool Town"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "కర్నూలు"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "कुरनूल"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Anantapur",
+      "te": "అనంతపురం",
+      "hi": "अनंतपुर"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Ananthapur"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Anantapuram"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "అనంతపురం"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "अनंतपुर"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Kadapa",
+      "te": "కడప",
+      "hi": "कडपा"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Cuddapah"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Kadapaa"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "కడప"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "कडपा"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Nellore",
+      "te": "నెల్లూరు",
+      "hi": "नेल्लोर"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Nelloor"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Nellur"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "నెల్లూరు"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "नेल्लोर"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Khammam",
+      "te": "ఖమ్మం",
+      "hi": "खम्मम"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Kammam"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Khamam"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "ఖమ్మం"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "खम्मम"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Warangal",
+      "te": "వరంగల్",
+      "hi": "वारंगल"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Varangal"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Orugallu"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "వరంగల్"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "वारंगल"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Karimnagar",
+      "te": "కరీంనగర్",
+      "hi": "करीमनगर"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Kareemnagar"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Karim nagar"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "కరీంనగర్"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "करीमनगर"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Bengaluru",
+      "te": "బెంగళూరు",
+      "hi": "बेंगलुरु"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Bangalore"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Banglore"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "బెంగళూరు"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "बेंगलुरु"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Chennai",
+      "te": "చెన్నై",
+      "hi": "चेन्नई"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Madras"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Chenai"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "చెన్నై"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "चेन्नई"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Srisailam",
+      "te": "శ్రీశైలం",
+      "hi": "श्रीशैलम"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Sreesailam"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "Srisailam Temple"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "శ్రీశైలం"
+    },
+    {
+      "from_city": "Vijayawada",
+      "to_city": "श्रीशैलम"
+    }
+  ]
+}

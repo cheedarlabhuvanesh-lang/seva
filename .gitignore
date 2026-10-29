@@ -2,3 +2,17 @@
 venv/
 __pycache__/
 *.pyc
+
+# Database files
+backend/seva.db
+backend/seva.db-*
+*.db
+*.db-*
+
+# Cache and usage logs
+cache/
+usage/
+*.jsonl
+
+# Real audio test fixtures
+tests/real_audio/

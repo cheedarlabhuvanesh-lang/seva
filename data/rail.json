@@ -1,0 +1,1536 @@
+{
+  "_note": "Place names only. No train numbers, no timetable, no platforms, no timings. A row carrying te/hi is a canonical station; the rows after it are the same place written the other ways a speech engine hears it - spelling variants, mis-hearings, and the Telugu and Hindi spellings. They are listed separately because the destination matcher compares against this flat list of names.",
+  "last_checked": "2026-10-16",
+  "trains": [
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Hyderabad",
+      "te": "హైదరాబాద్",
+      "hi": "हैदराबाद"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Haidarabad"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Hydrabad"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Hyderbad"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Hyder abad"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "హైదరాబాద్"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "हैदराबाद"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Secunderabad",
+      "te": "సికింద్రాబాద్",
+      "hi": "सिकंदराबाद"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Sikandarabad"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Secunderbad"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Secunder abad"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Sikanderabad"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "సికింద్రాబాద్"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "सिकंदराबाद"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Guntur",
+      "te": "గుంటూరు",
+      "hi": "गुंटूर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Gunturu"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Guntoor"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Gunter"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "గుంటూరు"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "गुंटूर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Tenali",
+      "te": "తెనాలి",
+      "hi": "तेनाली"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Thenali"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Tenaali"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Tenely"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "తెనాలి"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "तेनाली"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Rajahmundry",
+      "te": "రాజమండ్రి",
+      "hi": "राजमुंद्री"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Rajamundry"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Rajamahendravaram"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Rajahmandri"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Raja mundry"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "రాజమండ్రి"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "राजमुंद्री"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Eluru",
+      "te": "ఏలూరు",
+      "hi": "एलुरु"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Yeluru"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Elooru"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Eloor"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "ఏలూరు"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "एलुरु"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Ongole",
+      "te": "ఒంగోలు",
+      "hi": "ओंगोल"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Ongolu"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Ongol"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Ongolee"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "ఒంగోలు"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "ओंगोल"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Nellore",
+      "te": "నెల్లూరు",
+      "hi": "नेल्लोर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Nelloor"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Nellur"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Nelore"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "నెల్లూరు"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "नेल्लोर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Tirupati",
+      "te": "తిరుపతి",
+      "hi": "तिरुपति"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Thirupathi"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Tirupathi"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Tirupati Main"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "తిరుపతి"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "तिरुपति"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Visakhapatnam",
+      "te": "విశాఖపట్నం",
+      "hi": "विशाखापत्तनम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Vizag"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Visakapatnam"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Vishakapatnam"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Waltair"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "విశాఖపట్నం"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "विशाखापत्तनम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Kakinada",
+      "te": "కాకినాడ",
+      "hi": "काकीनाडा"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Kakinada Town"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Cocanada"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Kakinaada"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "కాకినాడ"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "काकीनाडा"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Warangal",
+      "te": "వరంగల్",
+      "hi": "वारंगल"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Varangal"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Warangall"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Orugallu"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "వరంగల్"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "वारंगल"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Khammam",
+      "te": "ఖమ్మం",
+      "hi": "खम्मम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Kammam"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Khamam"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Khammum"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "ఖమ్మం"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "खम्मम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Nizamabad",
+      "te": "నిజామాబాద్",
+      "hi": "निज़ामाबाद"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Nizamabaad"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Nijamabad"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "నిజామాబాద్"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "निज़ामाबाद"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Kurnool",
+      "te": "కర్నూలు",
+      "hi": "कुरनूल"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Kurnool City"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Karnool"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Kurnul"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "కర్నూలు"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "कुरनूल"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Anantapur",
+      "te": "అనంతపురం",
+      "hi": "अनंतपुर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Ananthapur"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Anantapuram"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Anantpur"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "అనంతపురం"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "अनंतपुर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Kadapa",
+      "te": "కడప",
+      "hi": "कडपा"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Cuddapah"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Kadapaa"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Kadhapa"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "కడప"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "कडपा"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Chittoor",
+      "te": "చిత్తూరు",
+      "hi": "चित्तूर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Chitoor"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Chittur"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Chitthoor"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "చిత్తూరు"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "चित्तूर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Machilipatnam",
+      "te": "మచిలీపట్నం",
+      "hi": "मछलीपट्टनम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Masulipatnam"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Machilipatnm"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Bandar"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "మచిలీపట్నం"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "मछलीपट्टनम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Bhimavaram",
+      "te": "భీమవరం",
+      "hi": "भीमावरम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Bhimavaram Town"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Bheemavaram"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Bimavaram"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "భీమవరం"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "भीमावरम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Narasaraopet",
+      "te": "నరసరావుపేట",
+      "hi": "नरसरावपेट"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Narasaraopeta"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Narasarao pet"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Narsaraopet"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "నరసరావుపేట"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "नरसरावपेट"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Chirala",
+      "te": "చీరాల",
+      "hi": "चिराला"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Cheerala"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Chiraala"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "చీరాల"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "चिराला"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Bapatla",
+      "te": "బాపట్ల",
+      "hi": "बापटला"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Baapatla"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Bapatlaa"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "బాపట్ల"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "बापटला"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Gudivada",
+      "te": "గుడివాడ",
+      "hi": "गुडीवाडा"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Gudiwada"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Gudivaada"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "గుడివాడ"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "गुडीवाडा"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Nandyal",
+      "te": "నంద్యాల",
+      "hi": "नंद्याल"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Nandyala"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Nandial"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "నంద్యాల"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "नंद्याल"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Dharmavaram",
+      "te": "ధర్మవరం",
+      "hi": "धर्मावरम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Dharmavaram Junction"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Dharmvaram"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "ధర్మవరం"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "धर्मावरम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Guntakal",
+      "te": "గుంతకల్లు",
+      "hi": "गुंतकल"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Guntakall"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Gunthakal"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "గుంతకల్లు"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "गुंतकल"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Renigunta",
+      "te": "రేణిగుంట",
+      "hi": "रेणिगुंटा"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Renigunta Junction"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Renigunda"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "రేణిగుంట"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "रेणिगुंटा"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Srikakulam",
+      "te": "శ్రీకాకుళం",
+      "hi": "श्रीकाकुलम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Srikakulam Road"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Srikakulm"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Chicacole"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "శ్రీకాకుళం"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "श्रीकाकुलम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Vizianagaram",
+      "te": "విజయనగరం",
+      "hi": "विजयनगरम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Vizianagram"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Vijayanagaram"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Vizianagarm"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "విజయనగరం"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "विजयनगरम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Rayagada",
+      "te": "రాయగడ",
+      "hi": "रायगड़ा"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Raygada"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Rayagadaa"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "రాయగడ"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "रायगड़ा"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Tanuku",
+      "te": "తణుకు",
+      "hi": "तनुकु"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Thanuku"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Tanukuu"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "తణుకు"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "तनुकु"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Tadepalligudem",
+      "te": "తాడేపల్లిగూడెం",
+      "hi": "तड़ेपल्लीगुडेम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Tadepalligudam"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Tadepalli gudem"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "తాడేపల్లిగూడెం"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "तड़ेपल्लीगुडेम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Samalkot",
+      "te": "సామర్లకోట",
+      "hi": "सामलकोट"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Samalkot Junction"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Samarlakota"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "సామర్లకోట"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "सामलकोट"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Duvvada",
+      "te": "దువ్వాడ",
+      "hi": "दुव्वाडा"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Duvada"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Duvvadaa"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "దువ్వాడ"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "दुव्वाडा"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Nalgonda",
+      "te": "నల్గొండ",
+      "hi": "नलगोंडा"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Nalagonda"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Nalgondaa"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "నల్గొండ"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "नलगोंडा"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Mahbubnagar",
+      "te": "మహబూబ్‌నగర్",
+      "hi": "महबूबनगर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Mahabubnagar"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Mahboobnagar"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "మహబూబ్‌నగర్"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "महबूबनगर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Kazipet",
+      "te": "కాజీపేట",
+      "hi": "काज़ीपेट"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Kazipet Junction"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Kazipeta"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "కాజీపేట"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "काज़ीपेट"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Ramagundam",
+      "te": "రామగుండం",
+      "hi": "रामगुंडम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Ramgundam"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Ramagundm"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "రామగుండం"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "रामगुंडम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Chennai",
+      "te": "చెన్నై",
+      "hi": "चेन्नई"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Chennai Central"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Madras"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Chennai Egmore"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Chenai"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "చెన్నై"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "चेन्नई"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Bengaluru",
+      "te": "బెంగళూరు",
+      "hi": "बेंगलुरु"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Bangalore"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Bengaluru City"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Banglore"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "బెంగళూరు"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "बेंगलुरु"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Yesvantpur",
+      "te": "యశవంతపుర",
+      "hi": "यशवंतपुर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Yashwantpur"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Yeshwantpur"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Yesvantpur Junction"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "యశవంతపుర"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "यशवंतपुर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Mumbai",
+      "te": "ముంబై",
+      "hi": "मुंबई"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Mumbai CSMT"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Bombay"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Lokmanya Tilak"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Dadar"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "ముంబై"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "मुंबई"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "New Delhi",
+      "te": "న్యూఢిల్లీ",
+      "hi": "नई दिल्ली"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Nizamuddin"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Hazrat Nizamuddin"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Delhi"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "న్యూఢిల్లీ"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "नई दिल्ली"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Howrah",
+      "te": "హౌరా",
+      "hi": "हावड़ा"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Haora"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Haura"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Howrah Junction"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "హౌరా"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "हावड़ा"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Shalimar",
+      "te": "షాలిమార్",
+      "hi": "शालीमार"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Shalimaar"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Shalimar Kolkata"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "షాలిమార్"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "शालीमार"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Pune",
+      "te": "పూణే",
+      "hi": "पुणे"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Poona"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Punee"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "పూణే"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "पुणे"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Nagpur",
+      "te": "నాగపూర్",
+      "hi": "नागपुर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Nagpoor"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Nagapur"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "నాగపూర్"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "नागपुर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Bhubaneswar",
+      "te": "భువనేశ్వర్",
+      "hi": "भुवनेश्वर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Bhubaneshwar"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Bhuvaneshwar"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "భువనేశ్వర్"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "भुवनेश्वर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Coimbatore",
+      "te": "కోయంబత్తూరు",
+      "hi": "कोयंबटूर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Koyambedu"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Coimbatore Junction"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Kovai"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "కోయంబత్తూరు"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "कोयंबटूर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Madurai",
+      "te": "మదురై",
+      "hi": "मदुरै"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Madhurai"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Maduraai"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "మదురై"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "मदुरै"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Ernakulam",
+      "te": "ఎర్నాకుళం",
+      "hi": "एर्नाकुलम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Ernakulam Junction"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Eranakulam"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Cochin"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "ఎర్నాకుళం"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "एर्नाकुलम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Thiruvananthapuram",
+      "te": "తిరువనంతపురం",
+      "hi": "तिरुवनंतपुरम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Trivandrum"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Thiruvanantapuram"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "తిరువనంతపురం"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "तिरुवनंतपुरम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Ahmedabad",
+      "te": "అహ్మదాబాద్",
+      "hi": "अहमदाबाद"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Ahmadabad"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Amdavad"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "అహ్మదాబాద్"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "अहमदाबाद"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Jaipur",
+      "te": "జైపూర్",
+      "hi": "जयपुर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Jaypur"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Jaipoor"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "జైపూర్"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "जयपुर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Lucknow",
+      "te": "లక్నో",
+      "hi": "लखनऊ"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Lakhnau"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Lucknow Junction"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "లక్నో"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "लखनऊ"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Patna",
+      "te": "పాట్నా",
+      "hi": "पटना"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Patnaa"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Patna Junction"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "పాట్నా"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "पटना"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Bhopal",
+      "te": "భోపాల్",
+      "hi": "भोपाल"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Bhopaal"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Bhopal Junction"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "భోపాల్"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "भोपाल"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Tambaram",
+      "te": "తాంబరం",
+      "hi": "तांबरम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Tambarm"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Thambaram"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "తాంబరం"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "तांबरम"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Katpadi",
+      "te": "కాట్పాడి",
+      "hi": "काटपाडी"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Katpadi Junction"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Kaatpadi"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "కాట్పాడి"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "काटपाडी"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Gudur",
+      "te": "గూడూరు",
+      "hi": "गूडूर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Gudur Junction"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Goodur"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "గూడూరు"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "गूडूर"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Nidadavolu",
+      "te": "నిడదవోలు",
+      "hi": "निडदवोलु"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Nidadavole"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Nidadavolu Junction"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "నిడదవోలు"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "निडदवोलु"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Anakapalle",
+      "te": "అనకాపల్లి",
+      "hi": "अनकापल्ली"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Anakapalli"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "Anakapalle Town"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "అనకాపల్లి"
+    },
+    {
+      "from_station": "Vijayawada",
+      "to_station": "अनकापल्ली"
+    }
+  ]
+}
