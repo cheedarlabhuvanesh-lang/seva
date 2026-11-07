@@ -9,6 +9,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import requests
+
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
@@ -86,6 +88,39 @@ class TestGeminiClient(unittest.TestCase):
         self.assertNotIn("key leaked", str(caught.exception))
         self.assertNotIn("secret-test-value", str(caught.exception))
 
+    def test_configured_model_reads_environment_and_strips_prefix(self):
+        with patch.dict(os.environ, {"GEMINI_MODEL": "models/gemini-test"}):
+            self.assertEqual(gemini.configured_model(), "gemini-test")
+        with patch.object(gemini, "load_dotenv", return_value=None):
+            with patch.dict(os.environ, {}, clear=True):
+                self.assertEqual(gemini.configured_model(), gemini.DEFAULT_MODEL)
+
+    def test_timeout_is_sanitized(self):
+        class TimeoutSession(FakeSession):
+            def post(self, url, **kwargs):
+                self.calls.append(("post", url, kwargs))
+                raise requests.Timeout("slow network")
+
+        session = TimeoutSession(FakeResponse({}))
+        with self.assertRaises(gemini.GeminiError) as caught:
+            gemini.ask("hello", "en-IN", api_key="secret-test-value", session=session)
+        self.assertIn("timeout", str(caught.exception).lower())
+        self.assertNotIn("secret-test-value", str(caught.exception))
+
+    def test_empty_or_malformed_response_is_sanitized(self):
+        cases = [
+            {"candidates": []},
+            {"candidates": [{"content": {"parts": []}}]},
+            {"unexpected": "shape"},
+        ]
+        for payload in cases:
+            with self.subTest(payload=payload):
+                session = FakeSession(FakeResponse(payload))
+                with self.assertRaises(gemini.GeminiError) as caught:
+                    gemini.ask("hello", "en-IN", api_key="secret-test-value", session=session)
+                self.assertNotIn("secret-test-value", str(caught.exception))
+                self.assertNotIn("Traceback", str(caught.exception))
+
 
 class TestNovaEndpoint(unittest.TestCase):
     def setUp(self):
@@ -119,19 +154,56 @@ class TestNovaEndpoint(unittest.TestCase):
 
     def test_hospital_match_is_supplied_as_grounding(self):
         captured = {}
+        sample_match = {
+            "name_te": "పరీక్ష సహాయం",
+            "name_en": "Test Help",
+            "benefit_te": "Verified test fixture.",
+            "how_te": "Ask the test desk.",
+            "url": "https://example.invalid",
+        }
+
+        class FakeBook:
+            @staticmethod
+            def search(question):
+                return [sample_match]
+
+            @staticmethod
+            def as_context(matches):
+                return "Verified test fixture."
 
         def fake_gemini(question, language, context, **kwargs):
             captured["context"] = context
             return "Please ask at the registration counter."
 
-        with patch.object(server, "gemini_ask", side_effect=fake_gemini), patch.object(server, "speak_answer", return_value=None):
+        with patch.object(server, "book", FakeBook()), \
+                patch.object(server, "gemini_ask", side_effect=fake_gemini), \
+                patch.object(server, "speak_answer", return_value=None):
             response = self.client.post("/api/ask", json={"question": "What are OPD hours?", "language": "en-IN"})
         self.assertEqual(response.status_code, 200)
         self.assertTrue(captured["context"])
         self.assertTrue(response.get_json()["schemes"])
 
     def test_gemini_401_failure_uses_local_match_and_returns_http_200(self):
-        with patch.object(server, "gemini_ask", side_effect=gemini.GeminiError("safe provider error")), patch.object(server, "speak_answer", return_value=None):
+        sample_match = {
+            "name_te": "పరీక్ష సహాయం",
+            "name_en": "Test Help",
+            "benefit_te": "Verified test fixture.",
+            "how_te": "Ask the test desk.",
+            "url": "https://example.invalid",
+        }
+
+        class FakeBook:
+            @staticmethod
+            def search(question):
+                return [sample_match]
+
+            @staticmethod
+            def as_context(matches):
+                return "Verified test fixture."
+
+        with patch.object(server, "book", FakeBook()), \
+                patch.object(server, "gemini_ask", side_effect=gemini.GeminiError("safe provider error")), \
+                patch.object(server, "speak_answer", return_value=None):
             response = self.client.post("/api/ask", json={"question": "What are OPD hours?", "language": "en-IN"})
         payload = response.get_json()
         self.assertEqual(response.status_code, 200)

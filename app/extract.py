@@ -17,122 +17,114 @@ from __future__ import annotations
 import re
 import unicodedata
 
-# --------------------------------------------------------------------------
-# number words
-# --------------------------------------------------------------------------
-# Announcements at Indian stations rotate through the local language, Hindi and
-# English, so a digit can arrive in any of three scripts or as a spoken word.
+from app.langdata import (
+    COMPOUND_NUMBERS,
+    DEPARTMENT_FILLERS,
+    DEPARTMENT_MARKERS,
+    HOSPITAL_CUES,
+    NATIVE_TEENS,
+    NATIVE_TENS,
+    NATIVE_UNITS,
+    NUMBER_CONNECTORS,
+    NUMBER_TABLES,
+    PLATFORM_CONNECTORS,
+    PLATFORM_WORDS,
+    ROMAN_TEENS,
+    ROMAN_TENS,
+    ROMAN_UNITS,
+    ROOM_WORDS,
+    SPECIALIST_BLOCKERS,
+    SPECIALIST_GENERIC,
+    TOKEN_WORDS,
+    TRAIN_WORDS,
+    TRAIN_NAME_LEAD,
+    TRAIN_NAME_STOPWORDS,
+    TRAIN_NAME_SUFFIXES,
+    strip_zero_width,
+    to_ascii_digits,
+)
 
-ENGLISH_DIGITS = {
-    "zero": 0, "oh": 0, "one": 1, "two": 2, "three": 3, "four": 4,
-    "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
-}
-
-# Ten to thirty in English. Kept OUT of ENGLISH_DIGITS on purpose: that table
-# feeds _spoken_digit_runs, which must only ever see single digits when it is
-# assembling a 5-digit train number.
-ENGLISH_TENS = {
-    "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14,
-    "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
-    "nineteen": 19, "twenty": 20, "thirty": 30,
-}
-
-# Romanised Telugu as it actually appears in STT output, longest first so that
-# "padakondu" is tried before "padi".
-TELUGU_ROMAN = {
-    "pannendu": 12, "padakondu": 11, "padi": 10, "tommidi": 9, "enimidi": 8,
-    "edu": 7, "aaru": 6, "aru": 6, "aidu": 5, "ayidu": 5, "nalugu": 4,
-    "moodu": 3, "mudu": 3, "rendu": 2, "okati": 1, "oka": 1,
-}
-
-TELUGU_SCRIPT = {
-    "పన్నెండు": 12, "పదకొండు": 11, "పది": 10, "తొమ్మిది": 9, "ఎనిమిది": 8,
-    "ఏడు": 7, "ఆరు": 6, "ఐదు": 5, "నాలుగు": 4, "మూడు": 3, "రెండు": 2,
-    "ఒకటి": 1,
-}
-
-HINDI_ROMAN = {
-    "baarah": 12, "gyarah": 11, "das": 10, "nau": 9, "aath": 8, "saat": 7,
-    "chhah": 6, "chhe": 6, "paanch": 5, "panch": 5, "chaar": 4, "char": 4,
-    "teen": 3, "do": 2, "ek": 1,
-}
-
-# Words that mean "platform" in the three languages an Indian station uses.
-PLATFORM_WORDS = [
-    "platform", "plaatform", "plat form", "pf",
-    "ప్లాట్‌ఫారం", "ప్లాట్‌ఫాం", "ప్లాట్ ఫారం",
-    "प्लेटफॉर्म", "प्लेटफार्म",
-]
-
-# Words that mean "train", used only to raise confidence — never to invent.
-TRAIN_WORDS = ["train", "railu", "రైలు", "ట్రైన్", "ट्रेन", "gaadi", "గాడి"]
-
-# Words allowed to sit between "platform" and its number. Anything outside this
-# set ends the search. Without it, "platform ticket costs 10 rupees" reports
-# platform 10 and sends her to the wrong side of the station.
-PLATFORM_CONNECTORS = {
-    "number", "num", "no", "nambar", "nambaru", "nambar", "sankhya",
-    "నంబర్", "నంబరు", "సంఖ్య", "नंबर", "क्रमांक", "संख्या",
-    "is", "on", "at", "ke", "par", "pe",
-}
-
-TRAIN_NO_DIGITS = 5          # Indian Railways train numbers are 5 digits
+TRAIN_NO_DIGITS = 5
 PLATFORM_MIN, PLATFORM_MAX = 1, 30
+MAX_TRAIN_NAME_WORDS = 4
+MAX_PLACE_WORDS = 4
+
+BUS_WORDS = frozenset({
+    "bus", "buses", "బస్", "బస్సు", "बस", "பஸ்", "பேருந்து",
+    "ಬಸ್", "ಬಸ್ಸು", "ബസ്", "ബസ്സ്", "বাস", "બસ", "ਬਸ",
+})
+_TRANSIT_WORDS = frozenset(TRAIN_WORDS) | BUS_WORDS
+_DESTINATION_CONNECTORS = frozenset({
+    "to", "towards", "for", "via", "destination", "bound",
+    "కు", "కి", "వైపు", "तक", "की", "को", "க்கு", "வரை",
+    "ಗೆ", "ವರೆಗೆ", "ലേക്ക്", "വരെ", "ला", "कडे", "দিকে",
+    "ને", "તરફ", "ਨੂੰ", "ਵੱਲ",
+})
 
 
-# --------------------------------------------------------------------------
-# helpers
-# --------------------------------------------------------------------------
+def _marker_re(words) -> re.Pattern:
+    alternatives = "|".join(
+        re.escape(word) for word in sorted(set(words), key=len, reverse=True) if word
+    )
+    return re.compile(rf"(?<!\w)(?:{alternatives})")
+
+
+_PLATFORM_RE = _marker_re(PLATFORM_WORDS)
+_TOKEN_RE = _marker_re(TOKEN_WORDS)
+_ROOM_RE = _marker_re(ROOM_WORDS)
+
 
 def _normalise(text: str) -> str:
-    """Lowercase, collapse whitespace, strip punctuation that splits words."""
-    text = unicodedata.normalize("NFC", text)
-    text = text.replace("-", " ").replace(".", " ").replace(",", " ")
+    """Lowercase, strip zero-width marks/punctuation, collapse whitespace."""
+    text = unicodedata.normalize("NFC", text or "")
+    text = strip_zero_width(text)
+    text = to_ascii_digits(text)
+    text = re.sub(r"[\-.,:;!?/\\#@()\[\]{}]+", " ", text)
+    text = text.replace("।", " ").replace("॥", " ")
     text = re.sub(r"\s+", " ", text)
     return text.strip().lower()
 
 
 def _word_value(word: str) -> int | None:
-    """Return the number a single word represents, or None."""
-    if word in ENGLISH_DIGITS:
-        return ENGLISH_DIGITS[word]
-    if word in ENGLISH_TENS:
-        return ENGLISH_TENS[word]
-    if word in TELUGU_SCRIPT:
-        return TELUGU_SCRIPT[word]
-    if word in TELUGU_ROMAN:
-        return TELUGU_ROMAN[word]
-    if word in HINDI_ROMAN:
-        return HINDI_ROMAN[word]
+    if word in NATIVE_UNITS:
+        return NATIVE_UNITS[word]
+    if word in NATIVE_TEENS:
+        return NATIVE_TEENS[word]
+    if word in NATIVE_TENS:
+        return NATIVE_TENS[word]
+    if word in COMPOUND_NUMBERS:
+        return COMPOUND_NUMBERS[word]
+    if word in ROMAN_UNITS:
+        return ROMAN_UNITS[word]
+    if word in ROMAN_TEENS:
+        return ROMAN_TEENS[word]
+    if word in ROMAN_TENS:
+        return ROMAN_TENS[word]
     return None
 
 
-# Real Telugu/Hindi case endings that attach to a number word.
-# This is a WHITELIST on purpose. An earlier version allowed "any ending up to
-# 3 characters", and the English word "does" matched the Hindi stem "do" (2)
-# with leftover "es" — reporting platform 2 for the sentence
-# "platform 99 does not exist". Prefix matching without a whitelist invents
-# numbers, which is the exact failure this module exists to prevent.
 NUMBER_SUFFIXES = {
-    "", "ki", "ku", "va", "vа", "vaki", "ti", "ta", "to", "o", "ni", "na", "lo",
+    "", "ki", "ku", "va", "vaki", "ti", "ta", "to", "o", "ni", "na", "lo",
+    "కి", "కు", "లో", "తో", "ని", "న", "క",
+    "को", "में", "से", "का", "की", "के",
+    "க்கு", "இல்", "ல்", "ஐ", "ஆல்",
+    "ಗೆ", "ಗೂ", "ನಲ್ಲಿ", "ನ್ನು", "ಿಂದ",
+    "ലേക്ക്", "ൽ", "ന്", "ഇൽ",
+    "ला", "मध्ये", "ने", "चा", "ची",
+    "কে", "তে", "এ",
+    "ને", "માં", "થી", "નો", "ની",
+    "ਨੂੰ", "ਵਿੱਚ", "ਤੋਂ", "ਦਾ", "ਦੀ",
 }
 
-# Stems shorter than this are matched EXACTLY and never by prefix — "do", "ek"
-# and "oka" are too short to prefix-match English text safely.
-MIN_PREFIX_STEM = 4
+MIN_PREFIX_STEM = 3
 
 
 def _word_value_with_suffix(word: str) -> int | None:
-    """
-    Telugu glues case endings onto numbers: 'nalugu' + 'ki' = 'naluguki'
-    ("to four"). Accept that, but only when the stem is long enough to be
-    distinctive AND the leftover is a real grammatical ending.
-    """
     exact = _word_value(word)
     if exact is not None:
         return exact
 
-    for table in (TELUGU_ROMAN, HINDI_ROMAN, TELUGU_SCRIPT):
+    for table in NUMBER_TABLES:
         for stem in sorted(table, key=len, reverse=True):
             if len(stem) < MIN_PREFIX_STEM:
                 continue
@@ -142,9 +134,34 @@ def _word_value_with_suffix(word: str) -> int | None:
     return None
 
 
+def _number_from_words(words: list[str]) -> str | None:
+    """Read one number from the start of a word list, preserving leading zeros."""
+    if not words:
+        return None
+    first = _word_value_with_suffix(words[0])
+    if first is None:
+        return None
+
+    if first in (20, 30, 40, 50, 60, 70, 80, 90) and len(words) > 1:
+        unit = _word_value_with_suffix(words[1])
+        if unit is not None and 1 <= unit <= 9:
+            return str(first + unit)
+
+    if 0 <= first <= 9:
+        digits = [str(first)]
+        for word in words[1:]:
+            value = _word_value_with_suffix(word)
+            if value is None or not 0 <= value <= 9:
+                break
+            digits.append(str(value))
+        return "".join(digits)
+
+    return str(first)
+
+
 def _spoken_digit_runs(words: list[str]) -> list[list[int]]:
     """
-    Find runs of CONSECUTIVE single-digit words.
+    Find runs of CONSECUTIVE single-digit words or ASCII digits.
 
     Consecutive is the whole point. "nine one two seven" scattered through a
     sentence about money is four digits, not five, and must not become a train
@@ -155,6 +172,10 @@ def _spoken_digit_runs(words: list[str]) -> list[list[int]]:
 
     for word in words:
         value = _word_value(word)
+        if value is None and word in ("oh", "o"):
+            value = 0
+        if value is None and len(word) == 1 and word.isascii() and word.isdigit():
+            value = int(word)
         if value is not None and 0 <= value <= 9:
             current.append(value)
         else:
@@ -167,27 +188,152 @@ def _spoken_digit_runs(words: list[str]) -> list[list[int]]:
     return runs
 
 
-# --------------------------------------------------------------------------
-# field extractors
-# --------------------------------------------------------------------------
+def _merge_spaced_single_digits(text: str) -> str:
+    """Join runs of single ASCII digits: '9 1 2 7 3' -> '91273'."""
+    tokens = text.split()
+    merged: list[str] = []
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        if token.isascii() and token.isdigit() and len(token) == 1:
+            run = []
+            while (
+                index < len(tokens)
+                and tokens[index].isascii()
+                and tokens[index].isdigit()
+                and len(tokens[index]) == 1
+            ):
+                run.append(tokens[index])
+                index += 1
+            merged.append("".join(run) if len(run) > 1 else run[0])
+        else:
+            merged.append(token)
+            index += 1
+    return " ".join(merged)
+
 
 def find_train_no(text: str) -> str | None:
     """Exactly five digits, as numerals or as five spoken digits in a row."""
     clean = _normalise(text)
 
-    # Numerals. \b on both sides so a 6-digit code never yields a 5-digit slice.
-    numeric = re.findall(r"\b(\d{5})\b", clean)
+    numeric = re.findall(r"\b(\d{5})\b", _merge_spaced_single_digits(clean))
     if len(numeric) == 1:
         return numeric[0]
     if len(numeric) > 1:
-        return None          # ambiguous: two candidates, refuse rather than pick
+        return None
 
-    # Spoken digits.
     runs = _spoken_digit_runs(clean.split())
-    exact = [r for r in runs if len(r) == TRAIN_NO_DIGITS]
+    exact = [run for run in runs if len(run) == TRAIN_NO_DIGITS]
     if len(exact) == 1:
-        return "".join(str(d) for d in exact[0])
+        return "".join(str(digit) for digit in exact[0])
 
+    return None
+
+
+def has_train_context(text: str, train_no: str) -> bool:
+    """Require a nearby train cue before treating a five-digit number as a train."""
+    from app.matcher import normalize_text
+
+    words = normalize_text(text).split()
+    cues = {
+        word
+        for cue in set(TRAIN_WORDS)
+        for word in normalize_text(cue).split()
+    }
+    positions = [index for index, word in enumerate(words) if word == train_no]
+    return any(
+        any(word in cues for word in words[max(0, index - 3):index + 2])
+        for index in positions
+    )
+
+
+def _name_tokens(tokens: list[str]) -> list[str]:
+    collected = []
+    for token in tokens:
+        if len(collected) >= MAX_TRAIN_NAME_WORDS:
+            break
+        if token in TRAIN_NAME_STOPWORDS:
+            break
+        if token.isdigit() or not any(char.isalpha() for char in token):
+            break
+        collected.append(token)
+    return collected
+
+
+def _name_is_supported(tokens: list[str]) -> str | None:
+    if not tokens:
+        return None
+    if len(tokens) >= 2:
+        return " ".join(tokens)
+    single = tokens[0]
+    if any(single.endswith(suffix) for suffix in TRAIN_NAME_SUFFIXES):
+        return single
+    return None
+
+
+def find_train_name(text: str) -> str | None:
+    """
+    Return the name between the train number and a platform/direction cue.
+
+    The name is only returned when it has at least two words, or one word that
+    is an obvious train-name suffix. A single unknown word could be a city, and
+    calling a destination a train name is a wrong answer.
+    """
+    from app.matcher import normalize_text
+
+    normalised = normalize_text(text)
+    match = re.search(r"\b\d{5}\b", normalised)
+    if not match:
+        return None
+
+    after = normalised[match.end():].split()
+    while after and after[0] in TRAIN_NAME_LEAD:
+        after.pop(0)
+    name = _name_is_supported(_name_tokens(after))
+    if name:
+        return name
+
+    before = normalised[:match.start()].split()
+    while before and before[-1] in TRAIN_NAME_LEAD:
+        before.pop()
+    name = _name_is_supported(_name_tokens(list(reversed(before)))[::-1])
+    if name:
+        return name
+
+    return None
+
+
+def _platform_after(words: list[str]) -> str | None:
+    for position, token in enumerate(words[:4]):
+        digits = re.fullmatch(r"(\d{1,2})", token)
+        if digits:
+            value = int(digits.group(1))
+            return str(value) if PLATFORM_MIN <= value <= PLATFORM_MAX else None
+
+        value = _word_value_with_suffix(token)
+        if value is not None:
+            if value in (20, 30) and position + 1 < len(words):
+                unit = _word_value_with_suffix(words[position + 1])
+                if unit is not None and 1 <= unit <= 9:
+                    value += unit
+            return str(value) if PLATFORM_MIN <= value <= PLATFORM_MAX else None
+
+        if token not in PLATFORM_CONNECTORS and token not in PLATFORM_WORDS:
+            return None
+    return None
+
+
+def _platform_before(words: list[str]) -> str | None:
+    for token in reversed(words[-3:]):
+        digits = re.fullmatch(r"(\d{1,2})", token)
+        if digits:
+            value = int(digits.group(1))
+            if PLATFORM_MIN <= value <= PLATFORM_MAX:
+                return str(value)
+            continue
+        value = _word_value_with_suffix(token)
+        if value is not None and PLATFORM_MIN <= value <= PLATFORM_MAX:
+            return str(value)
     return None
 
 
@@ -197,129 +343,99 @@ def find_platform(text: str) -> str | None:
     number anywhere in the sentence is not a platform.
     """
     clean = _normalise(text)
+    candidates: list[str] = []
+    for match in _PLATFORM_RE.finditer(clean):
+        after = clean[match.end():].split()
+        value = _platform_after(after)
+        if value is None:
+            value = _platform_before(clean[:match.start()].split())
+        if value is not None:
+            candidates.append(value)
 
-    for marker in PLATFORM_WORDS:
-        idx = clean.find(marker)
-        if idx == -1:
-            continue
-
-        after = clean[idx + len(marker):].split()
-        for pos, token in enumerate(after[:3]):      # look just ahead
-            digits = re.fullmatch(r"(\d{1,2})\D{0,3}", token)
-            if digits:
-                value = int(digits.group(1))
-                if PLATFORM_MIN <= value <= PLATFORM_MAX:
-                    return str(value)
-                break        # a number was spoken and it is not a platform
-
-            value = _word_value_with_suffix(token)
-            if value is not None:
-                # "twenty one" is 21, not 20. Reading only the first half of a
-                # compound number invents a platform that exists.
-                if value in (20, 30) and pos + 1 < len(after):
-                    unit = _word_value_with_suffix(after[pos + 1])
-                    if unit is not None and 1 <= unit <= 9:
-                        value += unit
-                if PLATFORM_MIN <= value <= PLATFORM_MAX:
-                    return str(value)
-                break
-
-            # An ordinary word sits between "platform" and the number.
-            # Only a handful of connectors are legitimate there. Anything else
-            # means this sentence is about something other than a platform:
-            # "platform ticket costs 10 rupees" must NOT report platform 10.
-            if token not in PLATFORM_CONNECTORS and token not in PLATFORM_WORDS:
-                break        # a repeated marker is fine, a new topic is not
-
-        # Telugu puts the number before the noun: "naluguva platform".
-        before = clean[:idx].split()
-        for token in reversed(before[-2:]):
-            value = _word_value_with_suffix(token)
-            if value is not None and PLATFORM_MIN <= value <= PLATFORM_MAX:
-                return str(value)
-
+    distinct = set(candidates)
+    if len(distinct) == 1:
+        return distinct.pop()
     return None
 
 
-TOKEN_WORDS = ("token", "tokan", "తోకెన్", "టోకెన్", "టోకన్", "ట్రోకెన్",
-               "टोकन")
-TOKEN_NUMBER_CONNECTORS = {"number", "no", "నంబర్", "నంబరు", "नंबर", "नम्बर"}
-ROOM_WORDS = ["room", "గది", "రూమ్", "कमरा", "रूम", "gadi"]
-
-
-def _number_at_start(text: str) -> str | None:
-    """Normalize a numeral or recognized number words at the phrase start."""
+def _token_at_start(text: str) -> str | None:
+    """Read a token (digits, or one/two letters + digits) from a phrase start."""
     from app.matcher import normalize_text
 
-    words = normalize_text(text).split()
-    if not words:
+    raw_words = _normalise(text).split()
+    while raw_words and raw_words[0] in NUMBER_CONNECTORS:
+        raw_words.pop(0)
+    if not raw_words:
         return None
-    if words[0].isascii() and words[0].isdigit():
-        return words[0]
 
-    units = {**ENGLISH_DIGITS, **TELUGU_ROMAN, **TELUGU_SCRIPT, **HINDI_ROMAN}
-    teens = {
-        "thirteen": 13, "fourteen": 14, "fifteen": 15, "sixteen": 16,
-        "seventeen": 17, "eighteen": 18, "nineteen": 19,
-        "terah": 13, "chaudah": 14, "pandrah": 15, "solah": 16,
-        "satrah": 17, "atharah": 18, "unnis": 19,
-    }
-    tens = {
-        **ENGLISH_TENS,
-        "iravai": 20, "muppai": 30, "nalabhai": 40,
-        "nalabai": 40, "yabai": 50, "aravai": 60, "debbai": 70,
-        "enabhai": 80, "tombhai": 90,
-        "bees": 20, "tees": 30, "chalis": 40, "chaalis": 40,
-        "pachaas": 50, "saath": 60, "sattar": 70, "assi": 80,
-        "nabbe": 90,
-    }
-    if words[0] in teens:
-        return str(teens[words[0]])
-    if words[0] in tens:
-        value = tens[words[0]]
-        if len(words) > 1 and words[1] in units and 1 <= units[words[1]] <= 9:
-            value += units[words[1]]
-        return str(value)
-    if words[0] in units:
-        digits = []
-        for word in words:
-            if word not in units or units[word] > 9:
-                break
-            digits.append(str(units[word]))
-        return "".join(digits) if digits else None
-    return None
+    normalized = normalize_text(" ".join(raw_words)).strip()
+    match = re.match(r"^([A-Za-z]{1,2})\s*-?\s*(\d+)", normalized)
+    if match:
+        return f"{match.group(1).upper()}-{match.group(2)}"
+
+    match = re.match(r"^(\d+)", normalized)
+    if match:
+        return match.group(1)
+
+    if re.fullmatch(r"[A-Za-z]{1,2}", raw_words[0]) and len(raw_words) > 1:
+        number = _number_from_words(raw_words[1:])
+        if number:
+            return f"{raw_words[0].upper()}-{number}"
+
+    return _number_from_words(raw_words)
+
+
+_TOKEN_KEY_RE = re.compile(r"^([A-Za-z]{1,2})?-?(\d+)$")
+
+
+def token_key(value: str) -> tuple[str | None, str] | None:
+    raw = to_ascii_digits(str(value or "")).strip()
+    raw = re.sub(r"[\s\-]+", "", raw)
+    match = _TOKEN_KEY_RE.fullmatch(raw)
+    if not match:
+        return None
+    letter, digits = match.groups()
+    return (letter.upper() if letter else None, digits)
+
+
+def token_matches(configured: str, heard: str) -> bool:
+    expected = token_key(configured)
+    actual = token_key(heard)
+    if expected is None or actual is None:
+        return False
+    expected_letter, expected_number = expected
+    actual_letter, actual_number = actual
+    if expected_number != actual_number:
+        return False
+    if expected_letter is None:
+        return True
+    return expected_letter == actual_letter
 
 
 def find_tokens(text: str) -> list[dict[str, str | None]]:
-    """Return numeric token announcements whose number follows a token cue."""
+    """Return token announcements with their room, if one is clearly present."""
     clean = _normalise(text)
-    markers = []
-    for word in TOKEN_WORDS:
-        markers.extend(re.finditer(rf"(?<!\w){re.escape(word)}(?!\w)", clean))
-    markers.sort(key=lambda match: match.start())
+    markers = list(_TOKEN_RE.finditer(clean))
 
     announcements = []
     for index, marker in enumerate(markers):
         end = markers[index + 1].start() if index + 1 < len(markers) else len(clean)
         tail = clean[marker.end():end]
-        room_positions = [tail.find(word) for word in ROOM_WORDS if tail.find(word) >= 0]
-        if room_positions:
-            tail = tail[:min(room_positions)]
-
-        number_words = tail.split()
-        while number_words and number_words[0] in TOKEN_NUMBER_CONNECTORS:
-            number_words.pop(0)
-        token = _number_at_start(" ".join(number_words[:6])) if number_words else None
+        token = _token_at_start(tail)
         if token is None:
             continue
 
-        room = find_room(clean[marker.end():end])
+        room = find_room(tail)
+        if room is None:
+            start = markers[index - 1].end() if index > 0 else 0
+            room = find_room(clean[start:marker.start()])
+
         announcements.append({"token": token, "room": room})
     return announcements
 
 
 def find_token(text: str) -> str | None:
-    """Return a numeric hospital token only when one candidate is unambiguous."""
+    """Return a hospital token only when one candidate is unambiguous."""
     announcements = find_tokens(text)
     if len(announcements) != 1:
         return None
@@ -327,21 +443,111 @@ def find_token(text: str) -> str | None:
 
 
 def find_room(text: str) -> str | None:
-    """Return a room number only when a room marker is followed by its number."""
+    """Return a room number only when every room cue points to the same value."""
     clean = _normalise(text)
-    for word in ROOM_WORDS:
-        idx = clean.find(word)
-        if idx == -1:
-            continue
-        tail = clean[idx + len(word):]
-        words = tail.split()
-        while words and words[0] in TOKEN_NUMBER_CONNECTORS:
+    found: list[str] = []
+    for match in _ROOM_RE.finditer(clean):
+        words = clean[match.end():].split()
+        while words and words[0] in NUMBER_CONNECTORS:
             words.pop(0)
         if not words:
             continue
-        number = _number_at_start(" ".join(words[:6]))
+        number = _number_at_start(" ".join(words[:8]))
         if number:
-            return number
+            found.append(number)
+
+    distinct = set(found)
+    if len(distinct) == 1:
+        return distinct.pop()
+    return None
+
+
+def _number_at_start(text: str) -> str | None:
+    from app.matcher import normalize_text
+
+    normalized = normalize_text(text).split()
+    if normalized and normalized[0].isdigit():
+        return normalized[0]
+
+    raw_words = _normalise(text).split()
+    while raw_words and raw_words[0] in NUMBER_CONNECTORS:
+        raw_words.pop(0)
+    return _number_from_words(raw_words)
+
+
+_SPECIALIST_SUFFIX_RE = re.compile(
+    r"(ology|ologist|iatrics|iatrician|pedics|pediatrician|iatry|iatrist|"
+    r"otherapy|otherapist|surgery|surgeon|pedic)$"
+)
+
+
+def _specialist_allowed(token: str) -> bool:
+    return (
+        not token.isdigit()
+        and _word_value(token) is None
+        and any(char.isalpha() for char in token)
+    )
+
+
+def find_specialist(text: str) -> str | None:
+    """
+    Return a department/specialist name when the words around it support one.
+
+    A bare English word ending in a medical suffix is accepted only when the
+    transcript also contains a hospital cue, so "technology" in an unrelated
+    announcement is not reported as a specialist.
+    """
+    clean = _normalise(text)
+    tokens = clean.split()
+
+    has_hospital_cue = (
+        any(token in HOSPITAL_CUES for token in tokens)
+        or _TOKEN_RE.search(clean) is not None
+        or _ROOM_RE.search(clean) is not None
+    )
+    if has_hospital_cue:
+        for token in tokens:
+            if _SPECIALIST_SUFFIX_RE.search(token) and _specialist_allowed(token):
+                return token
+
+    for index, token in enumerate(tokens):
+        if token not in DEPARTMENT_MARKERS:
+            continue
+
+        before: list[str] = []
+        cursor = index - 1
+        while cursor >= 0 and len(before) < 2:
+            candidate = tokens[cursor]
+            if (
+                candidate in DEPARTMENT_FILLERS
+                or candidate in SPECIALIST_BLOCKERS
+                or not _specialist_allowed(candidate)
+            ):
+                break
+            before.insert(0, candidate)
+            cursor -= 1
+
+        before_text = " ".join(before)
+        if before_text and not (len(before) == 1 and before[0] in SPECIALIST_GENERIC):
+            return before_text
+
+        after: list[str] = []
+        cursor = index + 1
+        while cursor < len(tokens) and tokens[cursor] in DEPARTMENT_FILLERS:
+            if tokens[cursor] in SPECIALIST_BLOCKERS:
+                break
+            cursor += 1
+        while cursor < len(tokens) and len(after) < 2:
+            candidate = tokens[cursor]
+            if candidate in SPECIALIST_BLOCKERS or not _specialist_allowed(candidate):
+                break
+            after.append(candidate)
+            cursor += 1
+
+        after_text = " ".join(after)
+        if after_text and not (len(after) == 1 and after[0] in SPECIALIST_GENERIC):
+            return after_text
+
     return None
 
 
@@ -354,48 +560,120 @@ def find_destination(text: str, stations: list[str] | None = None) -> str | None
     if not stations:
         return None
 
+    candidates = find_destination_candidates(text, stations)
+    known = {
+        _normalise(entry["text"]): entry["text"]
+        for entry in candidates if entry["source"] == "known"
+    }
+    return next(iter(known.values())) if len(known) == 1 else None
+
+
+BUS_PLACE_STOPWORDS = frozenset({
+    "a", "all", "an", "and", "announcement", "arrival", "arrivals", "arrive",
+    "arrives", "arriving", "at", "attention", "bay", "boarding", "bus", "buses",
+    "by", "city", "daily", "dear", "depart", "departs", "departure",
+    "destination", "express", "for", "from", "gate", "go", "goes", "going",
+    "has", "have", "in", "is", "near", "no", "now", "number", "of", "on",
+    "ordinary", "passenger", "passengers", "platform", "please", "route",
+    "schedule", "service", "services", "stand", "station", "stop", "terminal",
+    "that", "the", "this", "time", "to", "town", "towards", "train", "trains",
+    "via", "village", "will", "your",
+})
+
+
+def _place_tokens(text: str) -> list[str]:
     clean = _normalise(text)
-    for station in sorted(stations, key=len, reverse=True):
-        needle = _normalise(station)
-        if not needle:
+    tokens = []
+    for token in clean.split():
+        token = token.strip("!?;:\"'()[]{}")
+        if token and any(ch.isalpha() for ch in token):
+            tokens.append(token)
+    return tokens
+
+
+def find_destination_candidates(
+    text: str,
+    stations: list[str] | None = None,
+    max_words: int = MAX_PLACE_WORDS,
+) -> list[dict[str, str]]:
+    """Return plausible place-name candidates without requiring a known list."""
+    if not text or not text.strip():
+        return []
+
+    tokens = _place_tokens(text)
+    if not tokens or not _TRANSIT_WORDS.intersection(tokens):
+        return []
+
+    # A place is a destination only when it follows an explicit direction cue.
+    # Do not turn nearby speech or a place mentioned as context into a route.
+    phrases: list[list[str]] = []
+    for index, word in enumerate(tokens):
+        if word not in _DESTINATION_CONNECTORS:
             continue
-        # Whole-word only. A plain substring test finds "Patna" inside
-        # "Visakhapatnam" and announces the wrong city.
-        if re.search(rf"(?<!\w){re.escape(needle)}(?!\w)", clean):
-            return station
-    return None
+        phrase: list[str] = []
+        for candidate in tokens[index + 1:index + 1 + max_words]:
+            if candidate in BUS_PLACE_STOPWORDS:
+                break
+            phrase.append(candidate)
+        if phrase:
+            phrases.append(phrase)
+
+    if not phrases:
+        return []
+
+    candidates: list[dict[str, str]] = []
+    seen: set[str] = set()
+
+    def add(value: str, source: str) -> None:
+        value = " ".join(value.split())
+        key = _normalise(value)
+        if len(key.replace(" ", "")) < 3 or not any(ch.isalpha() for ch in key):
+            return
+        if key in seen:
+            return
+        seen.add(key)
+        candidates.append({"text": value, "source": source})
+
+    for phrase in phrases:
+        phrase_text = " ".join(phrase)
+        if stations:
+            for station in sorted(stations, key=len, reverse=True):
+                needle = _normalise(station)
+                if needle and re.search(
+                    rf"(?<!\w){re.escape(needle)}(?!\w)",
+                    _normalise(phrase_text),
+                ):
+                    add(station, "known")
+        add(phrase_text, "transcript")
+
+    return candidates
 
 
 def extract(text: str, stations: list[str] | None = None) -> dict:
-    """
-    Pull every identifier we can justify from one transcript.
-
-    Returns {"train_no": str|None, "platform": str|None, "destination": str|None}
-    Any field the text does not clearly support is None.
-    """
+    """Pull every identifier we can justify from one transcript."""
     if not text or not text.strip():
-        return {"train_no": None, "platform": None, "destination": None,
-                "token": None, "room": None}
+        return {
+            "train_no": None, "train_name": None, "platform": None,
+            "destination": None, "token": None, "room": None,
+            "specialist": None, "destination_candidates": [],
+        }
 
     return {
         "train_no": find_train_no(text),
+        "train_name": find_train_name(text),
         "platform": find_platform(text),
         "destination": find_destination(text, stations),
         "token": find_token(text),
         "room": find_room(text),
+        "specialist": find_specialist(text),
+        "destination_candidates": find_destination_candidates(text, stations),
     }
 
-
-# --------------------------------------------------------------------------
-# self test — runs with: python -m app.extract
-# --------------------------------------------------------------------------
 
 if __name__ == "__main__":
     STATIONS = ["Hyderabad", "Vijayawada", "Secunderabad", "Tenali", "Chennai"]
 
-    # (text, expected train_no, expected platform)
     CASES = [
-        # --- must find ---
         ("Train number 12739 Garib Rath to Hyderabad will arrive on platform 4",
          "12739", "4"),
         ("12739 nambaru railu platform naluguki vastundi",
@@ -404,12 +682,10 @@ if __name__ == "__main__":
          "12739", None),
         ("nine one two seven three",
          "91273", None),
-        ("రైలు నంబర్ 12739 ప్లాట్‌ఫారం రెండు కి వస్తుంది",
+        ("రైలు నంబర్ 12739 ప్లాట్ఫారం రెండు కి వస్తుంది",
          "12739", "2"),
         ("train 17201 arriving platform 12",
          "17201", "12"),
-
-        # --- must REFUSE ---
         ("The canteen on platform 2 is now open",
          None, "2"),
         ("money is gone nine one two seven",
@@ -419,11 +695,10 @@ if __name__ == "__main__":
         ("stone alone phone money",
          None, None),
         ("trains 12739 and 17201 are both delayed",
-         None, None),          # two candidates -> refuse
-        ("platform 99 does not exist",
-         None, None),          # out of range
-        ("",
          None, None),
+        ("platform 99 does not exist",
+         None, None),
+        ("", None, None),
         ("ladies and gentlemen your attention please",
          None, None),
     ]

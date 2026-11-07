@@ -108,6 +108,14 @@ h1{
 .keep span{position:relative;z-index:1}
 .keep:active{transform:translateY(2px) scale(.99)}
 .keep:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
+.err{
+  margin:0 var(--s2);
+  padding:10px 14px;
+  border-radius:12px;
+  background:rgba(220,38,38,.10);
+  color:#b91c1c;
+  font-size:14px;line-height:1.35;text-align:center;
+}
 
 .done{
   position:relative;
@@ -155,6 +163,8 @@ h1{
     </p>
   </section>
 
+  <button class="keep" id="play" type="button"><span>Play Announcement</span></button>
+  <p class="err" id="err" role="alert" hidden></p>
   <button class="keep" id="keep" type="button"><span>Keep Listening</span></button>
   <button class="done" id="done" type="button">Done</button>
 
@@ -163,14 +173,97 @@ h1{
 <script>
 var keepBtn = document.getElementById("keep");
 var doneBtn = document.getElementById("done");
+var playBtn = document.getElementById("play");
+var errEl = document.getElementById("err");
+var playLbl = playBtn.querySelector("span");
+
+var result = null;
+try{ result = JSON.parse(localStorage.getItem("seva.lastResult") || "null"); }catch(e){}
+
+function plain(t){
+  return String(t || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+}
+function showErr(msg){
+  errEl.textContent = msg;
+  errEl.hidden = false;
+}
+if (result && result.spoken){
+  document.querySelector(".lines").textContent = plain(result.spoken);
+}
+
+var audio = null, speaking = false, playIdle = null;
+function stop(){
+  if (audio){ try{ audio.pause(); }catch(e){} audio = null; }
+  speaking = false;
+  playLbl.textContent = playIdle || "Play Announcement";
+}
+function playServer(src){
+  audio = new Audio(src);
+  audio.onended = stop;
+  audio.onerror = function(){ stop(); showErr("Audio could not be played."); };
+  var started = audio.play();
+  if (started && started.catch){
+    started.catch(function(e){
+      if (e && e.name === "NotAllowedError"){ stop(); return; }
+      stop(); showErr("Audio could not be played.");
+    });
+  }
+}
+function play(){
+  if (speaking){ stop(); return; }
+  if (!result || !result.spoken){
+    showErr("No announcement audio is available.");
+    return;
+  }
+  if (result.tts_error){
+    showErr(result.tts_error);
+    return;
+  }
+  errEl.hidden = true;
+  if (playIdle === null) playIdle = playLbl.textContent;
+  speaking = true;
+  playLbl.textContent = "Stop";
+  var src = result.audio_url || (result.audio ? "/alerts/" + result.audio : null);
+  if (src){ playServer(src); return; }
+
+  var code = result.lang || result.requested_language || "en-IN";
+  if (code.indexOf("-") === -1) code += "-IN";
+  fetch("/tts", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({text: result.spoken, language: code})
+  }).then(function(r){
+    if (r.ok) return r.blob();
+    return r.json().catch(function(){ return {}; }).then(function(body){
+      var e = new Error(body.error || ("Voice failed (" + r.status + ")"));
+      e.sevaLanguageError = (r.status === 400);
+      throw e;
+    });
+  }).then(function(b){
+    if (!speaking) return;
+    playServer(URL.createObjectURL(b));
+  }).catch(function(e){
+    if (!speaking) return;
+    speaking = false;
+    playLbl.textContent = playIdle || "Play Announcement";
+    showErr(e && e.message ? e.message : "Audio could not be played.");
+  });
+}
 
 keepBtn.addEventListener("click", function(){
+  stop();
   location.href = "listening.html";
 });
 
 doneBtn.addEventListener("click", function(){
+  stop();
   location.href = "home.html";
 });
+
+playBtn.addEventListener("click", play);
+try{
+  if (localStorage.getItem("seva.autoPlay") !== "0") setTimeout(play, 500);
+}catch(e){}
 </script>
 <script src="i18n.js"></script>
 </body>

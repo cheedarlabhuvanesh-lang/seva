@@ -1,0 +1,7 @@
+# Replace the hostname before installing this file.
+# Caddy obtains and renews the TLS certificate automatically.
+# Gunicorn should listen on 127.0.0.1:8000 (SEVA_BIND_HOST=127.0.0.1).
+seva.example.org {
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:8000
+}

@@ -23,8 +23,13 @@ def _normalise(text: str) -> str:
 
 
 class SchemeBook:
-    def __init__(self, path: Path | str = DATA_FILE) -> None:
+    def __init__(self, path: Path | str = DATA_FILE, *, enabled: bool = True) -> None:
         self.path = Path(path)
+        if not enabled:
+            self.schemes = []
+            self.last_checked = "disabled"
+            self._by_id = {}
+            return
         payload = json.loads(self.path.read_text(encoding="utf-8"))
         self.schemes: list[dict] = payload["schemes"]
         self.last_checked: str = payload.get("last_checked", "unknown")

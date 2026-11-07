@@ -1,7 +1,8 @@
 {
  "name": "Seva",
  "short_name": "Seva",
- "start_url": "/",
+ "start_url": "/app/",
+ "scope": "/app/",
  "display": "standalone",
  "background_color": "#F8FAFF",
  "theme_color": "#ECEFFC",

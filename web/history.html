@@ -32,12 +32,11 @@
       tile could only ever hold a guess. It is replaced by
       STATUS, which comes from the stored verdict and is true.
 
-   2. NO FAKE 0:12. The clip length is not known until a real
-      audio file exists; the phone's own voice reports no
-      duration at all. So the player shows elapsed time only
-      and the bars are a playing indicator, not a progress
-      bar. When /api/replay lands, the total drops in at the
-      marked line.
+   2. NO FAKE 0:12. /api/replay returns real audio, so the
+      total duration is shown once the file loads. If the
+      server has no voice, the phone's own speech engine
+      reports no duration, so only elapsed time is shown.
+      The bars are a playing indicator, not a progress bar.
 
    3. THE SENTENCE IS STORED, NOT REBUILT. confirmed.html now
       saves the exact line it spoke as entry.spoken. Records
@@ -223,7 +222,11 @@ h1{margin:0;font-size:30px;font-weight:800;letter-spacing:-.6px;color:var(--ink)
 }
 [data-theme="dark"] .waved{background:rgba(255,255,255,.09)}
 .saidtxt{flex:1;min-width:0;font-size:15px;line-height:1.45;color:var(--text)}
-.saidtxt[lang="te"]{font-family:var(--f-indic);line-height:1.6}
+.saidtxt[lang^="te"],.saidtxt[lang^="hi"],.saidtxt[lang^="ta"],
+.saidtxt[lang^="kn"],.saidtxt[lang^="ml"],.saidtxt[lang^="mr"],
+.saidtxt[lang^="bn"],.saidtxt[lang^="gu"],.saidtxt[lang^="pa"]{
+  font-family:var(--f-indic);line-height:1.6;
+}
 .kindchip{
   flex:none;display:inline-flex;align-items:center;gap:5px;
   padding:4px 9px;border-radius:var(--r-pill);
@@ -400,7 +403,18 @@ var KIND = {
   bus:{ word:"Bus", chip:"Bus", icon:
     'M7 2.5h10A3.5 3.5 0 0120.5 6v10.5a2.5 2.5 0 01-1.6 2.33V20.4a1.4 1.4 0 01-2.8 0v-1.4H7.9v1.4a1.4 1.4 0 01-2.8 0v-1.57A2.5 2.5 0 013.5 16.5V6A3.5 3.5 0 017 2.5zM6.6 6.8v4.6a1 1 0 001 1h8.8a1 1 0 001-1V6.8a1 1 0 00-1-1H7.6a1 1 0 00-1 1zm.3 8.3a1.35 1.35 0 102.7 0 1.35 1.35 0 10-2.7 0zm7.8 0a1.35 1.35 0 102.7 0 1.35 1.35 0 10-2.7 0z' }
 };
-var LANGNAME = { te:"తెలుగు", en:"English", hi:"हिन्दी" };
+var LANGNAME = {
+  "te":"తెలుగు", "te-IN":"తెలుగు",
+  "en":"English", "en-IN":"English",
+  "hi":"हिन्दी", "hi-IN":"हिन्दी",
+  "ta":"தமிழ்", "ta-IN":"தமிழ்",
+  "kn":"ಕನ್ನಡ", "kn-IN":"ಕನ್ನಡ",
+  "ml":"മലയാളം", "ml-IN":"മലയാളം",
+  "mr":"मराठी", "mr-IN":"मराठी",
+  "bn":"বাংলা", "bn-IN":"বাংলা",
+  "gu":"ગુજરાતી", "gu-IN":"ગુજરાતી",
+  "pa":"ਪੰਜਾਬੀ", "pa-IN":"ਪੰਜਾਬੀ"
+};
 var SPARK = "M23.2 12C15.7 15.58 15.58 15.7 12 23.2C8.3 15.58 8.42 15.7 0.8 12C8.3 8.42 8.42 8.3 12 0.8C15.7 8.42 15.58 8.3 23.2 12Z";
 var NS = "http://www.w3.org/2000/svg";
 
@@ -456,7 +470,7 @@ function whenText(ts){
     day=d.getDate()+" "+["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()]; }
   return day+" \u00B7 "+clock(ts);
 }
-function mmss(sec){ var m=Math.floor(sec/60), s=sec%60; return m+":"+(s<10?"0"+s:s); }
+function mmss(sec){ var t=Math.max(0,Math.floor(sec||0)), m=Math.floor(t/60), s=t%60; return m+":"+(s<10?"0"+s:s); }
 
 /* ---- data ---- */
 function load(){
@@ -472,8 +486,9 @@ var ALL=load(), kind="all", term="";
 function rowTitle(r){ var w=KIND[r.kind].word; return r.title ? (w+" "+r.title) : w; }
 
 /* ---- one shared voice, so two rows cannot talk over each other ---- */
-var speakingBtn=null, tick=null;
+var speakingBtn=null, tick=null, audioEl=null;
 function stopAll(){
+  if (audioEl){ try{ audioEl.pause(); }catch(e){} audioEl=null; }
   if (window.speechSynthesis) window.speechSynthesis.cancel();
   if (tick){ clearInterval(tick); tick=null; }
   if (speakingBtn){
@@ -487,36 +502,76 @@ function stopAll(){
   }
 }
 
-/* ───────── REAL AUDIO GOES HERE ─────────
-   GET /api/replay?at=<timestamp> returns the clip Gnani
-   Timbre already produced. new Audio(url) gives a real
-   duration, and the counter can then read "0:04 / 0:12".
-   Until then the phone's own voice speaks the stored line
-   and reports no duration, so only elapsed time is shown —
-   an invented total would be a lie on screen.           */
-function play(r, btn, bars, time){
-  if (speakingBtn && speakingBtn.btn===btn){ stopAll(); return; }
-  stopAll();
-  if (!window.speechSynthesis || !r.spoken){
-    time.textContent="—";
-    return;
-  }
-  var u=new SpeechSynthesisUtterance(r.spoken);
-  u.lang = r.lang==="te" ? "te-IN" : (r.lang==="hi" ? "hi-IN" : "en-IN");
-  u.rate = 0.92;
-  u.onend = stopAll;
-  /* engine refused the job: say nothing played rather than leave 0:00 up */
-  u.onerror = function(){ stopAll(); time.textContent="\u2014"; };
-
-  speakingBtn={btn:btn,bars:bars,time:time};
+function beginPlayer(btn, bars, time){
+  speakingBtn={btn:btn, bars:bars, time:time};
   btn.setAttribute("aria-pressed","true");
   btn.setAttribute("aria-label","Stop");
   while (btn.firstChild) btn.removeChild(btn.firstChild);
   btn.appendChild(filled("M7.2 5.6h3.4v12.8H7.2zM13.4 5.6h3.4v12.8h-3.4z",20));
   bars.classList.add("playing");
+  time.textContent="0:00";
+}
+
+/* ───────── REAL AUDIO ─────────
+   GET /api/replay?text=<sentence>&lang=<code> synthesises the
+   stored line with Gnani. new Audio(url) gives a real duration,
+   so the counter can read "0:04 / 0:12". If the server has no
+   voice available, the phone's own speech engine takes over and
+   only elapsed time is shown — an invented total would be a lie. */
+function play(r, btn, bars, time){
+  if (speakingBtn && speakingBtn.btn===btn){ stopAll(); return; }
+  stopAll();
+  if (!r.spoken){
+    time.textContent="—";
+    return;
+  }
+  var text = String(r.spoken).replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+  var code = r.lang || "en-IN";
+  if (code.indexOf("-") === -1) code += "-IN";
+
+  function fallback(){
+    if (!speakingBtn || speakingBtn.btn!==btn) return;
+    stopAll();
+    browserSpeak(r, btn, bars, time, code);
+  }
+
+  beginPlayer(btn, bars, time);
+  var t0=Date.now(), total=null;
+  tick=setInterval(function(){
+    var elapsed=Math.floor((Date.now()-t0)/1000);
+    time.textContent = total ? (mmss(Math.min(elapsed,total))+" / "+mmss(total)) : mmss(elapsed);
+  },250);
+
+  audioEl = new Audio("/api/replay?text="+encodeURIComponent(text)+
+                      "&lang="+encodeURIComponent(code));
+  audioEl.onloadedmetadata = function(){
+    if (audioEl && isFinite(audioEl.duration) && audioEl.duration > 0) total=audioEl.duration;
+  };
+  audioEl.onended = stopAll;
+  audioEl.onerror = fallback;
+  var started = audioEl.play();
+  if (started && started.catch){
+    started.catch(function(e){
+      if (e && e.name === "NotAllowedError"){ stopAll(); time.textContent="\u2014"; return; }
+      fallback();
+    });
+  }
+}
+
+function browserSpeak(r, btn, bars, time, code){
+  if (!window.speechSynthesis){
+    time.textContent="—";
+    return;
+  }
+  beginPlayer(btn, bars, time);
+  var u=new SpeechSynthesisUtterance(String(r.spoken).replace(/<[^>]*>/g, ""));
+  u.lang = code;
+  u.rate = 0.92;
+  u.onend = stopAll;
+  /* engine refused the job: say nothing played rather than leave 0:00 up */
+  u.onerror = function(){ stopAll(); time.textContent="\u2014"; };
 
   var t0=Date.now(), started=false;
-  time.textContent="0:00";
   u.onstart=function(){ started=true; t0=Date.now(); };
   tick=setInterval(function(){
     time.textContent=mmss(Math.floor((Date.now()-t0)/1000));
@@ -550,7 +605,7 @@ function buildPanel(r){
     wd.appendChild(filled(
       "M2.6 10.4h1.6v3.2H2.6zM6 7.6h1.6v8.8H6zM9.4 4.4H11v15.2H9.4zM12.8 8.4h1.6v7.2h-1.6zM16.2 6.4h1.6v11.2h-1.6zM19.6 9.6h1.6v4.8h-1.6z",20));
     said.appendChild(wd);
-    var st=el("div","saidtxt", r.spoken);
+    var st=el("div","saidtxt", String(r.spoken).replace(/<[^>]*>/g, ""));
     if (r.lang) st.setAttribute("lang", r.lang);
     said.appendChild(st);
     var kc=el("span","kindchip "+r.kind);

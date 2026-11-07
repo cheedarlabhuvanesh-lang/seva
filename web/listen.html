@@ -391,14 +391,15 @@ h1{font-size:24px;font-weight:750;letter-spacing:-.3px;color:var(--ink);margin-b
    ══════════════════════════════════════════════════════════ */
 
 var MODES = {
-  hospital:{ placeholder:"Token number (e.g. 47)",
-             helper:"Type only the number of your token.",
-             inputmode:"numeric", caps:"off",
+  hospital:{ placeholder:"Token number (e.g. A-47 or 47)",
+             helper:"Type your token, letters and numbers.",
+             inputmode:"text", caps:"characters",
              empty:"Type your token number first." },
   train:   { placeholder:"Train number (e.g. 12739)",
              helper:"Five digits, printed on your ticket.",
              inputmode:"numeric", caps:"off",
-             empty:"Type your train number first." },
+             empty:"Type your train number first.",
+             invalid:"Train numbers are exactly five digits." },
   bus:     { placeholder:"Route or destination (e.g. Guntur)",
              helper:"Where the bus is going.",
              inputmode:"text",    caps:"words",
@@ -459,8 +460,9 @@ onInput();
 
 /* ---- Start: save, then hand over to screen 4 ---- */
 function start(){
+  var value = input.value.trim();
   /* empty? do not sit there dead — say what is missing */
-  if (input.value.trim().length === 0){
+  if (value.length === 0){
     field.classList.add("warn");
     helper.classList.add("warn");
     helper.textContent = MODES[mode].empty;
@@ -468,9 +470,21 @@ function start(){
     setTimeout(function(){ field.classList.remove("warn"); }, 420);
     return;
   }
+  /* train numbers are exactly five digits — never start a watch that cannot match */
+  if (mode === "train" && !/^\d{5}$/.test(value)){
+    field.classList.add("warn");
+    helper.classList.add("warn");
+    helper.textContent = MODES.train.invalid;
+    input.focus();
+    setTimeout(function(){ field.classList.remove("warn"); }, 420);
+    return;
+  }
   try{
     localStorage.setItem("seva.watch",
-      JSON.stringify({ mode:mode, value:input.value.trim(), at:Date.now() }));
+      JSON.stringify({ mode:mode, value:value, at:Date.now() }));
+    /* A brand-new watch should react to its first alert, even if the
+       previous alert id is still stored. */
+    localStorage.removeItem("seva.lastAlertId");
   }catch(e){}
   window.location.href = "listening.html";
 }

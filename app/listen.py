@@ -44,7 +44,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app import gate as gate_mod          # noqa: E402
-from app.alert import build_alert, alert_is_certain, screen_text  # noqa: E402
+from app.alert import (  # noqa: E402
+    alert_is_certain,
+    build_alert,
+    language_supported,
+    screen_text,
+    supported_languages,
+)
 from app.extract import extract           # noqa: E402
 from app.watch import Watch               # noqa: E402
 
@@ -134,6 +140,13 @@ def write_clip(frames: list, out_path: Path) -> Path:
 class Listener:
     def __init__(self, watch: Watch, client=None, *, language="te-IN",
                  stations=None, speak=True, max_calls=40, verbose=True):
+        if isinstance(language, str) and "-" not in language:
+            language = f"{language}-IN"
+        if not language_supported(language):
+            raise ValueError(
+                f"No voice is configured for {language!r}. "
+                f"Choose one of: {', '.join(sorted(supported_languages()))}."
+            )
         self.watch = watch
         self.client = client
         self.language = language
@@ -215,14 +228,17 @@ class Listener:
             print("  (call ceiling reached, stopping)")
             return None
         try:
-            text = self.client.transcribe(clip, language_code=self.language)
+            stt = self.client.transcribe_multilingual(clip)
+            text = stt.get("transcript", "")
             self.stt_calls += 1
         except Exception as exc:                          # noqa: BLE001
             print(f"  (transcribe failed: {exc})")
             return None
         if not text.strip():
             return None
-        return self.handle_text(text)
+        record = self.handle_text(text)
+        record["detected_language"] = stt.get("detected_language_code")
+        return record
 
     def summary(self) -> str:
         return (f"announcements heard {self.heard} | yours {self.hits} | "
@@ -376,14 +392,17 @@ def main() -> int:
     args = p.parse_args()
 
     # --- what -------------------------------------------------------
-    if args.train:
-        watch = Watch("train", args.train)
-    elif args.token:
-        watch = Watch("token", args.token)
-    elif args.bus:
-        watch = Watch("bus", args.bus)
-    else:
-        p.error("say what you are waiting for: --train, --token or --bus")
+    try:
+        if args.train:
+            watch = Watch("train", args.train)
+        elif args.token:
+            watch = Watch("token", args.token)
+        elif args.bus:
+            watch = Watch("bus", args.bus)
+        else:
+            p.error("say what you are waiting for: --train, --token or --bus")
+    except ValueError as exc:
+        p.error(str(exc))
 
     stations = load_stations(project)
 

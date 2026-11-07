@@ -25,6 +25,7 @@ import binascii
 import contextlib
 import hashlib
 import json
+import mimetypes
 import os
 import time
 import wave
@@ -41,6 +42,9 @@ DEFAULT_BASE_URL = "https://api.vachana.ai"
 STT_PATH = "/stt/v3"
 TTS_PATH = "/api/v1/tts/inference"
 VC_EMBED_PATH = "/api/v1/tts/voice-clone/embeddings"
+STT_MODEL = "prisma-v2.5"             # one language per request
+STT_MULTILINGUAL_MODEL = "prisma-v3.0"  # auto-detect / up to 4 hinted languages
+AUTO_LANGUAGE = "indic-auto"
 TTS_MODEL = "timbre-v3.0"   # launched 14 Oct 2026: audio tags, 13 voices, all 10 languages
 VC_MODEL = "vachana-vc-v1"
 
@@ -65,8 +69,12 @@ def load_dotenv(path: str | Path | None = None) -> None:
     Step 3 matters because Hermes runs these scripts from whatever directory
     the session started in, which is often not the project folder. Real
     environment variables always win over the file, so a `setx GNANI_API_KEY`
-    on Windows overrides everything here.
+    on Windows overrides everything here. Production mode deliberately skips
+    dotenv files; deployment secrets must come from the process environment.
     """
+    if os.environ.get("SEVA_ENV", "").strip().lower() == "production":
+        return
+
     if path is not None:
         candidates = [Path(path)]
     else:
@@ -182,8 +190,11 @@ class GnaniClient:
                 "No API key. Put GNANI_API_KEY=... in a .env file next to your script, "
                 "or set it as an environment variable. Get a key at https://app.gnani.ai/voice"
             )
-        self.cache_dir = Path(self.cache_dir)
-        self.usage_log = Path(self.usage_log)
+        data_dir = Path(os.environ.get("SEVA_DATA_DIR", "."))
+        if self.cache_dir == Path("cache") and "SEVA_DATA_DIR" in os.environ:
+            self.cache_dir = data_dir / "cache"
+        if self.usage_log == Path("usage.jsonl") and "SEVA_DATA_DIR" in os.environ:
+            self.usage_log = data_dir / "usage.jsonl"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
     # ------------------------------------------------------------------ utils
@@ -221,8 +232,16 @@ class GnaniClient:
         native_numerals: bool = False,
         substitutions: list[dict[str, Any]] | None = None,
         bias_list: Iterable[str] | None = None,
-    ) -> str:
-        """Transcribe a short audio clip with Prisma v2.5 and return the transcript.
+        model: str | None = None,
+        return_metadata: bool = False,
+    ) -> str | dict[str, Any]:
+        """Transcribe a short audio clip and return the transcript.
+
+        model: "prisma-v2.5" (default, one language) or "prisma-v3.0"
+               (auto-detect via language_code="indic-auto", or up to four
+               comma-separated languages).
+        return_metadata: return the full JSON payload instead of just text.
+               Use this when you need detected_language_code from v3.0.
 
         itn=True sets format='transcribe', which writes numbers, currency, dates
         and phone numbers in conventional form instead of spelled-out words.
@@ -254,7 +273,9 @@ class GnaniClient:
         if duration and duration > STT_IDEAL_SECONDS:
             print(f"  [warn] {duration:.1f}s clip - accuracy is best at <= {STT_IDEAL_SECONDS}s")
 
+        model = model or STT_MODEL
         data: dict[str, Any] = {
+            "model": model,
             "language_code": language_code,
             "format": "transcribe" if itn else "verbatim",
         }
@@ -276,7 +297,14 @@ class GnaniClient:
                 f"{self.base_url}{STT_PATH}",
                 headers=self._headers(),
                 data=data,
-                files={"audio_file": (path.name, fh)},
+                files={
+                    "audio_file": (
+                        path.name,
+                        fh,
+                        "audio/wav" if path.suffix.lower() == ".wav"
+                        else mimetypes.guess_type(path.name)[0] or "application/octet-stream",
+                    )
+                },
                 timeout=self.timeout,
             )
 
@@ -295,11 +323,56 @@ class GnaniClient:
         self._log(
             op="stt",
             language=language_code,
+            model=model,
+            detected=payload.get("detected_language_code"),
             seconds=round(duration, 2) if duration else None,
             chars=len(transcript),
             request_id=payload.get("request_id"),
         )
+        if return_metadata:
+            return payload
         return transcript
+
+    def transcribe_multilingual(
+        self,
+        audio_path: str | Path,
+        hint_languages: Iterable[str] | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Transcribe an announcement in whichever language it was spoken.
+
+        Prisma v3.0's ``indic-auto`` lets the model pick from all supported
+        Indic languages (and English) instead of being locked to the language
+        the listener chose for the *reply*. That distinction is the whole
+        point: a Telugu traveller must still be able to hear a Hindi platform
+        announcement.
+
+        hint_languages: optional shortlist (max 4) such as ["hi-IN", "en-IN"].
+                        Omit it to let the model auto-detect.
+
+        Returns {"transcript", "detected_language_code", "model", "request_id"}.
+        """
+        language_code = AUTO_LANGUAGE
+        if hint_languages:
+            hints = [code for code in hint_languages if code][:4]
+            if hints:
+                language_code = ",".join(hints)
+
+        payload = self.transcribe(
+            audio_path,
+            language_code=language_code,
+            model=STT_MULTILINGUAL_MODEL,
+            return_metadata=True,
+            **kwargs,
+        )
+        if not isinstance(payload, dict):
+            raise GnaniError("STT metadata request did not return a JSON object.")
+        return {
+            "transcript": payload.get("transcript", ""),
+            "detected_language_code": payload.get("detected_language_code"),
+            "model": payload.get("model", STT_MULTILINGUAL_MODEL),
+            "request_id": payload.get("request_id"),
+        }
 
     # -------------------------------------------------------------------- TTS
 

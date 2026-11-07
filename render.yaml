@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: seva
+    runtime: python
+    plan: free
+    region: oregon
+    branch: language-all
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -c gunicorn.conf.py wsgi:app
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: SEVA_ENV
+        value: production
+      - key: SEVA_ALLOWED_HOSTS
+        value: seva-nmfd.onrender.com
+      - key: SEVA_DATA_DIR
+        value: /tmp/seva-data
+      - key: SEVA_TRUST_PROXY
+        value: "1"
+      - key: SEVA_PREVIEW_AUTH_REQUIRED
+        value: "1"
+      - key: SEVA_PREVIEW_USERNAME
+        value: demo
+      - key: SEVA_PREVIEW_PASSWORD
+        sync: false
+      - key: SEVA_HOSPITAL_DATA_APPROVED
+        value: "0"
+      - key: SEVA_ENABLE_SERVER_MIC
+        value: "0"
+      - key: SEVA_ENABLE_SIMULATE
+        value: "0"
+      - key: SEVA_ENABLE_USAGE_API
+        value: "0"

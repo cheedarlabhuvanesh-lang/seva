@@ -236,6 +236,14 @@ html[data-theme="dark"] .screen{
 }
 .infochip svg{flex:none;color:var(--cta-from)}
 
+/* debug panel: only rendered when SEVA_DEBUG=1 on the server */
+.debug{
+  width:100%;margin:0;padding:12px 14px;border:1px solid #c7d2fe;
+  border-radius:14px;background:#eef2ff;color:#111827;
+  font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;
+  white-space:pre-wrap;overflow-wrap:anywhere;text-align:left;
+}
+
 /* ══════ 6. STOP ══════
    Red, with a white badge so it is unmissable at a glance
    and still readable without reading — the only red thing
@@ -339,6 +347,8 @@ html[data-theme="dark"] .screen{
 
     <div class="wavebars" id="wavebars" aria-hidden="true"></div>
 
+    <pre class="debug" id="debug" hidden></pre>
+
   </div>
 
   <div class="infochip">
@@ -437,6 +447,50 @@ document.getElementById("mic").addEventListener("click", stop);
   }
   try{localStorage.removeItem("seva.lastResult")}catch(e){}
   var lang="en-IN";try{lang=localStorage.getItem("seva.language")||"en-IN"}catch(e){}
+  /* The result screen sends the user back here to keep waiting. Skip the
+     alert we already showed instead of redirecting to it again in a loop. */
+  var lastAlertId="";try{lastAlertId=localStorage.getItem("seva.lastAlertId")||""}catch(e){}
+  var big = document.querySelector(".status .big");
+  var small = document.querySelector(".status .small");
+  var debugBox = document.getElementById("debug");
+  var pollFailures = 0;
+  var startFailed = false;
+
+  function setStatus(title, detail){
+    big.textContent = title;
+    if(detail !== undefined) small.textContent = detail;
+  }
+  function fmt(v){ return (v === null || v === undefined) ? "?" : String(v); }
+  function renderDebug(state){
+    if(!state.debug){
+      debugBox.hidden = true;
+      debugBox.textContent = "";
+      return;
+    }
+    var lines = [
+      "Device: " + (state.mic_device || "unknown"),
+      "Key: " + (state.key_found === true ? "GNANI_API_KEY found" :
+        (state.key_found === false ? "GNANI_API_KEY MISSING" : "unknown")),
+      "Level: RMS " + fmt(state.input_level) + " | " + fmt(state.input_db) + " dB above background",
+      "Background: RMS " + fmt(state.background_level),
+      "Gate: " + (state.gate_state || "unknown") + " | " + (state.gate_open ? "OPEN" : "closed") +
+        " | threshold " + fmt(state.gate_threshold_db) + " dB",
+      "Clips: " + fmt(state.clips) + " | STT calls: " + fmt(state.stt_calls) +
+        " | last clip " + fmt(state.last_clip_seconds) + " s",
+      "STT language: " + (state.last_stt_language || "unknown") +
+        " | reply language: " + (lang || "unknown"),
+      "Last text: " + (state.last_stt_empty ? "(empty)" :
+        (state.last_heard_text ? JSON.stringify(state.last_heard_text) : "(none)")),
+      "Match: " + (state.last_match_verdict || "none yet") +
+        " | token " + (state.last_match_token || "-") +
+        " | room " + (state.last_match_room || "-"),
+      "Heard: " + fmt(state.heard) + " | Alerts: " + (state.alerts ? state.alerts.length : 0),
+      "STT error: " + (state.last_stt_error || "none"),
+      "Error: " + (state.error || "none")
+    ];
+    debugBox.textContent = lines.join("\n");
+    debugBox.hidden = false;
+  }
 
   /* Start watch on backend */
   fetch("/api/watch/start", {
@@ -459,36 +513,49 @@ document.getElementById("mic").addEventListener("click", stop);
     }
     return res.json();
   }).catch(function(err){
-    document.querySelector(".status .big").textContent = "Microphone Error";
-    document.querySelector(".status .small").textContent = err.message || "Could not start microphone listener.";
+    startFailed = true;
+    setStatus("Microphone Error", err.message || "Could not start microphone listener.");
   });
 
   /* Poll /api/watch/state every 1 second (Python owns the mic) */
   var pollInterval = setInterval(function(){
     fetch("/api/watch/state")
-      .then(function(res){ return res.json(); })
+      .then(function(res){
+        if(!res.ok) throw new Error("Server returned " + res.status);
+        return res.json();
+      })
       .then(function(state){
-        if(state.error){
-          document.querySelector(".status .big").textContent = "Microphone Error";
-          document.querySelector(".status .small").textContent = "Could not listen for announcements";
-          return;
-        }
+        pollFailures = 0;
+        renderDebug(state);
 
         // Persist only the public result schema; transcripts stay out of browser storage.
         if(state.alerts && state.alerts.length > 0){
           var alert = state.alerts[state.alerts.length - 1];
+          if(alert && alert.id && alert.id === lastAlertId){
+            /* Already shown on confirmed/missing/another. Keep listening. */
+            return;
+          }
           var result = {
             schemaVersion: 1,
             verdict: alert.verdict || "missing",
             token: alert.token || null,
             room: alert.room || null,
             train_no: alert.train_no || null,
+            train_name: alert.train_name || null,
             platform: alert.platform || null,
             destination: alert.destination || null,
-            certain: alert.certain === true
+            specialist: alert.specialist || null,
+            certain: alert.certain === true,
+            spoken: alert.spoken || null,
+            lang: alert.lang || null,
+            requested_language: alert.requested_language || null,
+            audio: alert.audio || null,
+            audio_url: alert.audio_url || null,
+            tts_error: alert.tts_error || null
           };
           try{
             localStorage.setItem("seva.lastResult", JSON.stringify(result));
+            if(alert.id) localStorage.setItem("seva.lastAlertId", alert.id);
           }catch(e){}
 
           clearInterval(pollInterval);
@@ -501,9 +568,23 @@ document.getElementById("mic").addEventListener("click", stop);
           } else {
             location.href = "missing.html";
           }
+          return;
+        }
+
+        if(state.error){
+          setStatus("Microphone Error", state.error);
+          return;
+        }
+        if(state.active === false && !startFailed){
+          setStatus("Listening stopped", "Please go back and start again.");
         }
       })
-      .catch(function(){/* network glitch during poll, ignore */});
+      .catch(function(err){
+        pollFailures += 1;
+        if(pollFailures >= 3){
+          setStatus("Cannot reach the server", err.message || "Check that START-SEVA.bat is still running.");
+        }
+      });
   }, 1000);
 
   /* Stop listening and return */

@@ -1,5 +1,6 @@
-/* Seva interface language. Telugu is translated here; other languages keep the English interface for now.
-   The spoken answers and speech recognition already follow the chosen language. */
+/* Seva interface language.
+   Telugu is translated inline; the other supported languages load their
+   dictionary on demand from i18n-<code>.js. English is the fallback. */
 (function () {
   var TE = {
 "Home": "హోమ్",
@@ -100,6 +101,8 @@
 "What would you like to know today?": "ఈ రోజు మీరు ఏమి తెలుసుకోవాలనుకుంటున్నారు?",
 "Ask Nova a question": "నోవాను ప్రశ్న అడగండి",
 "Thinking… please wait a few seconds": "ఆలోచిస్తున్నాను… కొన్ని సెకన్లు వేచి ఉండండి",
+"Nova is thinking… please wait a few seconds": "నోవా ఆలోచిస్తోంది… కొన్ని సెకన్లు వేచి ఉండండి",
+"Please enter a question.": "దయచేసి ఒక ప్రశ్న నమోదు చేయండి.",
 "Smarter • Faster • Together": "తెలివిగా • వేగంగా • కలిసి",
 "Nova can make mistakes. If unsure, ask the help desk.": "నోవా తప్పులు చేయవచ్చు. సందేహం ఉంటే హెల్ప్ డెస్క్‌ను అడగండి.",
 "Menu": "మెనూ",
@@ -160,79 +163,153 @@
     [/^(\d+) days? ago$/, function (m) { return m[1] + " రోజుల క్రితం"; }]
   ];
   var ATTRS = ["aria-label", "placeholder", "title", "alt"];
-  var origText = new WeakMap(), busy = false;
-  function wanted() {
-    try {
-      var lang = localStorage.getItem("seva.language") || "en-IN";
-      return lang.indexOf("te") === 0 ? "te" : lang;
-    } catch (e) { return false; }
+  var FILES = {
+    hi: "i18n-hi.js",
+    ta: "i18n-ta.js",
+    kn: "i18n-kn.js",
+    ml: "i18n-ml.js",
+    mr: "i18n-mr.js",
+    bn: "i18n-bn.js",
+    gu: "i18n-gu.js",
+    pa: "i18n-pa.js"
+  };
+  var FONTS = {
+    te: '"Noto Sans Telugu","Nirmala UI","Gautami","Segoe UI",system-ui,sans-serif',
+    hi: '"Noto Sans Devanagari","Nirmala UI","Mangal","Segoe UI",system-ui,sans-serif',
+    mr: '"Noto Sans Devanagari","Nirmala UI","Mangal","Segoe UI",system-ui,sans-serif',
+    bn: '"Noto Sans Bengali","Nirmala UI","Vrinda","Segoe UI",system-ui,sans-serif',
+    gu: '"Noto Sans Gujarati","Nirmala UI","Shruti","Segoe UI",system-ui,sans-serif',
+    pa: '"Noto Sans Gurmukhi","Nirmala UI","Raavi","Segoe UI",system-ui,sans-serif',
+    ta: '"Noto Sans Tamil","Nirmala UI","Latha","Segoe UI",system-ui,sans-serif',
+    kn: '"Noto Sans Kannada","Nirmala UI","Tunga","Segoe UI",system-ui,sans-serif',
+    ml: '"Noto Sans Malayalam","Nirmala UI","Kartika","Segoe UI",system-ui,sans-serif'
+  };
+  var DICTS = { te: TE };
+  var pending = {};
+  var origText = new WeakMap(), origAttr = new WeakMap();
+  var busy = false, observer = null, font = null;
+
+  function storedLang() {
+    try { return localStorage.getItem("seva.language") || "en-IN"; }
+    catch (e) { return "en-IN"; }
   }
-  function lookup(s) {
+  function baseCode() {
+    var base = String(storedLang()).split("-")[0].toLowerCase();
+    if (base === "en") return "en";
+    return (DICTS[base] || FILES[base]) ? base : "en";
+  }
+  function lookup(s, lang) {
     var k = s.replace(/\s+/g, " ").trim();
     if (!k) return null;
-    if (Object.prototype.hasOwnProperty.call(TE, k)) return TE[k];
-    for (var i = 0; i < RX.length; i++) { var m = k.match(RX[i][0]); if (m) return RX[i][1](m); }
+    var d = DICTS[lang];
+    if (d && Object.prototype.hasOwnProperty.call(d, k)) return d[k];
+    if (lang === "te") {
+      for (var i = 0; i < RX.length; i++) { var m = k.match(RX[i][0]); if (m) return RX[i][1](m); }
+    }
     return null;
   }
   function wrap(orig, t) { var a = orig.match(/^\s*/)[0], b = orig.match(/\s*$/)[0]; return a + t + b; }
-  function doText(n, te) {
+  function doText(n, lang) {
     var rec = origText.get(n);
-    if (rec && n.nodeValue !== rec.shown) rec = null;            /* the page changed this text itself */
+    if (rec && n.nodeValue !== rec.shown) rec = null;
     var orig = rec ? rec.orig : n.nodeValue;
-    if (!te) { if (rec) { n.nodeValue = orig; origText.delete(n); } return; }
-    var t = lookup(orig);
+    if (lang === "en") { if (rec) { n.nodeValue = orig; origText.delete(n); } return; }
+    var t = lookup(orig, lang);
     if (t === null) { if (rec) origText.delete(n); return; }
     var shown = wrap(orig, t);
     if (n.nodeValue !== shown) n.nodeValue = shown;
     origText.set(n, { orig: orig, shown: shown });
   }
-  function doAttrs(el, te) {
+  function doAttrs(el, lang) {
+    var rec = origAttr.get(el);
     for (var i = 0; i < ATTRS.length; i++) {
-      var a = ATTRS[i]; if (!el.hasAttribute(a)) continue;
-      var keep = "data-i18n-" + a, cur = el.getAttribute(a);
-      if (el.hasAttribute(keep)) {
-        if (!te) { el.setAttribute(a, el.getAttribute(keep)); el.removeAttribute(keep); continue; }
-        if (TE[cur] !== undefined || cur === lookup(el.getAttribute(keep))) continue;
+      var a = ATTRS[i];
+      if (!el.hasAttribute(a)) continue;
+      var cur = el.getAttribute(a);
+      var r = rec && rec[a];
+      if (r && cur !== r.shown) r = null;            /* the page changed this attribute itself */
+      var orig = r ? r.orig : cur;
+      if (lang === "en") {
+        if (r) { el.setAttribute(a, orig); delete rec[a]; }
+        continue;
       }
-      if (!te) continue;
-      var t = lookup(cur);
-      if (t !== null) { el.setAttribute(keep, cur); el.setAttribute(a, t); }
+      var t = lookup(orig, lang);
+      if (t === null) { if (r) delete rec[a]; continue; }
+      if (cur !== t) el.setAttribute(a, t);
+      if (!rec) { rec = {}; origAttr.set(el, rec); }
+      rec[a] = { orig: orig, shown: t };
     }
   }
-  function walk(root, te) {
-    if (root.nodeType === 3) { if (!/^(SCRIPT|STYLE)$/.test(root.parentNode.nodeName)) doText(root, te); return; }
+  function walk(root, lang) {
+    if (root.nodeType === 3) { if (!/^(SCRIPT|STYLE)$/.test(root.parentNode.nodeName)) doText(root, lang); return; }
     if (root.nodeType !== 1 || /^(SCRIPT|STYLE)$/.test(root.nodeName)) return;
-    doAttrs(root, te);
-    for (var c = root.firstChild; c; c = c.nextSibling) walk(c, te);
+    doAttrs(root, lang);
+    for (var c = root.firstChild; c; c = c.nextSibling) walk(c, lang);
   }
-  var font = null;
-  function apply() {
-    var te = wanted();
+  function ensureFont(lang) {
+    if (!FONTS[lang]) {
+      if (font) { font.remove(); font = null; }
+      return;
+    }
+    if (!font) { font = document.createElement("style"); document.head.appendChild(font); }
+    font.textContent = 'body,button,input,textarea,select{font-family:' + FONTS[lang] + '}body{line-height:1.6}';
+  }
+  function applyNow(lang) {
     busy = true;
-    document.documentElement.lang = te ? "te" : "en";
-    if (te && !font) { font = document.createElement("style");
-      font.textContent = 'body,button,input,textarea,select{font-family:"Noto Sans Telugu","Nirmala UI","Gautami","Segoe UI",system-ui,sans-serif}body{line-height:1.6}';
-      document.head.appendChild(font); }
-    if (!te && font) { font.remove(); font = null; }
-    walk(document.body, te);
+    document.documentElement.lang = lang === "en" ? "en" : storedLang();
+    ensureFont(lang);
+    walk(document.body, lang);
     busy = false;
     if (observer) observer.takeRecords();
   }
-  var observer = null;
+  function loadDict(lang, cb) {
+    var file = FILES[lang];
+    if (!file) { cb(); return; }
+    if (pending[lang]) { pending[lang].push(cb); return; }
+    pending[lang] = [cb];
+    var s = document.createElement("script");
+    s.src = file;
+    s.async = true;
+    s.onload = function () {
+      var up = lang.toUpperCase();
+      var d = window["SEVA_" + up] || window[up];
+      if (d) DICTS[lang] = d;
+      var list = pending[lang] || [];
+      delete pending[lang];
+      list.forEach(function (f) { f(); });
+    };
+    s.onerror = function () { delete pending[lang]; cb(); };
+    document.head.appendChild(s);
+  }
+  function apply() {
+    var lang = baseCode();
+    if (lang !== "en" && !DICTS[lang]) {
+      loadDict(lang, function () {
+        if (baseCode() === lang && DICTS[lang]) applyNow(lang);
+      });
+      return;
+    }
+    applyNow(lang);
+  }
   function start() {
     apply();
     observer = new MutationObserver(function (list) {
-      if (busy || !wanted()) return;
+      var lang = baseCode();
+      if (busy || lang === "en" || !DICTS[lang]) return;
       busy = true;
       list.forEach(function (r) {
-        if (r.type === "characterData") walk(r.target, true);
-        else if (r.type === "attributes") doAttrs(r.target, true);
-        else r.addedNodes.forEach(function (n) { walk(n, true); });
+        if (r.type === "characterData") walk(r.target, lang);
+        else if (r.type === "attributes") doAttrs(r.target, lang);
+        else r.addedNodes.forEach(function (n) { walk(n, lang); });
       });
-      busy = false; observer.takeRecords();
+      busy = false;
+      observer.takeRecords();
     });
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTRS });
+    observer.observe(document.body, {
+      childList: true, subtree: true, characterData: true,
+      attributes: true, attributeFilter: ATTRS
+    });
   }
-  window.sevaI18n = { apply: apply };
+  window.sevaI18n = { apply: apply, language: baseCode };
   if (document.body) start(); else document.addEventListener("DOMContentLoaded", start);
 })();

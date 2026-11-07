@@ -1,0 +1,6 @@
+# Keep Linux deployment files safe on Windows checkouts.
+deploy/*.sh text eol=lf
+deploy/seva.service text eol=lf
+deploy/Caddyfile text eol=lf
+Procfile text eol=lf
+*.bat text eol=crlf

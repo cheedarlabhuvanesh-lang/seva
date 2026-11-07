@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Step 4 verification tests: Gnani TTS/STT matrix, Gemini retries, microphone flows."""
+"""Manual Step 4 verification: real Gnani/Gemini calls and microphone flows."""
 
 import os
 import sys

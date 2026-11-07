@@ -232,6 +232,20 @@ h1{
   -webkit-tap-highlight-color:transparent;
 }
 .send:active{transform:translateY(1px)}
+.send:disabled{opacity:.55;cursor:wait;transform:none;box-shadow:none}
+.bar.bad{
+  box-shadow:0 0 0 3px rgba(180,35,24,.26), 0 12px 28px rgba(31,41,70,.13);
+}
+
+/* ── validation / error ── */
+.err{
+  display:none;width:100%;margin:12px 0 0;padding:11px 14px;
+  border-radius:14px;background:#FFF1F0;color:#8A1C1C;
+  font-size:15px;line-height:1.45;text-align:left;
+  box-shadow:inset 0 0 0 1px #F2C9C4;
+}
+.err.show{display:block}
+[data-theme="dark"] .err{background:#3A1D22;color:#FFC2BC;box-shadow:inset 0 0 0 1px #6B3038}
 
 /* ── thinking ── */
 .think{
@@ -374,7 +388,7 @@ h1{
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M23.2 12C15.7 15.58 15.58 15.7 12 23.2C8.3 15.58 8.42 15.7 0.8 12C8.3 8.42 8.42 8.3 12 0.8C15.7 8.42 15.58 8.3 23.2 12Z"/></svg>
     </span>
     <input id="q" type="search" autocomplete="off" enterkeyhint="send"
-           placeholder="Ask me anything…">
+           maxlength="500" aria-describedby="err" placeholder="Ask me anything…">
     <button class="send" id="send" type="button" aria-label="Send question">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M3.2 11.1l16.5-7.4c.9-.4 1.8.5 1.4 1.4l-7.4 16.5c-.4.9-1.7.8-2-.2l-1.9-6-6-1.9c-1-.3-1.1-1.6-.2-2z"/>
@@ -382,8 +396,10 @@ h1{
     </button>
   </div>
 
+  <p class="err" id="err" role="alert" hidden></p>
+
   <div class="think" id="think" aria-live="polite">
-    <p id="thinkMsg">Thinking&hellip; please wait a few seconds</p>
+    <p id="thinkMsg">Nova is thinking&hellip; please wait a few seconds</p>
     <div class="dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
   </div>
 
@@ -424,6 +440,8 @@ var q        = document.getElementById("q");
 var send     = document.getElementById("send");
 var think    = document.getElementById("think");
 var thinkMsg = document.getElementById("thinkMsg");
+var err      = document.getElementById("err");
+var bar      = document.querySelector(".bar");
 var menuBtn  = document.getElementById("menuBtn");
 var drawer   = document.getElementById("drawer");
 var scrim    = document.getElementById("scrim");
@@ -445,6 +463,27 @@ document.addEventListener("keydown", function(e){
   if (e.key === "Escape" && !drawer.hidden) closeMenu();
 });
 
+/* ---- validation / errors ---- */
+function clearError(){
+  err.textContent = "";
+  err.hidden = true;
+  err.classList.remove("show");
+  bar.classList.remove("bad");
+}
+
+function showError(message){
+  err.textContent = message;
+  err.hidden = false;
+  err.classList.add("show");
+  bar.classList.add("bad");
+}
+
+function setAsking(value){
+  asking = value;
+  send.disabled = value;
+  send.setAttribute("aria-busy", value ? "true" : "false");
+}
+
 /* ---- the wait ----
    No promised number. The wording moves on by itself if it
    really is taking a while, which is honest and stops her
@@ -458,7 +497,7 @@ function clearTimers(){
 }
 
 function startThinking(){
-  thinkMsg.textContent = "Thinking\u2026 please wait a few seconds";
+  thinkMsg.textContent = "Nova is thinking\u2026 please wait a few seconds";
   think.classList.add("show");
   timers.push(setTimeout(function(){
     thinkMsg.textContent = "Still thinking\u2026 the connection is slow";
@@ -473,40 +512,87 @@ function stopThinking(){
   think.classList.remove("show");
 }
 
+/* The language chosen in Seva settings controls both the written answer and
+   the spoken answer. Normalise base codes ("te") to the canonical Timbre
+   codes ("te-IN") so the backend never has to guess. */
+var NOVA_LANGUAGES = ["en-IN","hi-IN","te-IN","ta-IN","kn-IN","ml-IN","mr-IN","bn-IN","gu-IN","pa-IN"];
+function novaLanguage(){
+  var saved = "en-IN";
+  try{ saved = localStorage.getItem("seva.language") || "en-IN"; }catch(e){}
+  var base = String(saved).trim().split("-")[0].toLowerCase();
+  for (var i = 0; i < NOVA_LANGUAGES.length; i++){
+    if (NOVA_LANGUAGES[i].split("-")[0] === base) return NOVA_LANGUAGES[i];
+  }
+  return "en-IN";
+}
+
 function ask(){
+  if (asking) return;
+
   var text = q.value.trim();
-  if (!text || asking) return;
-  asking = true;
+  if (!text){
+    showError("Please enter a question.");
+    q.focus();
+    return;
+  }
+
+  clearError();
   q.blur();
+  setAsking(true);
   startThinking();
 
-  try{ localStorage.setItem("seva.question", text); localStorage.removeItem("seva.answer"); localStorage.removeItem("seva.source"); }catch(e){}
+  var _lang = novaLanguage();
+  try{
+    localStorage.setItem("seva.question", text);
+    localStorage.setItem("seva.answerLang", _lang);
+    localStorage.removeItem("seva.answer");
+    localStorage.removeItem("seva.source");
+    localStorage.removeItem("seva.audio");
+    localStorage.removeItem("seva.audioError");
+  }catch(e){}
 
-  
   /* Live: calls Flask /api/ask, stores answer + source, then opens answer screen. */
-  var _lang = "en-IN";
-  try{ _lang = localStorage.getItem("seva.language") || "en-IN"; }catch(e){}
   fetch("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:text,language:_lang})})
-    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(r){
+      return r.json().catch(function(){ return null; }).then(function(d){
+        if (!r.ok){
+          var problem = new Error((d && d.error) || "request failed");
+          problem.status = r.status;
+          throw problem;
+        }
+        return d;
+      });
+    })
     .then(function(d){
-      stopThinking();
-      asking = false;
-      if (!d || !d.answer) throw 0;
+      if (!d || !d.answer) throw new Error("empty answer");
       try{
         localStorage.setItem("seva.answer", d.answer);
+        localStorage.setItem("seva.answerLang", d.answer_language || d.language || _lang);
         if(d.source) localStorage.setItem("seva.source", d.source);
+        if(d.audio) localStorage.setItem("seva.audio", d.audio);
+        if(d.audio_error) localStorage.setItem("seva.audioError", d.audio_error);
       }catch(e){}
       location.href = "answer.html";
     })
-    .catch(function(){
+    .catch(function(problem){
       stopThinking();
-      asking = false;
-      alert("Could not reach the server. Check your internet.");
+      setAsking(false);
+      var message = "Could not reach the server. Check your internet.";
+      if (problem && problem.status === 429){
+        message = "Too many questions just now. Please wait a minute and try again.";
+      } else if (problem && problem.status === 400){
+        message = (problem.message && problem.message !== "request failed")
+          ? problem.message
+          : "That question could not be sent. Please check it and try again.";
+      }
+      showError(message);
+      q.focus();
     });
 }
 
 send.addEventListener("click", ask);
 q.addEventListener("keydown", function(e){ if (e.key === "Enter") ask(); });
+q.addEventListener("input", clearError);
 </script>
 <script src="i18n.js"></script>
 </body>

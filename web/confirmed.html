@@ -174,6 +174,14 @@ h1{
   padding:0 var(--s2);
 }
 .spoken:lang(en){font-family:var(--f-sans)}
+.ttsError{
+  margin:0 var(--s2);
+  padding:10px 14px;
+  border-radius:12px;
+  background:rgba(220,38,38,.10);
+  color:#b91c1c;
+  font-size:14px;line-height:1.35;text-align:center;
+}
 
 /* ══════ GOT IT ══════ */
 .got{
@@ -236,6 +244,7 @@ h1{
   </button>
 
   <p class="spoken" id="spoken"></p>
+  <p class="ttsError" id="ttsError" role="alert" hidden></p>
 
   <button class="got" id="got" type="button">Got it</button>
 
@@ -302,54 +311,73 @@ if (has(result[view.subFrom])){
 /* if it is not there, the block stays hidden. no blank, no guess. */
 
 /* ---------- 4. the line she will hear ----------
-   Telugu is used only where the wording has been checked
-   word for word. Hospital is checked. Train and bus are
-   not yet, so they speak English until they are.          */
-function spokenLine(){
+   The server composes this sentence in the language she chose and
+   returns it as result.spoken. Trust it; only old results without
+   it fall back to the checked-in wording.                  */
+function normalizeLang(code){
+  if (!code) return "en-IN";
+  code = String(code);
+  return code.indexOf("-") !== -1 ? code : code + "-IN";
+}
+
+/* Audio tags (<slow>) direct Timbre; they must never appear on screen. */
+function displayText(text){
+  return String(text || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+}
+
+function fallbackLine(){
   var tok  = has(hero) ? String(hero) : null;
   var room = has(result.room) ? String(result.room) : null;
   var plat = has(result.platform) ? String(result.platform) : null;
   var dest = has(result.destination) ? String(result.destination) : null;
 
   if (watch.mode === "hospital" && lang === "te-IN"){
-    return { lang:"te",
+    return { lang:"te-IN",
       text:"మీ నంబర్ వచ్చింది." + (tok ? " " + tok + "." : "")
          + (room ? " గది నంబర్ " + room + "." : "")
          + " సామాను తీసుకొని ఇప్పుడే బయలుదేరండి." };
   }
   if (watch.mode === "hospital"){
-    return { lang:"en",
+    return { lang:"en-IN",
       text:"Your number has been called." + (tok ? " " + tok + "." : "")
          + (room ? " Room number " + room + "." : "")
          + " Take your things and leave now." };
   }
   if (watch.mode === "train"){
-    return { lang:"en",
+    return { lang:"en-IN",
       text:"Your train" + (tok ? " " + tok : "") + (dest ? " to " + dest : "")
          + " is arriving." + (plat ? " Platform number " + plat + "." : "")
          + " Take your things and go now." };
   }
-  return { lang:"en",
+  return { lang:"en-IN",
     text:"Your bus" + (dest ? " to " + dest : "") + " is here."
        + (plat ? " Bay " + plat + "." : "")
        + " Take your things and go now." };
 }
 
-var line = spokenLine();
+var line;
+if (has(result.spoken)){
+  line = { lang: normalizeLang(result.lang || lang), text: String(result.spoken) };
+} else {
+  line = fallbackLine();
+  if (result.verdict === "missing"){
+    var _t = has(hero) ? " " + hero + "." : ".";
+    line = (lang === "te-IN")
+      ? { lang:"te-IN", text:"మీ టోకెన్ పిలిచారు" + _t + " కానీ గది నంబర్ వినపడలేదు. దయచేసి డిస్‌ప్లే బోర్డు చూడండి." }
+      : { lang:"en-IN", text:"Your token was called" + _t + " But the room number was not heard. Please check the display board." };
+  } else if (watch.mode !== "hospital" && !has(result.platform)){
+    line.text += " The platform number was not heard. Please check the display board.";
+  }
+}
+
 if (result.verdict === "missing"){
-  var _t = has(hero) ? " " + hero + "." : ".";
-  line = (lang === "te-IN")
-    ? { lang:"te", text:"మీ టోకెన్ పిలిచారు" + _t + " కానీ గది నంబర్ వినపడలేదు. దయచేసి డిస్‌ప్లే బోర్డు చూడండి." }
-    : { lang:"en", text:"Your token was called" + _t + " But the room number was not heard. Please check the display board." };
   document.getElementById("headline").textContent = "Your token was called";
   document.getElementById("subLab").textContent = "Room Number";
   document.getElementById("subVal").textContent = "Not heard";
   document.getElementById("sub").hidden = false;
-} else if (watch.mode !== "hospital" && !has(result.platform)){
-  line.text += " The platform number was not heard. Please check the display board.";
 }
 var spokenEl = document.getElementById("spoken");
-spokenEl.textContent = line.text;                /* textContent, never innerHTML */
+spokenEl.textContent = displayText(line.text);   /* textContent, never innerHTML */
 spokenEl.setAttribute("lang", line.lang);
 
 /* ---------- 5. only a confirmed match may buzz ---------- */
@@ -378,7 +406,7 @@ spokenEl.setAttribute("lang", line.lang);
     verdict: "mine",
     /* the exact sentence she was told, so the History screen can
        show and replay it without inventing the wording */
-    spoken: line.text,
+    spoken: displayText(line.text),
     lang:   line.lang
   };
   try{
@@ -393,10 +421,10 @@ spokenEl.setAttribute("lang", line.lang);
 })();
 
 /* ---------- 7. play it again ----------
-   REAL AUDIO GOES HERE: GET /api/replay returns the clip
-   Gnani Timbre already produced, and this plays that file.
-   Until the backend is up it falls back to the phone's own
-   voice, so the button is never dead.                     */
+   The listening server returns result.audio_url for the clip
+   Gnani Timbre already produced. If that is missing, /tts
+   synthesises the same sentence on demand. Only when neither
+   works does the phone's own voice take over.             */
 var play     = document.getElementById("play");
 var pbadge   = document.getElementById("pbadge");
 var playLbl  = document.getElementById("playLbl");
@@ -421,8 +449,8 @@ function browserSpeak(){
     playLbl.textContent = "Audio needs the backend";
     return;
   }
-  var u = new SpeechSynthesisUtterance(line.text);
-  u.lang = (line.lang === "te") ? "te-IN" : "en-IN";
+  var u = new SpeechSynthesisUtterance(displayText(line.text));
+  u.lang = normalizeLang(line.lang);
   u.rate = 0.92;
   u.onend = stopSpeaking;
   u.onerror = stopSpeaking;
@@ -436,14 +464,58 @@ function browserSpeak(){
 }
 
 var srvAudio = null;
+function showVoiceError(message){
+  var errEl = document.getElementById("ttsError");
+  if (!errEl) return;
+  errEl.textContent = message;
+  errEl.hidden = false;
+  playLbl.textContent = "Voice unavailable";
+  swapBadge("icoPlay");
+  play.setAttribute("aria-pressed","false");
+}
+
+function playServerFile(src){
+  speaking = true;
+  play.setAttribute("aria-pressed","true");
+  playLbl.textContent = "Playing\u2026";
+  swapBadge("icoStop");
+  srvAudio = new Audio(src);
+  srvAudio.onended = stopSpeaking;
+  srvAudio.onerror = function(){ stopSpeaking(); browserSpeak(); };
+  var started = srvAudio.play();
+  if (started && started.catch){
+    started.catch(function(e){
+      if (e && e.name === "NotAllowedError"){ stopSpeaking(); return; }
+      stopSpeaking(); browserSpeak();
+    });
+  }
+}
+
 function tryServerVoice(){
-  var code = line.lang === "te" ? "te-IN" : "en-IN";
+  /* The server tells us when the chosen language has no voice.
+     Never replace that with English: say what went wrong. */
+  if (result.tts_error){
+    showVoiceError(result.tts_error);
+    return;
+  }
+
+  var code = normalizeLang(line.lang);
+  var src = result.audio_url || (result.audio ? "/alerts/" + result.audio : null);
+  if (src){ playServerFile(src); return; }
+
   speaking = true;
   play.setAttribute("aria-pressed","true");
   playLbl.textContent = "Playing\u2026";
   swapBadge("icoStop");
   fetch("/tts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:line.text,language:code})})
-    .then(function(r){ if(!r.ok) throw 0; return r.blob(); })
+    .then(function(r){
+      if (r.ok) return r.blob();
+      return r.json().catch(function(){ return {}; }).then(function(body){
+        var err = new Error(body.error || ("Voice failed (" + r.status + ")"));
+        err.sevaLanguageError = (r.status === 400);
+        throw err;
+      });
+    })
     .then(function(b){
       if(!speaking) return;
       srvAudio = new Audio(URL.createObjectURL(b));
@@ -453,6 +525,11 @@ function tryServerVoice(){
     .catch(function(e){
       if(!speaking) return;
       if(e && e.name === "NotAllowedError"){ stopSpeaking(); return; }
+      if(e && e.sevaLanguageError){
+        speaking = false;
+        showVoiceError(e.message);
+        return;
+      }
       speaking = false; browserSpeak();
     });
 }

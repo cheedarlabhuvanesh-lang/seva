@@ -1,4 +1,8 @@
 .env
+.env.*
+!.env.example
+# Legacy FastAPI copy of the same secrets; never commit it either.
+backend/.env
 venv/
 __pycache__/
 *.pyc
@@ -16,3 +20,13 @@ usage/
 
 # Real audio test fixtures
 tests/real_audio/
+
+# Generated speech, recordings and temporary announcement audio
+samples/web/
+samples/alerts/
+samples/clips/
+samples/livecheck/
+samples/**/*.wav
+samples/**/*.mp3
+samples/*.wav
+samples/*.mp3

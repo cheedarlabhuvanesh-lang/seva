@@ -3,4 +3,6 @@ requests>=2.31
 
 # Microphone capture for record.py / voice_loop.py - optional but recommended
 sounddevice>=0.4.6
-flask>=3.0
+numpy>=1.26
+flask>=3.1,<4
+gunicorn>=23,<24; sys_platform != "win32"

@@ -26,10 +26,10 @@
    EVERY CLAIM ON THIS PAGE WAS CHECKED AGAINST THE CODE
    BEFORE IT WAS WRITTEN:
 
-   - grep for fetch / XMLHttpRequest across all pages:
-     ONE hit, inside a comment block in ask.html. The app
-     as it ships today makes no network call at all.
-   - grep for localStorage keys: exactly 9, all listed below.
+   - fetch() is used only for Seva's own Flask routes:
+     /api/ask, /api/watch/*, /api/replay and /tts. There is no
+     request to any other origin from the browser.
+   - localStorage keys: exactly 17, all listed below.
    - no cookie is ever set, no analytics, no third-party
      script, no font or image loaded from another domain.
    - geolocation is never called. That is why the History
@@ -189,7 +189,7 @@ h2.sec{
     </div>
   </section>
 
-  <h2 class="sec">What Seva never does</h2>
+  <h2 class="sec">What Seva does not collect</h2>
   <section class="card">
     <div class="nv">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.3 7.1L16.9 5.7 12 10.6 7.1 5.7 5.7 7.1l4.9 4.9-4.9 4.9 1.4 1.4 4.9-4.9 4.9 4.9 1.4-1.4-4.9-4.9z"/></svg>
@@ -197,26 +197,25 @@ h2.sec{
     </div>
     <div class="nv">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.3 7.1L16.9 5.7 12 10.6 7.1 5.7 5.7 7.1l4.9 4.9-4.9 4.9 1.4 1.4 4.9-4.9 4.9 4.9 1.4-1.4-4.9-4.9z"/></svg>
-      <span>Never keeps a recording of the hall. Audio is read for its numbers and dropped.</span>
+      <span>Voice input is briefly recorded on the Seva computer. Temporary microphone files are deleted after processing; generated speech audio may remain cached there.</span>
     </div>
     <div class="nv">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.3 7.1L16.9 5.7 12 10.6 7.1 5.7 5.7 7.1l4.9 4.9-4.9 4.9 1.4 1.4 4.9-4.9 4.9 4.9 1.4-1.4-4.9-4.9z"/></svg>
-      <span>Never saves what other people said. Only your own number reaches your history.</span>
+      <span>Your phone's alert history stores matched results, not raw transcripts. While announcement watch is running, the server keeps alert records and transcripts in memory until its watch state is reset or the server stops.</span>
     </div>
     <div class="nv">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.3 7.1L16.9 5.7 12 10.6 7.1 5.7 5.7 7.1l4.9 4.9-4.9 4.9 1.4 1.4 4.9-4.9 4.9 4.9 1.4-1.4-4.9-4.9z"/></svg>
-      <span>No cookies, no analytics, no advertising, no tracking of any kind.</span>
+      <span>The app has no analytics or advertising integrations. Requests to speech and language providers are described below; those providers' own data practices also apply.</span>
     </div>
     <div class="nv">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.3 7.1L16.9 5.7 12 10.6 7.1 5.7 5.7 7.1l4.9 4.9-4.9 4.9 1.4 1.4 4.9-4.9 4.9 4.9 1.4-1.4-4.9-4.9z"/></svg>
-      <span>Nothing is sold or shared. There is no company behind this and no one to sell it to.</span>
+      <span>Seva does not sell your information. Audio and question text are sent to the providers described below to deliver the features you use.</span>
     </div>
   </section>
 
   <h2 class="sec">On this phone right now</h2>
   <section class="card">
-    <p style="margin-bottom:14px">This is the whole of what Seva has stored, read live from
-      this phone as you look at it. Nothing is kept anywhere else.</p>
+    <p style="margin-bottom:14px">This list shows Seva's browser storage on this phone. It does not show temporary server files, generated-audio caches, or announcement-watch data held in server memory.</p>
     <div id="keys"></div>
   </section>
 
@@ -224,41 +223,44 @@ h2.sec{
   <section class="card">
     <div class="j">
       <span class="ji"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.6a3.4 3.4 0 00-3.4 3.4v6a3.4 3.4 0 006.8 0V6A3.4 3.4 0 0012 2.6zM5.6 11.2h2.1a4.3 4.3 0 008.6 0h2.1a6.4 6.4 0 01-5.35 6.3V20h3.15v2.1H7.8V20h3.15v-2.5A6.4 6.4 0 015.6 11.2z"/></svg></span>
-      <div><b>The phone listens, quietly</b>
-        <span>A loudness check runs on the phone itself. Silence never leaves the device.</span></div>
+      <div><b>The laptop listens, quietly</b>
+        <span>A loudness check runs on the laptop that starts Seva. Silence never leaves it.</span></div>
     </div>
     <div class="j">
       <span class="ji"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.8l7.6 4.4v8.8L12 20.4 4.4 16V7.2zm0 2.5L6.6 8.4v7.2L12 18.7l5.4-3.1V8.4z"/></svg></span>
       <div><b>Only the loud part is sent</b>
-        <span>When someone is actually announcing, that short clip goes to Gnani's speech
-          service to be turned into text, then is gone.</span></div>
+        <span>When the sound gate detects an announcement, its short clip is sent to Gnani for transcription. Seva removes its temporary clip after processing; the provider's handling is governed by Gnani's policies.</span></div>
     </div>
     <div class="j">
       <span class="ji"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.8 3.4h14.4v2.2H4.8zM4.8 8.1h14.4v2.2H4.8zM4.8 12.8h9.6V15H4.8zM16.6 13.2l4.6 4.6-4.6 4.6-1.5-1.6 1.9-1.9h-5.6v-2.2h5.6l-1.9-1.9z"/></svg></span>
-      <div><b>The text is matched, not stored</b>
-        <span>Fixed rules look for your number in that text. The text itself is thrown away.
-          Only the result is kept.</span></div>
+      <div><b>Matched text stays on the server temporarily</b>
+        <span>Fixed rules look for your number in the transcript. During announcement watch, the server keeps the transcript with alert state in memory until that state is reset or the server stops. The phone's saved alert history contains the matched result, not the transcript.</span></div>
     </div>
     <div class="j">
       <span class="ji"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 9.2h3.4L12.6 5v14L7.4 14.8H4zM15.6 8.6a5.2 5.2 0 010 6.8l-1.3-1.2a3.4 3.4 0 000-4.4zM18 6.1a8.6 8.6 0 010 11.8l-1.3-1.3a6.8 6.8 0 000-9.2z"/></svg></span>
-      <div><b>Your phone speaks</b>
-        <span>The alert sentence goes to Gnani's voice service and comes back as sound.</span></div>
+      <div><b>The laptop speaks</b>
+        <span>The alert sentence goes to Gnani's voice service and comes back as sound. Generated audio is cached on the Seva computer for replay; clearing this phone's browser storage does not remove those server files.</span></div>
     </div>
     <p style="margin-top:14px;font-size:14.5px">
-      <b>As it stands today this app makes no network call at all</b> — everything above
-      happens once the laptop is connected. You can check: there is not one live
-      request in the page source.</p>
+      The browser talks to the Seva computer, which sends announcement audio and alert text to Gnani as needed. Gnani's service receives the data needed for transcription and speech generation.</p>
   </section>
 
   <h2 class="sec">When you ask a question</h2>
   <section class="card">
-    <p>Your question text is sent to the laptop, which adds the hospital's own written
-      information and sends both to Google Gemini to put in plain words.</p>
-    <p><b>The model only rewrites.</b> It is never given a recording, never given an
-      announcement transcript, and is not used as a source of facts. If the answer is not
-      in the hospital's list, Seva tries a general answer and says so if it has to invent.</p>
-    <p>The API keys that reach those services live on the laptop and are never put in
-      this page or sent to any third party except Google Gemini.</p>
+    <p>Your typed question is sent to the Seva computer and then to Google Gemini. For local hospital details, Seva also sends the relevant written hospital information as context.</p>
+    <p><b>If Seva records your question from the server's microphone,</b> that audio is sent to Gnani for transcription and the resulting text is sent to Gemini like a typed question. Live announcement-watch transcripts are not sent to Gemini, but remain in the server's in-memory watch state as described above.</p>
+    <p>The answer text is then sent to Gnani's voice service to create the spoken reply. It is not sent back to Gemini.</p>
+    <p>The API keys that reach those services live on the laptop. They are never put in
+      this page or sent anywhere except Gnani and Google Gemini.</p>
+  </section>
+
+  <h2 class="sec">Audio files and clearing data</h2>
+  <section class="card">
+    <p>Temporary microphone recordings are removed after processing. Generated speech files and audio caches are kept on the Seva computer to support playback and avoid repeating synthesis. They may remain after the app closes.</p>
+    <p>Generated audio is served with caching disabled, so Seva does not ask the browser to store it. Seva stores the audio file's address, and the spoken sentence in alert history, but never the audio itself in browser storage.</p>
+    <p>The erase button below clears only the listed browser storage on this phone. It does not clear server audio caches or in-memory watch records. To remove cached files, stop Seva and delete its generated files under <code>cache/</code>, <code>samples/web/</code>, and <code>samples/alerts/</code>. Restarting Seva clears its in-memory watch state.</p>
+    <p>Replaying an alert sends its spoken sentence to the Seva computer as part of the request. Seva does not log request bodies or replay text, but a hosting provider's web-server logs could record request URLs; choose a host whose access logs omit query strings.</p>
+    <p>Seva cannot verify how long Gnani or Google Gemini retain data they receive. Check their current privacy terms before using voice or question features with sensitive information.</p>
   </section>
 
   <h2 class="sec">Erase everything</h2>
@@ -275,7 +277,7 @@ h2.sec{
   </section>
 
   <div class="foot">
-    <p>Last updated 22 October 2026<br>
+    <p>Last updated 7 November 2026<br>
        Seva is a student project, not a registered company.</p>
   </div>
 
@@ -295,8 +297,16 @@ var KEYS = [
   ["seva.seenSplash", "Opening screen",  "Whether you have opened Seva before."],
   ["seva.watch",      "What you are waiting for", "The token, train or bus you last watched for."],
   ["seva.question",   "Last question",   "The last question you typed to Nova."],
+  ["seva.answer",     "Last answer",     "The reply Nova gave to your last question."],
+  ["seva.answerLang", "Answer language", "The language Nova used for that reply."],
+  ["seva.source",     "Answer source",   "Where that answer came from, Gemini or a local fallback."],
+  ["seva.audio",      "Answer audio",    "The generated voice file for that reply."],
+  ["seva.audioError", "Voice error",     "Why the reply audio could not be generated, if it failed."],
   ["seva.lastResult", "Last result",     "The outcome of the last announcement Seva matched."],
-  ["seva.history",    "Alert history",   "Your saved alerts. Up to 50, newest first."]
+  ["seva.lastAlertId","Last alert shown","The id of the announcement already displayed, so it is not shown twice."],
+  ["seva.history",    "Alert history",   "Your saved alerts. Up to 50, newest first."],
+  ["seva.lastScreen", "Last screen",     "The Seva screen you visited most recently."],
+  ["seva.lastFullUrl","Last page address", "The full address of that screen, used by the back button."]
 ];
 
 function el(tag, cls, text){
@@ -398,4 +408,3 @@ paint();
 <script src="i18n.js"></script>
 </body>
 </html>
-
