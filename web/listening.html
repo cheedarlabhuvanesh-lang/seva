@@ -208,6 +208,15 @@ html[data-theme="dark"] .screen{
 .status .big{font-size:32px;font-weight:750;letter-spacing:-.4px;color:var(--ink);line-height:1.2}
 .status .small{margin-top:var(--s2);font-size:19px;color:var(--muted);
                max-width:18ch;margin-left:auto;margin-right:auto}
+.demo-button{
+  min-height:var(--tap);margin-top:var(--s3);padding:0 var(--s4);
+  border:1px solid var(--line);border-radius:var(--r-pill);
+  background:var(--surface);color:var(--ink);
+  font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;
+}
+.demo-button:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
+.demo-note{margin-top:var(--s1);font-size:13px;line-height:1.35;color:var(--muted)}
+.demo-button:disabled{opacity:.65;cursor:wait}
 
 /* ══════ 4. THE WAVEFORM ══════
    Decoration. It is not reading a microphone — the mic is
@@ -345,6 +354,9 @@ html[data-theme="dark"] .screen{
       <div class="small">Please wait for your announcement</div>
     </div>
 
+    <button class="demo-button" id="demo" type="button">Try synthetic announcement</button>
+    <div class="demo-note">Example only. No microphone, paid API, or real announcement.</div>
+
     <div class="wavebars" id="wavebars" aria-hidden="true"></div>
 
     <pre class="debug" id="debug" hidden></pre>
@@ -455,6 +467,7 @@ document.getElementById("mic").addEventListener("click", stop);
   var debugBox = document.getElementById("debug");
   var pollFailures = 0;
   var startFailed = false;
+  var pollInterval = null;
 
   function setStatus(title, detail){
     big.textContent = title;
@@ -514,11 +527,13 @@ document.getElementById("mic").addEventListener("click", stop);
     return res.json();
   }).catch(function(err){
     startFailed = true;
-    setStatus("Microphone Error", err.message || "Could not start microphone listener.");
+    if(pollInterval) clearInterval(pollInterval);
+    setStatus("Live microphone unavailable",
+      "The Render server cannot hear your phone. Use the synthetic demo below.");
   });
 
   /* Poll /api/watch/state every 1 second (Python owns the mic) */
-  var pollInterval = setInterval(function(){
+  pollInterval = setInterval(function(){
     fetch("/api/watch/state")
       .then(function(res){
         if(!res.ok) throw new Error("Server returned " + res.status);
@@ -581,15 +596,71 @@ document.getElementById("mic").addEventListener("click", stop);
       })
       .catch(function(err){
         pollFailures += 1;
-        if(pollFailures >= 3){
+        if(!startFailed && pollFailures >= 3){
           setStatus("Cannot reach the server", err.message || "Check that START-SEVA.bat is still running.");
         }
       });
   }, 1000);
 
+  document.getElementById("demo").addEventListener("click", function(){
+    var demoButton = this;
+    demoButton.disabled = true;
+    setStatus("Synthetic demo", "Running a generated example. No microphone or external service is used.");
+    fetch("/api/watch/demo", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        kind: watch.mode || "hospital",
+        value: watch.value || "",
+        language: lang
+      })
+    }).then(function(res){
+      return res.json().catch(function(){ return {}; }).then(function(body){
+        if(!res.ok) throw new Error(body.error || "Synthetic demo is unavailable.");
+        return body;
+      });
+    }).then(function(alert){
+      if(alert.synthetic !== true) throw new Error("The server did not return a synthetic sample.");
+      var result = {
+        schemaVersion: alert.schemaVersion,
+        verdict: alert.verdict,
+        token: alert.token || null,
+        room: alert.room || null,
+        train_no: alert.train_no || null,
+        train_name: alert.train_name || null,
+        platform: alert.platform || null,
+        destination: alert.destination || null,
+        specialist: alert.specialist || null,
+        certain: alert.certain === true,
+        spoken: alert.spoken || null,
+        lang: alert.lang || null,
+        requested_language: alert.requested_language || null,
+        audio: null,
+        audio_url: null,
+        synthetic: true
+      };
+      try{
+        localStorage.setItem("seva.lastResult", JSON.stringify(result));
+        localStorage.removeItem("seva.lastAlertId");
+      }catch(e){}
+      if(!result.certain){
+        location.href = "missing.html";
+      } else if(result.verdict === "mine"){
+        location.href = "confirmed.html";
+      } else if(result.verdict === "other"){
+        location.href = "another.html";
+      } else {
+        location.href = "missing.html";
+      }
+    }).catch(function(err){
+      setStatus("Synthetic demo unavailable", err.message || "Try again later.");
+      demoButton.disabled = false;
+    });
+  });
+
   /* Stop listening and return */
   function stopListening(){
-    fetch("/api/watch/stop", {method: "POST"}).catch(function(){});
+    if(!startFailed) fetch("/api/watch/stop", {method: "POST"}).catch(function(){});
     try{
       clearInterval(pollInterval);
     }catch(e){}
@@ -601,7 +672,7 @@ document.getElementById("mic").addEventListener("click", stop);
 
   /* Best-effort stop on page leave */
   window.addEventListener("pagehide", function(){
-    try{
+    try{ if(!startFailed)
       navigator.sendBeacon("/api/watch/stop");
     }catch(e){}
   });
@@ -610,4 +681,3 @@ document.getElementById("mic").addEventListener("click", stop);
 <script src="i18n.js"></script>
 </body>
 </html>
-

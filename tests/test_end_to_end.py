@@ -81,6 +81,7 @@ class TestEntryPoint(unittest.TestCase):
             "SEVA_ENV": "production",
             "SERVER_MIC_ENABLED": False,
             "SIMULATE_ENABLED": False,
+            "SYNTHETIC_DEMO_ENABLED": False,
             "USAGE_API_ENABLED": False,
         }):
             mic = self.client.get("/api/mic/status", base_url="https://localhost")
@@ -89,11 +90,15 @@ class TestEntryPoint(unittest.TestCase):
             simulate = self.client.post("/api/watch/simulate", json={
                 "kind": "hospital", "value": "47", "text": "Token 47, room 204",
             }, base_url="https://localhost")
+            demo = self.client.post("/api/watch/demo", json={
+                "kind": "hospital", "value": "47",
+            }, base_url="https://localhost")
             usage = self.client.get("/api/usage", base_url="https://localhost")
         self.assertEqual(mic.status_code, 404)
         self.assertEqual(state.status_code, 404)
         self.assertEqual(stop.status_code, 404)
         self.assertEqual(simulate.status_code, 404)
+        self.assertEqual(demo.status_code, 404)
         self.assertEqual(usage.status_code, 404)
 
     def test_production_redirects_http_requests_to_https(self):
@@ -448,6 +453,42 @@ class TestWatchFlow(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()["verdict"], "none")
         self.assertEqual(self.client.get("/api/watch/state").get_json()["alerts"], [])
+
+    def test_synthetic_demo_uses_matcher_without_microphone_or_provider_calls(self):
+        cases = (
+            ("hospital", "A-47", "A-47", "203", None, None),
+            ("train", "12739", None, None, "4", None),
+            ("bus", "Guntur", None, None, "4", "Guntur"),
+        )
+        with patch.object(server, "get_client", side_effect=AssertionError("provider call")):
+            for kind, value, token, room, platform, destination in cases:
+                with self.subTest(kind=kind):
+                    response = self.client.post("/api/watch/demo", json={
+                        "kind": kind, "value": value, "language": "en-IN",
+                        "speak": True, "text": "untrusted text is ignored",
+                    })
+                    self.assertEqual(response.status_code, 200)
+                    result = response.get_json()
+                    self.assertEqual(result["verdict"], "mine")
+                    self.assertTrue(result["certain"])
+                    self.assertTrue(result["synthetic"])
+                    self.assertIn("Synthetic demonstration only", result["transcript"])
+                    self.assertEqual(result["token"], token)
+                    self.assertEqual(result["room"], room)
+                    self.assertEqual(result["platform"], platform)
+                    self.assertEqual(result["destination"], destination)
+                    self.assertIsNone(result["audio"])
+                    self.assertIsNone(result["audio_url"])
+
+    def test_synthetic_demo_rejects_bad_inputs(self):
+        bad_token = self.client.post("/api/watch/demo", json={
+            "kind": "hospital", "value": "47A",
+        })
+        bad_destination = self.client.post("/api/watch/demo", json={
+            "kind": "bus", "value": "<script>alert(1)</script>",
+        })
+        self.assertEqual(bad_token.status_code, 400)
+        self.assertEqual(bad_destination.status_code, 400)
 
     def test_repeated_matching_announcement_is_not_queued_twice(self):
         body = {

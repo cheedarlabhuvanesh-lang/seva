@@ -121,6 +121,11 @@ h1{
   color:var(--ok-fg);                      /* 5.69:1 */
   max-width:13ch; margin:0 auto;
 }
+.synthetic-notice{
+  margin:var(--s3) 0 0;padding:10px 12px;border-radius:12px;
+  background:#FFF2D9;color:#7A3E00;font-size:14px;font-weight:700;
+  line-height:1.35;text-align:center;
+}
 
 /* the one thing she came for */
 .hero{
@@ -224,6 +229,9 @@ h1{
     </div>
 
     <h1 id="headline">Your number is called!</h1>
+    <p class="synthetic-notice" id="syntheticNotice" role="status" hidden>
+      SYNTHETIC DEMO — Example only; not a real hospital or transport announcement.
+    </p>
 
     <!-- filled from the result. never hard-coded. -->
     <div class="hero" id="hero"></div>
@@ -278,6 +286,9 @@ function readJSON(key){
 var result = readJSON("seva.lastResult");
 if (!result){ window.location.replace("listen.html"); throw new Error("no result to show"); }
 var watch  = readJSON("seva.watch") || { mode:"hospital", value:"" };
+if (result.synthetic === true){
+  document.getElementById("syntheticNotice").hidden = false;
+}
 var lang   = (function(){ try{ return localStorage.getItem("seva.language") || "en-IN"; }
                           catch(e){ return "en-IN"; } })();
 
@@ -382,7 +393,7 @@ spokenEl.setAttribute("lang", line.lang);
 
 /* ---------- 5. only a confirmed match may buzz ---------- */
 (function(){
-  if (result.verdict !== "mine") return;
+  if (result.verdict !== "mine" || result.synthetic === true) return;
   var on = true;
   try{ on = localStorage.getItem("seva.vibration") !== "0"; }catch(e){}
   if (on && navigator.vibrate) navigator.vibrate([90,70,90]);
@@ -392,7 +403,7 @@ spokenEl.setAttribute("lang", line.lang);
    Only a confirmed match is stored, and never the raw
    transcript.                                             */
 (function(){
-  if (result.verdict !== "mine") return;
+  if (result.verdict !== "mine" || result.synthetic === true) return;
   var detail = [];
   if (has(result.room))     detail.push("Room " + result.room);
   if (has(result.platform)) detail.push("Platform " + result.platform);
@@ -492,6 +503,10 @@ function playServerFile(src){
 }
 
 function tryServerVoice(){
+  if (result.synthetic === true){
+    browserSpeak();
+    return;
+  }
   /* The server tells us when the chosen language has no voice.
      Never replace that with English: say what went wrong. */
   if (result.tts_error){
@@ -534,7 +549,10 @@ function tryServerVoice(){
     });
 }
 function startSpeaking(){ tryServerVoice(); }
-try{ if (localStorage.getItem("seva.autoPlay") !== "0") setTimeout(startSpeaking, 500); }catch(e){}
+try{
+  if (result.synthetic !== true && localStorage.getItem("seva.autoPlay") !== "0")
+    setTimeout(startSpeaking, 500);
+}catch(e){}
 play.addEventListener("click", function(){
   speaking ? stopSpeaking() : startSpeaking();
 });
@@ -548,4 +566,3 @@ document.getElementById("got").addEventListener("click", function(){
 <script src="i18n.js"></script>
 </body>
 </html>
-

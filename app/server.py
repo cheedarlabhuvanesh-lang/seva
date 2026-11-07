@@ -87,6 +87,9 @@ app.config["SERVER_MIC_ENABLED"] = _env_flag(
 app.config["SIMULATE_ENABLED"] = _env_flag(
     "SEVA_ENABLE_SIMULATE", default=app.config["SEVA_ENV"] != "production"
 )
+app.config["SYNTHETIC_DEMO_ENABLED"] = _env_flag(
+    "SEVA_ENABLE_SYNTHETIC_DEMO", default=True
+)
 app.config["USAGE_API_ENABLED"] = _env_flag(
     "SEVA_ENABLE_USAGE_API", default=app.config["SEVA_ENV"] != "production"
 )
@@ -1245,6 +1248,80 @@ def api_mic_status():
         return jsonify({"ok": True})
     except Exception:
         return jsonify({"ok": False, "error": "Microphone not detected on the server."})
+
+
+@app.post("/api/watch/demo")
+def api_watch_demo():
+    """Run a deterministic sample through the matcher without microphone or providers."""
+    if not app.config["SYNTHETIC_DEMO_ENABLED"]:
+        abort(404)
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return jsonify({"error": "invalid request"}), 400
+    kind = body.get("kind", "hospital")
+    raw_value = body.get("value", "")
+    value = " ".join(raw_value.split()) if isinstance(raw_value, str) else ""
+    language = body.get("language", "en-IN")
+    if kind not in WATCH_KINDS:
+        return jsonify({"error": "kind must be hospital, train or bus"}), 400
+    if not value:
+        return jsonify({"error": "need a watch value"}), 400
+    if not _valid_watch_value(kind, value):
+        return jsonify({"error": _watch_value_error(kind)}), 400
+    if kind == "bus" and not re.fullmatch(r"[\w .'-]+", value):
+        return jsonify({"error": "destination contains unsupported characters"}), 400
+    if not isinstance(language, str) or not language_supported(language):
+        return jsonify({
+            "error": f"No voice is configured for {language!r}. "
+                     f"Choose one of: {', '.join(sorted(supported_languages()))}."
+        }), 400
+
+    if kind in ("hospital", "token"):
+        transcript = f"Token number {value}, room 203. Synthetic demonstration only."
+    elif kind == "train":
+        transcript = f"Train number {value} arriving on platform 4. Synthetic demonstration only."
+    else:
+        transcript = f"Bus to {value} is arriving on platform 4. Synthetic demonstration only."
+
+    from app.matcher import match_announcement
+    match = match_announcement(kind, transcript, value)
+    if match.get("verdict") != "mine":
+        app.logger.error("Synthetic announcement did not match its selected value")
+        return jsonify({"error": "synthetic demonstration could not be matched"}), 500
+
+    token = match.get("token") or (value if kind in ("hospital", "token") else None)
+    room = match.get("room")
+    slots = {
+        "train_no": match.get("train_no"),
+        "platform": match.get("platform"),
+        "destination": match.get("destination"),
+        "token": token,
+        "room": room,
+    }
+    spoken, display_room, spoken_language = _compose_alert(
+        "mine", kind, token, room, language, slots=slots
+    )
+    return jsonify({
+        "schemaVersion": 1,
+        "at": time.strftime("%H:%M:%S"),
+        "verdict": "mine",
+        "certain": alert_is_certain(match, kind),
+        "token": token,
+        "room": display_room or None,
+        "train_no": match.get("train_no"),
+        "train_name": match.get("train_name"),
+        "platform": match.get("platform"),
+        "destination": match.get("destination"),
+        "specialist": match.get("specialist"),
+        "spoken": spoken,
+        "lang": spoken_language,
+        "requested_language": language,
+        "audio": None,
+        "audio_url": None,
+        "synthetic": True,
+        "transcript": transcript,
+        "duplicate": False,
+    })
 
 
 @app.post("/api/watch/simulate")

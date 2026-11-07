@@ -50,6 +50,9 @@ a cloud deployment:
 - `/api/listen` and `/api/watch/*` would listen to the cloud server's audio
   device, not the visitor's device.
 - Production defaults disable these routes.
+- The protected Render preview exposes `/api/watch/demo`, which generates a
+  clearly labelled synthetic sample and runs it through the real matcher. It
+  never opens a microphone or calls Gnani/Gemini.
 - The browser does not currently stream microphone audio to the server.
 - Enabling watch requires a server host with a deliberately attached
   microphone, or a separately designed and approved browser-audio architecture.
@@ -151,6 +154,11 @@ Leave these unset or `0` for public hosting:
 - `SEVA_ENABLE_SERVER_MIC=0`
 - `SEVA_ENABLE_SIMULATE=0`
 - `SEVA_ENABLE_USAGE_API=0`
+
+`SEVA_ENABLE_SYNTHETIC_DEMO=1` enables only fixed, generated examples for the
+hospital-token, train, and bus matchers. It ignores supplied transcript/audio
+and speech-generation fields, and never invokes an external provider. Set it
+to `0` to hide the demo.
 
 `ALLOWED_ORIGINS` belongs to the legacy FastAPI backend. It is not used by this
 Flask app and should not be treated as a production CORS setting here.
@@ -400,7 +408,8 @@ is code-only. Keep the previous release until the new one is accepted.
 - [ ] Set `SEVA_BIND_HOST=127.0.0.1` and keep port 8000 firewalled.
 - [ ] Confirm `SEVA_ENV=production` and `SEVA_ALLOWED_HOSTS` match the public
       hostname.
-- [ ] Leave server microphone, simulation, and usage routes disabled.
+- [ ] Leave server microphone, raw simulation, and usage routes disabled.
+- [ ] Enable only the fixed synthetic demo if a labelled walkthrough is needed.
 - [ ] Add edge rate limits/WAF and decide whether authentication is required.
 - [ ] Verify provider quotas, privacy/retention terms, and legal requirements.
 - [ ] Test backup and restore.
@@ -422,4 +431,6 @@ routes disabled. It is **not ready for unrestricted public launch** until:
 
 The server-microphone watch feature is unavailable to ordinary cloud visitors
 without a separately approved browser-audio architecture. Do not enable it on a
-cloud host and present it as listening to the visitor's phone.
+cloud host and present it as listening to the visitor's phone. The synthetic
+demo verifies matcher/UI behavior only; it is not evidence that live audio or
+hospital announcements work.

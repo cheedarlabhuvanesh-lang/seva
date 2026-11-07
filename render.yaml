@@ -30,5 +30,7 @@ services:
         value: "0"
       - key: SEVA_ENABLE_SIMULATE
         value: "0"
+      - key: SEVA_ENABLE_SYNTHETIC_DEMO
+        value: "1"
       - key: SEVA_ENABLE_USAGE_API
         value: "0"
