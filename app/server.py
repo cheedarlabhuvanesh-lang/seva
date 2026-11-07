@@ -1207,6 +1207,14 @@ def api_watch_start():
     return jsonify({"ok": True, "kind": kind, "value": value})
 
 
+@app.get("/api/watch/capabilities")
+def api_watch_capabilities():
+    return jsonify({
+        "server_microphone": app.config["SERVER_MIC_ENABLED"],
+        "synthetic_demo": app.config["SYNTHETIC_DEMO_ENABLED"],
+    })
+
+
 @app.get("/api/watch/state")
 def api_watch_state():
     if not app.config["SERVER_MIC_ENABLED"]:

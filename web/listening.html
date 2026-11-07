@@ -505,35 +505,54 @@ document.getElementById("mic").addEventListener("click", stop);
     debugBox.hidden = false;
   }
 
-  /* Start watch on backend */
-  fetch("/api/watch/start", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      kind: watch.mode || "hospital",
-      value: watch.value || "",
-      language: lang
-    })
-  }).then(function(res){
-    if(res.status === 409){
-      // Already running \u2014 perfectly fine, just poll state
+  function startServerWatch(){
+    return fetch("/api/watch/start", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        kind: watch.mode || "hospital",
+        value: watch.value || "",
+        language: lang
+      })
+    }).then(function(res){
+      if(res.status === 409){
+        return res.json();
+      }
+      if(!res.ok){
+        return res.json().then(function(err){
+          throw new Error(err.error || "Failed to start listening");
+        });
+      }
       return res.json();
-    }
-    if(!res.ok){
-      return res.json().then(function(err){
-        throw new Error(err.error || "Failed to start listening");
-      });
-    }
+    }).then(function(){
+      startPolling();
+    });
+  }
+
+  fetch("/api/watch/capabilities").then(function(res){
+    if(!res.ok) throw new Error("Cannot check listening capabilities.");
     return res.json();
-  }).catch(function(err){
+  }).then(function(capabilities){
+    if(capabilities.synthetic_demo !== true){
+      document.getElementById("demo").hidden = true;
+      document.querySelector(".demo-note").hidden = true;
+    }
+    if(capabilities.server_microphone !== true){
+      startFailed = true;
+      setStatus("Live microphone unavailable",
+        "The Render server cannot hear your phone. Use the synthetic demo below.");
+      return;
+    }
+    return startServerWatch();
+  }).catch(function(){
     startFailed = true;
-    if(pollInterval) clearInterval(pollInterval);
-    setStatus("Live microphone unavailable",
-      "The Render server cannot hear your phone. Use the synthetic demo below.");
+    setStatus("Listening unavailable",
+      "The service could not check microphone access. You can still try the synthetic demo.");
   });
 
   /* Poll /api/watch/state every 1 second (Python owns the mic) */
-  pollInterval = setInterval(function(){
+  function startPolling(){
+    pollInterval = setInterval(function(){
     fetch("/api/watch/state")
       .then(function(res){
         if(!res.ok) throw new Error("Server returned " + res.status);
@@ -600,7 +619,8 @@ document.getElementById("mic").addEventListener("click", stop);
           setStatus("Cannot reach the server", err.message || "Check that START-SEVA.bat is still running.");
         }
       });
-  }, 1000);
+    }, 1000);
+  }
 
   document.getElementById("demo").addEventListener("click", function(){
     var demoButton = this;

@@ -93,12 +93,20 @@ class TestEntryPoint(unittest.TestCase):
             demo = self.client.post("/api/watch/demo", json={
                 "kind": "hospital", "value": "47",
             }, base_url="https://localhost")
+            capabilities = self.client.get(
+                "/api/watch/capabilities", base_url="https://localhost"
+            )
             usage = self.client.get("/api/usage", base_url="https://localhost")
         self.assertEqual(mic.status_code, 404)
         self.assertEqual(state.status_code, 404)
         self.assertEqual(stop.status_code, 404)
         self.assertEqual(simulate.status_code, 404)
         self.assertEqual(demo.status_code, 404)
+        self.assertEqual(capabilities.status_code, 200)
+        self.assertEqual(capabilities.get_json(), {
+            "server_microphone": False,
+            "synthetic_demo": False,
+        })
         self.assertEqual(usage.status_code, 404)
 
     def test_production_redirects_http_requests_to_https(self):
