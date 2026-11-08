@@ -30,7 +30,8 @@ proxy.
   - `samples/alerts/` — alert, TTS, and replay audio;
   - `cache/` — Gnani TTS disk cache;
   - `usage.jsonl` — provider usage log;
-  - `samples/clips/` — temporary microphone clips, deleted after processing.
+  - `samples/clips/` — temporary server-microphone clips, deleted after processing;
+  - `samples/device-tmp/` — temporary device WAV chunks, deleted after transcription.
 - The protected free Render preview uses ephemeral `/tmp` storage and has no
   provider credentials. Do not enable provider-backed speech there: cached audio
   and usage state would disappear when the free instance restarts.
@@ -41,22 +42,34 @@ proxy.
   process-local. They reset when the process restarts and are not shared
   between workers.
 
-### Microphone limitation
+### Microphone architecture
 
-The microphone architecture uses `sounddevice` on the machine running Python.
-A normal cloud server cannot access a visitor's phone or laptop microphone. In
-a cloud deployment:
+There are two microphone paths, and they are not interchangeable:
 
-- `/api/listen` and `/api/watch/*` would listen to the cloud server's audio
-  device, not the visitor's device.
-- Production defaults disable these routes.
-- The protected Render preview exposes `/api/watch/demo`, which generates a
-  clearly labelled synthetic sample and runs it through the real matcher. It
-  never opens a microphone or calls Gnani/Gemini.
-- The browser does not currently stream microphone audio to the server.
-- Enabling watch requires a server host with a deliberately attached
-  microphone, or a separately designed and approved browser-audio architecture.
-- The text question, answer, TTS, and replay features work without a microphone.
+1. **Device microphone (primary).** `web/device-listener.js` captures the
+   visitor's own microphone with `getUserMedia`, resamples to 16 kHz mono PCM,
+   encodes a bounded WAV clip, and uploads it to `POST /api/device/chunk`.
+   `app/device_audio.py` validates the clip, writes a temporary file, sends it to
+   Gnani STT, deletes the file in `finally`, and runs the shared matcher.
+   - Requires HTTPS or localhost (`isSecureContext`).
+   - Keeps listening only while the page is open. Closing the tab stops capture.
+   - The `Permissions-Policy` header allows `microphone=(self)`.
+   - `MAX_CONTENT_LENGTH` is 2 MB; each WAV chunk is independently bounded to
+     20 seconds and 1 MB, and sessions are limited to 60 chunks.
+   - Sessions are in-memory and owned by one Gunicorn worker. Keep
+     `workers = 1`; a restart or new worker invalidates existing sessions.
+
+2. **Server microphone (development only).** `sounddevice` listens on the machine
+   running Python. A normal cloud server hears its own audio device, not the
+   visitor's phone.
+   - `/api/listen` and `/api/watch/*` use this path.
+   - Production defaults disable these routes with `SEVA_ENABLE_SERVER_MIC=0`.
+   - Do not enable them on a cloud host and present the result as phone listening.
+
+The protected Render preview exposes `/api/watch/demo`, which generates a clearly
+labelled synthetic sample and runs it through the real matcher. It never opens a
+microphone or calls Gnani/Gemini. The text question, answer, TTS, and replay
+features work without a microphone.
 
 Do not silently switch the microphone architecture during deployment.
 
@@ -137,7 +150,14 @@ responses until they are verified and approved.
 - `SEVA_TRUST_PROXY=1` — enable only when exactly one trusted proxy overwrites
   forwarded client IP, protocol, and host headers.
 - `SEVA_HOSPITAL_DATA_APPROVED=0` — keep unverified bundled hospital data out
-  of responses. Only set to `1` after written approval.
+  of responses and keep the real hospital-announcement adapter disabled. Only
+  set to `1` after written approval.
+- `SEVA_HOSPITAL_SOURCE_ID` and `SEVA_HOSPITAL_SOURCE_NAME` — optional,
+  installation-specific labels for an authorized text source. They do not
+  connect Seva to any hospital system. See `HOSPITAL_INTEGRATION.md`.
+- `SEVA_ENABLE_DEVICE_MIC=1` — enables the phone-browser microphone path. Keep
+  it on for a production PWA served over HTTPS; set to `0` only to disable
+  device listening deliberately.
 - `PORT=8000` — port Gunicorn listens on.
 - `LOG_LEVEL=info` — Gunicorn log level.
 
@@ -146,6 +166,14 @@ responses until they are verified and approved.
 - `GEMINI_MODEL` — defaults to the application's configured Gemini model.
 - `GNANI_BASE_URL` — override only when the provider supplies a different base.
 - `GNANI_AUTH_HEADER` — override only for a provider-compatible header change.
+- `GNANI_MAX_RETRIES` — defaults to `1` retry, only for HTTP 429/5xx. Timeouts
+  and connection errors are never retried because the provider may already have
+  processed and billed the request. Values are capped at `2`; `0` disables
+  retries.
+
+`GET /api/providers` reports whether Gnani and Gemini are configured, plus the
+device-microphone and hospital-data gates. It returns booleans only, never key
+values, and does not call either paid provider.
 
 ### Development-only routes
 

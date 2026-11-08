@@ -25,6 +25,7 @@ tests/real_audio/
 samples/web/
 samples/alerts/
 samples/clips/
+samples/device-tmp/
 samples/livecheck/
 samples/**/*.wav
 samples/**/*.mp3

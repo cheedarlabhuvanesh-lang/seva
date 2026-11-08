@@ -7,6 +7,9 @@ import os
 from pathlib import Path
 from unittest.mock import patch
 
+import requests
+
+from gnani import GnaniError
 from gnani.client import GnaniClient, STT_PATH, load_dotenv
 
 
@@ -65,7 +68,7 @@ class TestGnaniSTTRequest(unittest.TestCase):
                     "headers": headers,
                     "data": data,
                     "filename": filename,
-                    "audio_bytes": stream.read(),
+                    "audio_bytes": stream.read() if hasattr(stream, "read") else stream,
                     "content_type": content_type,
                     "timeout": timeout,
                 })
@@ -86,6 +89,110 @@ class TestGnaniSTTRequest(unittest.TestCase):
         self.assertEqual(observed["data"]["model"], "prisma-v3.0")
         self.assertEqual(observed["data"]["language_code"], "indic-auto")
         self.assertEqual(observed["data"]["format"], "transcribe")
+
+
+def write_wav(path: Path) -> None:
+    with wave.open(str(path), "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(16000)
+        wav.writeframes(b"\x01\x00" * 1600)
+
+
+class FakeResponse:
+    def __init__(self, status_code, payload):
+        self.status_code = status_code
+        self._payload = payload
+        self.headers = {"Content-Type": "application/json"}
+        self.text = ""
+        self.content = b""
+
+    def json(self):
+        return self._payload
+
+
+class TestGnaniRetryPolicy(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        self.audio = self.root / "speech.wav"
+        write_wav(self.audio)
+        self.client = GnaniClient(
+            api_key="test-key",
+            cache_dir=self.root / "cache",
+            usage_log=self.root / "usage.jsonl",
+            max_retries=1,
+        )
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def test_503_is_retried_once_then_succeeds(self):
+        calls = []
+        responses = [
+            FakeResponse(503, {"success": False, "error": {"type": "BUSY"}}),
+            FakeResponse(200, {"success": True, "transcript": "hello"}),
+        ]
+
+        def fake_post(*args, **kwargs):
+            calls.append(args[0])
+            return responses.pop(0)
+
+        with patch("gnani.client.requests.post", side_effect=fake_post), \
+             patch("gnani.client.time.sleep", return_value=None):
+            transcript = self.client.transcribe(self.audio)
+        self.assertEqual(transcript, "hello")
+        self.assertEqual(len(calls), 2)
+
+    def test_429_and_5xx_are_retryable_but_400_is_not(self):
+        calls = []
+
+        def fake_post(*args, **kwargs):
+            calls.append(args[0])
+            return FakeResponse(400, {"success": True})
+
+        with patch("gnani.client.requests.post", side_effect=fake_post), \
+             patch("gnani.client.time.sleep", return_value=None):
+            with self.assertRaises(GnaniError):
+                self.client.transcribe(self.audio)
+        self.assertEqual(len(calls), 1)
+
+    def test_timeout_is_never_retried(self):
+        calls = []
+
+        def fake_post(*args, **kwargs):
+            calls.append(args[0])
+            raise requests.Timeout("simulated timeout")
+
+        with patch("gnani.client.requests.post", side_effect=fake_post), \
+             patch("gnani.client.time.sleep", return_value=None):
+            with self.assertRaises(GnaniError) as caught:
+                self.client.transcribe(self.audio)
+        self.assertEqual(len(calls), 1)
+        self.assertIn("did not respond in time", str(caught.exception))
+
+    def test_retry_cap_is_configurable_and_bounded(self):
+        with patch.dict(os.environ, {"GNANI_MAX_RETRIES": "99"}, clear=False):
+            client = GnaniClient(
+                api_key="test-key",
+                cache_dir=self.root / "cache",
+                usage_log=self.root / "usage.jsonl",
+            )
+        self.assertEqual(client.max_retries, 2)
+        with patch.dict(os.environ, {"GNANI_MAX_RETRIES": "0"}, clear=False):
+            client = GnaniClient(
+                api_key="test-key",
+                cache_dir=self.root / "cache",
+                usage_log=self.root / "usage.jsonl",
+            )
+        self.assertEqual(client.max_retries, 0)
+
+    def test_is_configured_returns_only_a_boolean(self):
+        with patch("gnani.client.load_dotenv", return_value=None):
+            with patch.dict(os.environ, {"GNANI_API_KEY": "secret-value"}, clear=False):
+                self.assertIs(GnaniClient.is_configured(), True)
+            with patch.dict(os.environ, {"GNANI_API_KEY": ""}, clear=False):
+                self.assertIs(GnaniClient.is_configured(), False)
 
 
 if __name__ == "__main__":

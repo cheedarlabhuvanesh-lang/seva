@@ -43,7 +43,7 @@ from gnani.client import load_dotenv  # noqa: E402
 
 load_dotenv()
 
-from app import gemini  # noqa: E402
+from app import device_audio, gemini, hospital  # noqa: E402
 from app.alert import (  # noqa: E402
     alert_is_certain,
     build_alert,
@@ -55,6 +55,7 @@ from app.gemini import GeminiError, ask as gemini_ask  # noqa: E402
 from app.gemini import normalize_language  # noqa: E402
 from app.schemes import SchemeBook  # noqa: E402
 from gnani import GnaniClient, GnaniError  # noqa: E402
+from gnani.client import TTS_MODEL  # noqa: E402
 
 DATA_DIR = Path(os.environ.get("SEVA_DATA_DIR", str(ROOT))).expanduser()
 if not DATA_DIR.is_absolute():
@@ -93,16 +94,44 @@ app.config["SYNTHETIC_DEMO_ENABLED"] = _env_flag(
 app.config["USAGE_API_ENABLED"] = _env_flag(
     "SEVA_ENABLE_USAGE_API", default=app.config["SEVA_ENV"] != "production"
 )
+app.config["DEVICE_MIC_ENABLED"] = _env_flag(
+    "SEVA_ENABLE_DEVICE_MIC", default=True
+)
+app.config["HOSPITAL_DATA_APPROVED"] = _env_flag(
+    "SEVA_HOSPITAL_DATA_APPROVED", default=False
+)
+app.config["HOSPITAL_SOURCE_ID"] = os.environ.get(
+    "SEVA_HOSPITAL_SOURCE_ID", ""
+).strip()
+app.config["HOSPITAL_SOURCE_NAME"] = os.environ.get(
+    "SEVA_HOSPITAL_SOURCE_NAME", ""
+).strip()
 app.config["PREVIEW_AUTH_REQUIRED"] = _env_flag(
     "SEVA_PREVIEW_AUTH_REQUIRED", default=app.config["SEVA_ENV"] == "production"
 )
-app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
-allowed_hosts = [
-    host.strip()
-    for host in os.environ.get("SEVA_ALLOWED_HOSTS", "").split(",")
-    if host.strip()
-]
-app.config["TRUSTED_HOSTS"] = allowed_hosts or None
+# A bounded 20 s mono 16 kHz 16-bit WAV is under 640 KB. The extra headroom is
+# for multipart boundaries; JSON routes still validate their own lengths.
+app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
+
+
+def _normalize_allowed_hosts(hosts_raw: str) -> list[str] | None:
+    raw = [h.strip() for h in hosts_raw.split(",") if h.strip()]
+    if not raw:
+        return None
+    normalized = []
+    for h in raw:
+        # Support wildcard *.example.com by normalizing to .example.com
+        # which Werkzeug's host_is_trusted accepts for subdomain suffix matching.
+        if h.startswith("*."):
+            normalized.append("." + h[2:])
+        else:
+            normalized.append(h)
+    return normalized
+
+
+app.config["TRUSTED_HOSTS"] = _normalize_allowed_hosts(
+    os.environ.get("SEVA_ALLOWED_HOSTS", "")
+)
 
 ASK_RATE_WINDOW_SECONDS = 60
 ASK_RATE_LIMIT = 10
@@ -117,6 +146,18 @@ SPEECH_RATE_WINDOW_SECONDS = 60
 SPEECH_RATE_LIMIT = 30
 SPEECH_RATE_LOCK = threading.Lock()
 SPEECH_RATE: dict[str, deque[float]] = defaultdict(deque)
+
+#: Device chunks are billable STT calls. Keep a per-IP ceiling well above a
+#: normal conversation (one chunk every few seconds) but low enough to stop a
+#: runaway page or a script from burning the whole quota.
+DEVICE_RATE_WINDOW_SECONDS = 60
+DEVICE_RATE_LIMIT = 45
+DEVICE_RATE_LOCK = threading.Lock()
+DEVICE_RATE: dict[str, deque[float]] = defaultdict(deque)
+
+#: Raw device audio is written only to this short-lived directory. Files are
+#: deleted immediately after transcription, never served, never cached.
+DEVICE_TEMP_DIR = DATA_DIR / "samples" / "device-tmp"
 
 # --- serve the 17 mobile screens from this same server (no CORS, one origin) ---
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
@@ -148,11 +189,17 @@ def set_security_headers(response):
         "script-src 'self' 'unsafe-inline'; connect-src 'self'; "
         "form-action 'self'; manifest-src 'self'",
     )
-    # Seva uses the server's microphone, never the browser's, and never asks
-    # for location. Deny those browser capabilities explicitly.
+    # The device microphone is the primary input on a phone. It is allowed only
+    # for this origin (self), only after the visitor grants permission, and
+    # only while the listening screen is open. Camera and location stay denied.
     response.headers.setdefault(
-        "Permissions-Policy", "microphone=(), camera=(), geolocation=()"
+        "Permissions-Policy", "microphone=(self), camera=(), geolocation=()"
     )
+    if request.path.startswith(("/api/device/", "/api/hospital/")):
+        # Session state, verdicts, and announcement payloads must not be stored
+        # by a browser or proxy.
+        response.headers.setdefault("Cache-Control", "no-store")
+        response.headers.setdefault("Pragma", "no-cache")
     if app.config["SEVA_ENV"] == "production" and request.is_secure:
         response.headers.setdefault(
             "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
@@ -366,8 +413,9 @@ def answer(question: str, language: str = "te-IN") -> dict:
             question, selected_language, context,
             model=app.config["GEMINI_MODEL"], timeout=gemini.REQUEST_TIMEOUT_SECONDS,
         )
-    except Exception:
+    except Exception as exc:
         # Provider failures must not turn an answer into a traceback or 5xx.
+        app.logger.warning("[nova] Gemini query failed (%s: %s). Using fallback.", type(exc).__name__, exc)
         reply = _local_fallback(matches, selected_language)
         source = "hospital_faq" if matches else "fallback"
         fallback = True
@@ -1123,6 +1171,333 @@ def _watch_value_error(kind: str) -> str:
     return f"{kind} values must be digits, optionally with a block letter"
 
 
+def _client_ip() -> str:
+    return str(request.remote_addr or "")
+
+
+def _device_rate_ok(ip: str) -> bool:
+    now = time.time()
+    with DEVICE_RATE_LOCK:
+        bucket = DEVICE_RATE[ip]
+        while bucket and now - bucket[0] >= DEVICE_RATE_WINDOW_SECONDS:
+            bucket.popleft()
+        if len(bucket) >= DEVICE_RATE_LIMIT:
+            return False
+        bucket.append(now)
+        if len(DEVICE_RATE) > 1000:
+            stale = [
+                key for key, values in DEVICE_RATE.items()
+                if not values or now - values[-1] >= DEVICE_RATE_WINDOW_SECONDS
+            ]
+            for key in stale:
+                DEVICE_RATE.pop(key, None)
+        return True
+
+
+def _device_client():
+    """Return (client, error_response). Never logs or returns the key."""
+    try:
+        client = get_client()
+    except Exception as exc:
+        app.logger.error(
+            "Speech service setup failed (%s)", type(exc).__name__
+        )
+        return None, (jsonify({
+            "error": "The speech service is not configured correctly. "
+                     "Check the server's environment."
+        }), 500)
+    if not getattr(client, "api_key", None):
+        return None, (jsonify({
+            "error": "The speech service key was not found. "
+                     "Add GNANI_API_KEY to .env and restart Seva."
+        }), 503)
+    return client, None
+
+
+def _finalize_device_record(record: dict) -> dict:
+    """Attach a unique id and synthesized audio to a real detection."""
+    if record.get("verdict") not in ("mine", "missing") or record.get("duplicate"):
+        return record
+    spoken = record.get("spoken") or ""
+    language = record.get("lang") or record.get("language") or "en-IN"
+    record["id"] = _new_alert_id()
+    if spoken:
+        audio_name = _synthesize_alert(spoken, language)
+        record["audio"] = audio_name
+        record["audio_url"] = f"/alerts/{audio_name}" if audio_name else None
+        if not audio_name:
+            record["tts_error"] = (
+                f"Voice audio could not be generated in {language}. "
+                "Check the Gnani key, credits and voice configuration."
+            )
+    else:
+        record["audio"] = None
+        record["audio_url"] = None
+    return record
+
+
+@app.get("/api/providers")
+def api_providers():
+    """Configuration visibility without exposing keys or making paid calls."""
+    return jsonify({
+        "gnani": {
+            "configured": GnaniClient.is_configured(),
+            "tts_model": TTS_MODEL,
+        },
+        "gemini": {
+            "configured": gemini.is_configured(),
+            "model": app.config["GEMINI_MODEL"],
+        },
+        "device_microphone": {
+            "enabled": bool(app.config["DEVICE_MIC_ENABLED"]),
+            "transmits_audio": bool(app.config["DEVICE_MIC_ENABLED"]),
+        },
+        "synthetic_demo": {
+            "enabled": bool(app.config["SYNTHETIC_DEMO_ENABLED"]),
+        },
+        "hospital_data": {
+            "approved": bool(app.config["HOSPITAL_DATA_APPROVED"]),
+            "source_configured": bool(app.config["HOSPITAL_SOURCE_ID"]),
+        },
+    })
+
+
+def _hospital_adapters():
+    return hospital.build_adapters(
+        bool(app.config["HOSPITAL_DATA_APPROVED"]),
+        source_id=app.config["HOSPITAL_SOURCE_ID"],
+        source_name=app.config["HOSPITAL_SOURCE_NAME"],
+    )
+
+
+@app.get("/api/hospital/sources")
+def api_hospital_sources():
+    return jsonify({
+        "sources": [adapter.public() for adapter in _hospital_adapters()],
+        "real_data_approved": bool(app.config["HOSPITAL_DATA_APPROVED"]),
+        "persistence": "none",
+        "network_connections": "none",
+    })
+
+
+@app.post("/api/hospital/announcement")
+def api_hospital_announcement():
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": "JSON object expected."}), 400
+    source_id = payload.get("source_id")
+    if not isinstance(source_id, str) or not source_id.strip():
+        return jsonify({"error": "source_id is required."}), 400
+    adapter = hospital.find_adapter(_hospital_adapters(), source_id.strip())
+    if adapter is None:
+        return jsonify({"error": "Unknown hospital source."}), 404
+    try:
+        announcement = adapter.parse(payload)
+    except hospital.HospitalError as exc:
+        return jsonify({"error": str(exc)}), exc.status_code
+    return jsonify({
+        "announcement": announcement.to_dict(),
+        "stored": False,
+        "provider_calls": 0,
+    })
+
+
+@app.get("/api/device/capabilities")
+def api_device_capabilities():
+    return jsonify({
+        "device_microphone": bool(app.config["DEVICE_MIC_ENABLED"]),
+        "server_microphone": bool(app.config["SERVER_MIC_ENABLED"]),
+        "synthetic_demo": bool(app.config["SYNTHETIC_DEMO_ENABLED"]),
+        "audio_provider": "gnani" if app.config["DEVICE_MIC_ENABLED"] else None,
+        "transmits_audio": bool(app.config["DEVICE_MIC_ENABLED"]),
+        "chunk_seconds": 6,
+        "max_chunk_seconds": device_audio.MAX_CHUNK_SECONDS,
+        "max_chunk_bytes": device_audio.MAX_CHUNK_BYTES,
+        "secure_context_required": True,
+        "background_listening": False,
+    })
+
+
+@app.post("/api/device/session")
+def api_device_session():
+    if not app.config["DEVICE_MIC_ENABLED"]:
+        abort(404)
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return jsonify({"error": "invalid request"}), 400
+    kind = body.get("kind", "hospital")
+    raw_value = body.get("value", "")
+    value = raw_value.strip() if isinstance(raw_value, str) else ""
+    language = body.get("language", "en-IN")
+    if not isinstance(kind, str):
+        return jsonify({"error": "kind must be hospital, train or bus"}), 400
+    if not isinstance(language, str):
+        return jsonify({"error": "language must be text"}), 400
+
+    if not _device_rate_ok(_client_ip()):
+        return jsonify({"error": "too many listening requests; wait a minute"}), 429
+
+    try:
+        session = device_audio.create_session(
+            kind, value, language, client_ip=_client_ip()
+        )
+    except device_audio.DeviceAudioError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    _client, error = _device_client()
+    if error is not None:
+        device_audio.stop_session(session.id, client_ip=_client_ip())
+        return error
+
+    return jsonify({
+        "ok": True,
+        "session_id": session.id,
+        "expires_in": device_audio.SESSION_TTL_SECONDS,
+        "kind": session.kind,
+        "value": session.value,
+        "language": session.language,
+        "source": "device_microphone",
+        "audio": {
+            "provider": "gnani",
+            "transmits_audio": True,
+            "format": "wav",
+            "sample_rate": 16000,
+            "channels": 1,
+            "bits_per_sample": 16,
+            "chunk_seconds": 6,
+            "max_chunk_seconds": device_audio.MAX_CHUNK_SECONDS,
+            "max_chunk_bytes": device_audio.MAX_CHUNK_BYTES,
+        },
+    })
+
+
+@app.post("/api/device/chunk")
+def api_device_chunk():
+    if not app.config["DEVICE_MIC_ENABLED"]:
+        abort(404)
+    session_id = (
+        request.form.get("session_id")
+        or request.headers.get("X-Seva-Session")
+        or ""
+    ).strip()
+    if not session_id:
+        return jsonify({"error": "missing session_id"}), 400
+
+    upload = request.files.get("audio")
+    if upload is None:
+        return jsonify({"error": "missing audio chunk"}), 400
+    data = upload.read(device_audio.MAX_CHUNK_BYTES + 1)
+    if len(data) > device_audio.MAX_CHUNK_BYTES:
+        return jsonify({"error": "audio chunk is too large"}), 413
+
+    if not _device_rate_ok(_client_ip()):
+        return jsonify({"error": "too many audio chunks; wait a minute"}), 429
+
+    session = device_audio.get_session(session_id, client_ip=_client_ip())
+    if session is None:
+        return jsonify({
+            "error": "listening session expired",
+            "code": "session_expired",
+        }), 410
+    if not device_audio.begin_chunk(session):
+        return jsonify({
+            "error": "listening session reached its limit; start again",
+            "code": "session_limit",
+        }), 429
+
+    client, error = _device_client()
+    if error is not None:
+        return error
+
+    try:
+        result = device_audio.transcribe_chunk(client, data, DEVICE_TEMP_DIR)
+    except device_audio.DeviceAudioError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except GnaniError as exc:
+        app.logger.warning("Device STT failed (%s)", type(exc).__name__)
+        return jsonify({
+            "error": "The speech service could not understand this audio chunk. "
+                     "Seva will keep listening.",
+            "code": "stt_error",
+        }), 502
+    except OSError:
+        app.logger.error("Device audio could not be processed")
+        return jsonify({
+            "error": "The server could not process that audio chunk.",
+            "code": "audio_error",
+        }), 500
+
+    transcript = (result.get("transcript") or "").strip()
+    if not transcript:
+        return jsonify({
+            "ok": True,
+            "heard": False,
+            "verdict": "empty",
+            "alert": None,
+            "stats": device_audio.stats(session),
+        })
+
+    try:
+        record = device_audio.process_transcript(session, transcript)
+    except device_audio.DeviceAudioError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    alert = None
+    if record.get("verdict") in ("mine", "missing") and not record.get("duplicate"):
+        alert = _finalize_device_record(record)
+        device_audio.set_last_alert(session, alert)
+
+    return jsonify({
+        "ok": True,
+        "heard": True,
+        "verdict": record.get("verdict"),
+        "duplicate": bool(record.get("duplicate")),
+        "pending": bool(record.get("pending")),
+        "alert": alert,
+        "stats": device_audio.stats(session),
+    })
+
+
+@app.get("/api/device/state")
+def api_device_state():
+    if not app.config["DEVICE_MIC_ENABLED"]:
+        abort(404)
+    session_id = (request.args.get("session_id") or "").strip()
+    session = device_audio.get_session(session_id, client_ip=_client_ip())
+    if session is None:
+        return jsonify({
+            "error": "listening session expired",
+            "code": "session_expired",
+        }), 410
+
+    alert = device_audio.check_pending(session)
+    if alert is not None:
+        alert = _finalize_device_record(alert)
+        device_audio.set_last_alert(session, alert)
+    elif session.last_alert is not None:
+        alert = session.last_alert
+
+    return jsonify({
+        "ok": True,
+        "alert": alert,
+        "stats": device_audio.stats(session),
+    })
+
+
+@app.post("/api/device/stop")
+def api_device_stop():
+    if not app.config["DEVICE_MIC_ENABLED"]:
+        abort(404)
+    body = request.get_json(silent=True)
+    session_id = ""
+    if isinstance(body, dict):
+        session_id = str(body.get("session_id") or "").strip()
+    if not session_id:
+        session_id = (request.form.get("session_id") or "").strip()
+    device_audio.stop_session(session_id, client_ip=_client_ip())
+    return jsonify({"ok": True})
+
+
 @app.post("/api/watch/start")
 def api_watch_start():
     if not app.config["SERVER_MIC_ENABLED"]:
@@ -1211,7 +1586,12 @@ def api_watch_start():
 def api_watch_capabilities():
     return jsonify({
         "server_microphone": app.config["SERVER_MIC_ENABLED"],
+        "device_microphone": app.config["DEVICE_MIC_ENABLED"],
         "synthetic_demo": app.config["SYNTHETIC_DEMO_ENABLED"],
+        "device_audio_provider": (
+            "gnani" if app.config["DEVICE_MIC_ENABLED"] else None
+        ),
+        "device_transmits_audio": bool(app.config["DEVICE_MIC_ENABLED"]),
     })
 
 

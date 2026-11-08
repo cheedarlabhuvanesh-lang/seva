@@ -19,7 +19,7 @@ services:
       - key: SEVA_TRUST_PROXY
         value: "1"
       - key: SEVA_PREVIEW_AUTH_REQUIRED
-        value: "1"
+        value: "0"
       - key: SEVA_PREVIEW_USERNAME
         value: demo
       - key: SEVA_PREVIEW_PASSWORD

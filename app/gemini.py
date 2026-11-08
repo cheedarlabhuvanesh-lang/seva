@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from typing import Any
 
 import requests
 
 from gnani.client import load_dotenv
+
+logger = logging.getLogger("seva.gemini")
 
 API_ROOT = "https://generativelanguage.googleapis.com/v1beta"
 DEFAULT_MODEL = "gemini-3.5-flash-lite"
@@ -76,6 +79,11 @@ def get_api_key() -> str | None:
     """Load the project's .env convention and return the key without displaying it."""
     load_dotenv()
     return os.environ.get("GEMINI_API_KEY") or None
+
+
+def is_configured() -> bool:
+    """True when a Gemini key is present. Never returns or logs the key."""
+    return bool(get_api_key())
 
 
 def configured_model() -> str:
@@ -150,18 +158,28 @@ def _looks_like_language(text: str, language: str) -> bool:
     return bool(total) and (target / total) >= 0.10
 
 
-def _response_json(response: Any) -> dict[str, Any]:
+def _response_json(response: Any, model: str | None = None) -> dict[str, Any]:
     status = getattr(response, "status_code", 200)
-    if status in (401, 403, 429):
+    if status in (401, 403):
+        logger.warning("Gemini API rejected request (HTTP %s). Check GEMINI_API_KEY or model access permissions.", status)
         raise GeminiError("Gemini request was not accepted.")
+    if status == 429:
+        logger.warning("Gemini API quota exceeded or rate limited (HTTP 429).")
+        raise GeminiError("Gemini request was not accepted.")
+    if status == 404:
+        logger.warning("Gemini model %r not found (HTTP 404). Check GEMINI_MODEL configuration.", model or "unknown")
+        raise GeminiError("Gemini is temporarily unavailable.")
     try:
         response.raise_for_status()
         payload = response.json()
     except (requests.RequestException, ValueError) as exc:
+        logger.warning("Gemini API request failed (HTTP %s, %s).", status, type(exc).__name__)
         raise GeminiError("Gemini is temporarily unavailable.") from exc
     if status >= 400:
+        logger.warning("Gemini API returned error status HTTP %s.", status)
         raise GeminiError("Gemini is temporarily unavailable.")
     if not isinstance(payload, dict):
+        logger.warning("Gemini API returned invalid non-dict response format.")
         raise GeminiError("Gemini returned an invalid response.")
     return payload
 
@@ -171,6 +189,7 @@ def list_models(*, api_key: str | None = None, timeout: int = REQUEST_TIMEOUT_SE
     """Return models advertised by ListModels; callers choose a supported model."""
     key = api_key if api_key is not None else get_api_key()
     if not key:
+        logger.warning("Gemini list_models requested but GEMINI_API_KEY is not configured.")
         raise GeminiError("Gemini is not configured.")
     try:
         response = session.get(
@@ -180,6 +199,7 @@ def list_models(*, api_key: str | None = None, timeout: int = REQUEST_TIMEOUT_SE
             timeout=timeout,
         )
     except requests.RequestException as exc:
+        logger.warning("Gemini list_models network failure: %s", type(exc).__name__)
         raise GeminiError("Gemini is temporarily unavailable.") from exc
     payload = _response_json(response)
     models = payload.get("models", [])
@@ -196,12 +216,15 @@ def _post_generate(body: dict[str, Any], *, selected_model: str, key: str,
             timeout=timeout,
         )
     except requests.Timeout as exc:
+        logger.warning("Gemini request timed out after %ss (model: %s).", timeout, selected_model)
         raise GeminiError("Gemini timeout (network or server slow).") from exc
     except requests.ConnectionError as exc:
+        logger.warning("Gemini connection failed (model: %s).", selected_model)
         raise GeminiError("Gemini connection failed.") from exc
     except requests.RequestException as exc:
+        logger.warning("Gemini request error (%s, model: %s).", type(exc).__name__, selected_model)
         raise GeminiError("Gemini is temporarily unavailable.") from exc
-    return _response_json(response)
+    return _response_json(response, model=selected_model)
 
 
 def _extract_text(payload: dict[str, Any]) -> str:
@@ -250,12 +273,14 @@ def ask(question: str, language: str, context: str = "", *, model: str | None = 
 
     key = api_key if api_key is not None else get_api_key()
     if not key:
+        logger.warning("Nova ask failed: GEMINI_API_KEY is not configured in environment.")
         raise GeminiError("Gemini is not configured.")
 
     selected_model = (model or configured_model()).strip()
     if selected_model.startswith("models/"):
         selected_model = selected_model.removeprefix("models/")
     if not selected_model or "/" in selected_model:
+        logger.warning("Invalid Gemini model configured: %r", selected_model)
         raise GeminiError("Gemini model configuration is invalid.")
 
     user_parts = []

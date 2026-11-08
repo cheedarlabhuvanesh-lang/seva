@@ -43,6 +43,14 @@ STT_PATH = "/stt/v3"
 TTS_PATH = "/api/v1/tts/inference"
 VC_EMBED_PATH = "/api/v1/tts/voice-clone/embeddings"
 STT_MODEL = "prisma-v2.5"             # one language per request
+
+#: Only provider throttling and server-side failures are worth retrying. A
+#: timeout or a connection error may mean the request was already processed
+#: (and billed), so those are never retried.
+RETRYABLE_STATUSES = frozenset({429, 500, 502, 503, 504})
+DEFAULT_MAX_RETRIES = 1
+MAX_RETRY_ATTEMPTS = 3
+RETRY_BACKOFF_SECONDS = 0.5
 STT_MULTILINGUAL_MODEL = "prisma-v3.0"  # auto-detect / up to 4 hinted languages
 AUTO_LANGUAGE = "indic-auto"
 TTS_MODEL = "timbre-v3.0"   # launched 14 Oct 2026: audio tags, 13 voices, all 10 languages
@@ -179,12 +187,21 @@ class GnaniClient:
     # speak(..., model="timbre-v2.5") when you need Hinglish or a v2.5 voice.
     tts_model: str = TTS_MODEL
     auth_header: str = "X-API-Key-ID"
+    #: Retries for 429/5xx only. Default one retry (two total attempts).
+    max_retries: int = DEFAULT_MAX_RETRIES
 
     def __post_init__(self) -> None:
         load_dotenv()
         self.api_key = self.api_key or os.getenv("GNANI_API_KEY")
         self.base_url = (os.getenv("GNANI_BASE_URL") or self.base_url).rstrip("/")
         self.auth_header = os.getenv("GNANI_AUTH_HEADER") or self.auth_header
+        raw_retries = os.getenv("GNANI_MAX_RETRIES", "").strip()
+        if raw_retries:
+            try:
+                self.max_retries = int(raw_retries)
+            except ValueError:
+                self.max_retries = DEFAULT_MAX_RETRIES
+        self.max_retries = max(0, min(self.max_retries, MAX_RETRY_ATTEMPTS - 1))
         if not self.api_key:
             raise GnaniError(
                 "No API key. Put GNANI_API_KEY=... in a .env file next to your script, "
@@ -213,6 +230,12 @@ class GnaniClient:
         except OSError:
             pass  # never let logging break a demo
 
+    @classmethod
+    def is_configured(cls) -> bool:
+        """True when a Gnani key is present. Never returns or logs the key."""
+        load_dotenv()
+        return bool(os.getenv("GNANI_API_KEY", "").strip())
+
     @staticmethod
     def _raise_for_api_error(payload: Any, status: int) -> None:
         if isinstance(payload, dict) and payload.get("success") is False:
@@ -221,6 +244,41 @@ class GnaniClient:
                 f"[{status}] {err.get('type', 'ERROR')}: "
                 f"{err.get('message', json.dumps(payload, ensure_ascii=False))}"
             )
+
+    def _retry_delay(self, attempt: int) -> None:
+        delay = RETRY_BACKOFF_SECONDS * (2 ** max(0, attempt))
+        time.sleep(min(delay, 4.0))
+
+    def _log_retry(self, op: str, status: int, attempt: int) -> None:
+        self._log(op=f"{op}_retry", status=status, attempt=attempt,
+                  max_retries=self.max_retries)
+
+    def _safe_post(self, op: str, url: str, **kwargs: Any) -> requests.Response:
+        """POST with bounded retries for 429/5xx; timeouts are not retried."""
+        attempt = 0
+        while True:
+            try:
+                response = requests.post(url, **kwargs)
+            except requests.Timeout:
+                raise GnaniError(
+                    "The speech service did not respond in time. "
+                    "Seva did not retry, to avoid charging twice."
+                ) from None
+            except requests.ConnectionError:
+                raise GnaniError(
+                    "The speech service could not be reached. "
+                    "Check the server's network connection."
+                ) from None
+            except requests.RequestException:
+                raise GnaniError("The speech service request failed.") from None
+
+            if (response.status_code in RETRYABLE_STATUSES
+                    and attempt < self.max_retries):
+                self._log_retry(op, response.status_code, attempt + 1)
+                self._retry_delay(attempt)
+                attempt += 1
+                continue
+            return response
 
     # -------------------------------------------------------------------- STT
 
@@ -292,21 +350,24 @@ class GnaniClient:
                 raise GnaniError("bias_list accepts a maximum of 100 words.")
             data["bias_list"] = json.dumps(words, ensure_ascii=False)
 
-        with path.open("rb") as fh:
-            response = requests.post(
-                f"{self.base_url}{STT_PATH}",
-                headers=self._headers(),
-                data=data,
-                files={
-                    "audio_file": (
-                        path.name,
-                        fh,
-                        "audio/wav" if path.suffix.lower() == ".wav"
-                        else mimetypes.guess_type(path.name)[0] or "application/octet-stream",
-                    )
-                },
-                timeout=self.timeout,
-            )
+        # Read the clip once so a retry can resend it without a consumed file
+        # handle. The caller already bounds clip length.
+        audio_bytes = path.read_bytes()
+        response = self._safe_post(
+            "stt",
+            f"{self.base_url}{STT_PATH}",
+            headers=self._headers(),
+            data=data,
+            files={
+                "audio_file": (
+                    path.name,
+                    audio_bytes,
+                    "audio/wav" if path.suffix.lower() == ".wav"
+                    else mimetypes.guess_type(path.name)[0] or "application/octet-stream",
+                )
+            },
+            timeout=self.timeout,
+        )
 
         try:
             payload = response.json()
@@ -450,7 +511,8 @@ class GnaniClient:
             self._log(op="tts", cached=True, chars=len(text), voice=voice, language=language)
             return out
 
-        response = requests.post(
+        response = self._safe_post(
+            "tts",
             f"{self.base_url}{TTS_PATH}",
             headers=self._headers(json_body=True),
             json=body,
@@ -581,7 +643,8 @@ class GnaniClient:
             self._log(op="voice_clone_tts", cached=True, chars=len(text))
             return out
 
-        response = requests.post(
+        response = self._safe_post(
+            "tts",
             f"{self.base_url}{TTS_PATH}",
             headers=self._headers(json_body=True),
             json=body,

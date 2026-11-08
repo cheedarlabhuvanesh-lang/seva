@@ -1,11 +1,14 @@
 # Seva
 
 Seva is a voice help desk for people waiting in a hospital, railway station or bus
-stand. It listens to live announcements through the laptop microphone, matches the
-token, train or destination the user is waiting for, and answers questions through
-Nova, a Gemini-backed assistant.
+stand. It listens to live announcements through the browser microphone on the
+user's phone, matches the token, train or destination the user is waiting for, and
+answers questions through Nova, a Gemini-backed assistant.
 
-The browser app is a vanilla HTML/CSS/JS PWA in `web/`. The server is Flask.
+The browser app is a vanilla HTML/CSS/JS PWA in `web/`. The server is Flask. The
+phone captures its own microphone, encodes short WAV clips, and uploads them to
+the server for Gnani speech recognition and matching. It does not claim
+background listening after the page is closed.
 
 ## Run it
 
@@ -27,8 +30,10 @@ The browser app is a vanilla HTML/CSS/JS PWA in `web/`. The server is Flask.
    python -m app.server --port 8000
    ```
 
-The microphone belongs to the laptop running Flask, not to the phone. Keep the
-browser on the same machine as the server.
+Open the app on the same phone or laptop that will do the listening and allow
+the microphone prompt. HTTPS (or localhost) is required for microphone access.
+The legacy server-microphone watch (`SEVA_ENABLE_SERVER_MIC=1`) still listens to
+the machine running Flask and is intended for local development only.
 
 ## Production deployment
 
@@ -42,6 +47,10 @@ API routes.
 ## What is where
 
 - `app/server.py` - Flask routes and the announcement watch loop.
+- `app/device_audio.py` - short-lived device listening sessions, chunk validation,
+  temporary-file transcription, and duplicate suppression.
+- `web/device-listener.js` - browser microphone capture, 16 kHz resampling, WAV
+  encoding, sound gate, sequential upload, and stop-on-detection.
 - `app/gemini.py` - Nova's Gemini client.
 - `app/extract.py`, `app/matcher.py`, `app/watch.py` - announcement parsing and
   matching, including all ten supported languages.
@@ -55,7 +64,16 @@ API routes.
 ## API
 
 - `POST /api/ask` - Nova answer with hospital grounding and local fallback.
-- `POST /api/listen` - one recorded clip through STT and matching.
+- `POST /api/device/session`, `POST /api/device/chunk`, `GET /api/device/state`,
+  `POST /api/device/stop` - device microphone listening.
+- `GET /api/providers` - provider configuration booleans; never returns keys
+  and makes no paid calls.
+- `GET /api/hospital/sources`, `POST /api/hospital/announcement` - normalized
+  synthetic or explicitly authorized announcement contract. No hospital
+  system connection or persistence is included; see `HOSPITAL_INTEGRATION.md`.
+- `GET /api/device/capabilities` - whether device listening and the synthetic
+  demo are enabled.
+- `POST /api/listen` - one recorded clip through STT and matching (server mic).
 - `POST /api/watch/start`, `GET /api/watch/state`, `POST /api/watch/stop` -
   server-side microphone watch flow.
 - `POST /api/watch/simulate` - feed typed text through the same pipeline.
@@ -71,7 +89,7 @@ API routes.
 The offline suite needs no microphone or API keys:
 
 ```
-python -m unittest tests.test_gemini tests.test_multilingual tests.test_bus_matching tests.test_end_to_end -v
+python -m unittest tests.test_bus_matching tests.test_device_audio tests.test_end_to_end tests.test_gemini tests.test_gnani_client tests.test_hospital_adapter tests.test_multilingual tests.test_nova_language tests.test_security tests.test_ui_contract -v
 ```
 
 `tests/step4_complete.py` and `tests/step4_verification.py` are manual

@@ -6,22 +6,19 @@ from pathlib import Path
 if os.environ.get("SEVA_ENV", "").strip().lower() != "production":
     raise RuntimeError("Set SEVA_ENV=production before starting Gunicorn.")
 
-required = (
-    "SEVA_DATA_DIR",
-    "SEVA_ALLOWED_HOSTS",
-    "SEVA_PREVIEW_USERNAME",
-    "SEVA_PREVIEW_PASSWORD",
-)
+preview_auth_required = os.environ.get(
+    "SEVA_PREVIEW_AUTH_REQUIRED", "1"
+).strip().lower() in {"1", "true", "yes", "on"}
+
+required = ["SEVA_DATA_DIR", "SEVA_ALLOWED_HOSTS"]
+if preview_auth_required:
+    required.extend(["SEVA_PREVIEW_USERNAME", "SEVA_PREVIEW_PASSWORD"])
+
 missing = [name for name in required if not os.environ.get(name, "").strip()]
 if missing:
     raise RuntimeError(
         "Missing required production environment variables: " + ", ".join(missing)
     )
-
-if os.environ.get("SEVA_PREVIEW_AUTH_REQUIRED", "1").strip().lower() not in {
-    "1", "true", "yes", "on",
-}:
-    raise RuntimeError("Production deployments must require preview authentication.")
 
 data_dir = Path(os.environ["SEVA_DATA_DIR"]).expanduser()
 if not data_dir.is_absolute():

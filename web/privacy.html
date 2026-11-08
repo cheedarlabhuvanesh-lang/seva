@@ -197,11 +197,11 @@ h2.sec{
     </div>
     <div class="nv">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.3 7.1L16.9 5.7 12 10.6 7.1 5.7 5.7 7.1l4.9 4.9-4.9 4.9 1.4 1.4 4.9-4.9 4.9 4.9 1.4-1.4-4.9-4.9z"/></svg>
-      <span>Voice input is briefly recorded on the Seva computer. Temporary microphone files are deleted after processing; generated speech audio may remain cached there.</span>
+      <span>The microphone belongs to your phone. Short announcement clips are uploaded to the Seva server and sent to Gnani for transcription. Temporary clip files are deleted after processing; generated alert audio may remain cached on the server.</span>
     </div>
     <div class="nv">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.3 7.1L16.9 5.7 12 10.6 7.1 5.7 5.7 7.1l4.9 4.9-4.9 4.9 1.4 1.4 4.9-4.9 4.9 4.9 1.4-1.4-4.9-4.9z"/></svg>
-      <span>Your phone's alert history stores matched results, not raw transcripts. While announcement watch is running, the server keeps alert records and transcripts in memory until its watch state is reset or the server stops.</span>
+      <span>Your phone's alert history stores matched results, not raw transcripts. While a live listening session is running, the server keeps session state and matched results in memory for up to ten minutes; pressing Stop or closing the listening screen ends the session.</span>
     </div>
     <div class="nv">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.3 7.1L16.9 5.7 12 10.6 7.1 5.7 5.7 7.1l4.9 4.9-4.9 4.9 1.4 1.4 4.9-4.9 4.9 4.9 1.4-1.4-4.9-4.9z"/></svg>
@@ -223,32 +223,32 @@ h2.sec{
   <section class="card">
     <div class="j">
       <span class="ji"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.6a3.4 3.4 0 00-3.4 3.4v6a3.4 3.4 0 006.8 0V6A3.4 3.4 0 0012 2.6zM5.6 11.2h2.1a4.3 4.3 0 008.6 0h2.1a6.4 6.4 0 01-5.35 6.3V20h3.15v2.1H7.8V20h3.15v-2.5A6.4 6.4 0 015.6 11.2z"/></svg></span>
-      <div><b>The laptop listens, quietly</b>
-        <span>A loudness check runs on the laptop that starts Seva. Silence never leaves it.</span></div>
+      <div><b>Your phone listens, quietly</b>
+        <span>The loudness gate and WAV encoding run in your browser. Silence is not uploaded. The microphone stops when you press Stop, close the page, or an alert is detected.</span></div>
     </div>
     <div class="j">
       <span class="ji"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.8l7.6 4.4v8.8L12 20.4 4.4 16V7.2zm0 2.5L6.6 8.4v7.2L12 18.7l5.4-3.1V8.4z"/></svg></span>
       <div><b>Only the loud part is sent</b>
-        <span>When the sound gate detects an announcement, its short clip is sent to Gnani for transcription. Seva removes its temporary clip after processing; the provider's handling is governed by Gnani's policies.</span></div>
+        <span>When the browser sound gate detects an announcement, its short clip is uploaded to the Seva server and sent to Gnani for transcription. Seva deletes its temporary clip after processing; the provider's handling is governed by Gnani's policies.</span></div>
     </div>
     <div class="j">
       <span class="ji"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.8 3.4h14.4v2.2H4.8zM4.8 8.1h14.4v2.2H4.8zM4.8 12.8h9.6V15H4.8zM16.6 13.2l4.6 4.6-4.6 4.6-1.5-1.6 1.9-1.9h-5.6v-2.2h5.6l-1.9-1.9z"/></svg></span>
       <div><b>Matched text stays on the server temporarily</b>
-        <span>Fixed rules look for your number in the transcript. During announcement watch, the server keeps the transcript with alert state in memory until that state is reset or the server stops. The phone's saved alert history contains the matched result, not the transcript.</span></div>
+        <span>Fixed rules look for your number in the transcript. During a live session, the server keeps the transcript with session state in memory until you stop, the session expires, or the server stops. The phone's saved alert history contains the matched result, not the transcript.</span></div>
     </div>
     <div class="j">
       <span class="ji"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 9.2h3.4L12.6 5v14L7.4 14.8H4zM15.6 8.6a5.2 5.2 0 010 6.8l-1.3-1.2a3.4 3.4 0 000-4.4zM18 6.1a8.6 8.6 0 010 11.8l-1.3-1.3a6.8 6.8 0 000-9.2z"/></svg></span>
-      <div><b>The laptop speaks</b>
-        <span>The alert sentence goes to Gnani's voice service and comes back as sound. Generated audio is cached on the Seva computer for replay; clearing this phone's browser storage does not remove those server files.</span></div>
+      <div><b>Seva speaks</b>
+        <span>The alert sentence goes to Gnani's voice service and comes back as sound. Generated audio is cached on the Seva server for replay; clearing this phone's browser storage does not remove those server files.</span></div>
     </div>
     <p style="margin-top:14px;font-size:14.5px">
-      The browser talks to the Seva computer, which sends announcement audio and alert text to Gnani as needed. Gnani's service receives the data needed for transcription and speech generation.</p>
+      Your phone's browser talks to the Seva server, which sends announcement audio and alert text to Gnani as needed. Gnani's service receives the data needed for transcription and speech generation.</p>
   </section>
 
   <h2 class="sec">When you ask a question</h2>
   <section class="card">
     <p>Your typed question is sent to the Seva computer and then to Google Gemini. For local hospital details, Seva also sends the relevant written hospital information as context.</p>
-    <p><b>If Seva records your question from the server's microphone,</b> that audio is sent to Gnani for transcription and the resulting text is sent to Gemini like a typed question. Live announcement-watch transcripts are not sent to Gemini, but remain in the server's in-memory watch state as described above.</p>
+    <p><b>If Seva records your question from a microphone,</b> that audio is sent to Gnani for transcription and the resulting text is sent to Gemini like a typed question. Live announcement transcripts are not sent to Gemini, but remain in the server's in-memory session state as described above.</p>
     <p>The answer text is then sent to Gnani's voice service to create the spoken reply. It is not sent back to Gemini.</p>
     <p>The API keys that reach those services live on the laptop. They are never put in
       this page or sent anywhere except Gnani and Google Gemini.</p>
@@ -256,9 +256,9 @@ h2.sec{
 
   <h2 class="sec">Audio files and clearing data</h2>
   <section class="card">
-    <p>Temporary microphone recordings are removed after processing. Generated speech files and audio caches are kept on the Seva computer to support playback and avoid repeating synthesis. They may remain after the app closes.</p>
+    <p>Temporary microphone recordings are removed after processing, including device clips under <code>samples/device-tmp/</code>. Generated speech files and audio caches are kept on the Seva server to support playback and avoid repeating synthesis. They may remain after the app closes.</p>
     <p>Generated audio is served with caching disabled, so Seva does not ask the browser to store it. Seva stores the audio file's address, and the spoken sentence in alert history, but never the audio itself in browser storage.</p>
-    <p>The erase button below clears only the listed browser storage on this phone. It does not clear server audio caches or in-memory watch records. To remove cached files, stop Seva and delete its generated files under <code>cache/</code>, <code>samples/web/</code>, and <code>samples/alerts/</code>. Restarting Seva clears its in-memory watch state.</p>
+    <p>The erase button below clears only the listed browser storage on this phone. It does not clear server audio caches or in-memory watch records. To remove cached files, stop Seva and delete its generated files under <code>cache/</code>, <code>samples/web/</code>, <code>samples/alerts/</code>, and <code>samples/device-tmp/</code>. Restarting Seva clears its in-memory listening sessions.</p>
     <p>Replaying an alert sends its spoken sentence to the Seva computer as part of the request. Seva does not log request bodies or replay text, but a hosting provider's web-server logs could record request URLs; choose a host whose access logs omit query strings.</p>
     <p>Seva cannot verify how long Gnani or Google Gemini retain data they receive. Check their current privacy terms before using voice or question features with sensitive information.</p>
   </section>

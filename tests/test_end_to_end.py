@@ -72,7 +72,7 @@ class TestEntryPoint(unittest.TestCase):
         )
         self.assertEqual(
             response.headers["Permissions-Policy"],
-            "microphone=(), camera=(), geolocation=()",
+            "microphone=(self), camera=(), geolocation=()",
         )
         self.assertNotIn("api_key", response.get_data(as_text=True).lower())
 
@@ -83,6 +83,7 @@ class TestEntryPoint(unittest.TestCase):
             "SIMULATE_ENABLED": False,
             "SYNTHETIC_DEMO_ENABLED": False,
             "USAGE_API_ENABLED": False,
+            "DEVICE_MIC_ENABLED": False,
         }):
             mic = self.client.get("/api/mic/status", base_url="https://localhost")
             state = self.client.get("/api/watch/state", base_url="https://localhost")
@@ -97,6 +98,11 @@ class TestEntryPoint(unittest.TestCase):
                 "/api/watch/capabilities", base_url="https://localhost"
             )
             usage = self.client.get("/api/usage", base_url="https://localhost")
+            device = self.client.post(
+                "/api/device/session",
+                json={"kind": "hospital", "value": "47"},
+                base_url="https://localhost",
+            )
         self.assertEqual(mic.status_code, 404)
         self.assertEqual(state.status_code, 404)
         self.assertEqual(stop.status_code, 404)
@@ -105,9 +111,13 @@ class TestEntryPoint(unittest.TestCase):
         self.assertEqual(capabilities.status_code, 200)
         self.assertEqual(capabilities.get_json(), {
             "server_microphone": False,
+            "device_microphone": False,
             "synthetic_demo": False,
+            "device_audio_provider": None,
+            "device_transmits_audio": False,
         })
         self.assertEqual(usage.status_code, 404)
+        self.assertEqual(device.status_code, 404)
 
     def test_production_redirects_http_requests_to_https(self):
         with patch.dict(server.app.config, {"SEVA_ENV": "production"}):

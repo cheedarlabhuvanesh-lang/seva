@@ -95,6 +95,34 @@ class TestGeminiClient(unittest.TestCase):
             with patch.dict(os.environ, {}, clear=True):
                 self.assertEqual(gemini.configured_model(), gemini.DEFAULT_MODEL)
 
+    def test_configured_model_and_ask_supports_valid_models(self):
+        self.assertEqual(gemini.DEFAULT_MODEL, "gemini-3.5-flash-lite")
+        for valid_model in ("gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-2.5-flash"):
+            with self.subTest(model=valid_model):
+                with patch.dict(os.environ, {"GEMINI_MODEL": f"models/{valid_model}"}):
+                    self.assertEqual(gemini.configured_model(), valid_model)
+                session = FakeSession(FakeResponse({"candidates": [{"content": {"parts": [{"text": "Hello."}]}}]}))
+                result = gemini.ask(
+                    "Hello", "en-IN", api_key="secret-test-value",
+                    model=valid_model, session=session,
+                )
+                self.assertEqual(result, "Hello.")
+                self.assertTrue(session.calls[0][1].endswith(f"/models/{valid_model}:generateContent"))
+
+    def test_model_not_found_404_is_sanitized(self):
+        session = FakeSession(FakeResponse({"error": {"message": "models/bad-model is not found"}}, status=404))
+        with self.assertRaises(gemini.GeminiError) as caught:
+            gemini.ask("hello", "en-IN", api_key="secret-test-value", model="bad-model", session=session)
+        self.assertIn("temporarily unavailable", str(caught.exception))
+        self.assertNotIn("secret-test-value", str(caught.exception))
+
+    def test_quota_exceeded_429_is_sanitized(self):
+        session = FakeSession(FakeResponse({"error": {"message": "quota exceeded"}}, status=429))
+        with self.assertRaises(gemini.GeminiError) as caught:
+            gemini.ask("hello", "en-IN", api_key="secret-test-value", session=session)
+        self.assertIn("not accepted", str(caught.exception))
+        self.assertNotIn("secret-test-value", str(caught.exception))
+
     def test_timeout_is_sanitized(self):
         class TimeoutSession(FakeSession):
             def post(self, url, **kwargs):

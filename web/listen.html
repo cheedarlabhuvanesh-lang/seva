@@ -352,7 +352,7 @@ h1{font-size:24px;font-weight:750;letter-spacing:-.3px;color:var(--ink);margin-b
 
     <div class="status">
       <div class="big">Ready to listen</div>
-      <div class="small">Nothing is sent anywhere until you press Start.</div>
+      <div class="small">Nothing is sent until you press Start. While listening, short audio clips go to our speech provider for recognition.</div>
     </div>
   </div>
 
@@ -494,6 +494,7 @@ mic.addEventListener("click", start);
 /* Enter on the keyboard starts too */
 input.addEventListener("keydown", function(e){ if (e.key === "Enter") start(); });
 </script>
+<script src="i18n-device.js"></script>
 <script src="i18n.js"></script>
 </body>
 </html>

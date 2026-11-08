@@ -203,6 +203,8 @@
     if (!k) return null;
     var d = DICTS[lang];
     if (d && Object.prototype.hasOwnProperty.call(d, k)) return d[k];
+    var extra = window.SEVA_DEVICE_I18N && window.SEVA_DEVICE_I18N[lang];
+    if (extra && Object.prototype.hasOwnProperty.call(extra, k)) return extra[k];
     if (lang === "te") {
       for (var i = 0; i < RX.length; i++) { var m = k.match(RX[i][0]); if (m) return RX[i][1](m); }
     }

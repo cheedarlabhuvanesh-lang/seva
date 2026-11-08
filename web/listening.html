@@ -216,6 +216,11 @@ html[data-theme="dark"] .screen{
 }
 .demo-button:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
 .demo-note{margin-top:var(--s1);font-size:13px;line-height:1.35;color:var(--muted)}
+.privacy-note{
+  margin-top:var(--s3);padding:10px 12px;border:1px solid var(--line);
+  border-radius:12px;background:color-mix(in srgb, var(--surface) 88%, transparent);
+  font-size:12px;line-height:1.45;color:var(--muted);text-align:left;
+}
 .demo-button:disabled{opacity:.65;cursor:wait}
 
 /* ══════ 4. THE WAVEFORM ══════
@@ -356,6 +361,13 @@ html[data-theme="dark"] .screen{
 
     <button class="demo-button" id="demo" type="button">Try synthetic announcement</button>
     <div class="demo-note">Example only. No microphone, paid API, or real announcement.</div>
+    <button class="demo-button" id="mic-test" type="button" style="margin-top:8px;">Test microphone only</button>
+    <div class="demo-note" id="mic-test-note">Local test only. No audio is uploaded or sent to Gnani or Gemini.</div>
+
+    <div class="privacy-note">
+      <span>While listening, short audio clips go to Gnani for speech recognition. They are deleted after processing.</span><br>
+      <span>Live listening works only while this screen is open. It stops when you leave or close the browser.</span>
+    </div>
 
     <div class="wavebars" id="wavebars" aria-hidden="true"></div>
 
@@ -435,22 +447,17 @@ html[data-theme="dark"] .screen{
   }
 })();
 
-/* ---- stop goes back to screen 3 ---- */
-function stop(){
-  /* ───────── REAL MIC STOPS HERE ─────────
-     stream.getTracks().forEach(t => t.stop());        */
-  window.location.href = "listen.html";
-}
-document.getElementById("stop").addEventListener("click", stop);
-document.getElementById("mic").addEventListener("click", stop);
-
-/* ───────── SERVER-SIDE WATCH ─────────
-   Python process owns the real microphone via sounddevice.
-   Browser polls GET /api/watch/state every 1 second.      */
+/* ───────── LISTENING MODES ─────────
+   Primary: the phone's own microphone is captured here and bounded clips
+   are sent to /api/device/chunk. Secondary: a development server with
+   SEVA_ENABLE_SERVER_MIC=1 polls /api/watch/*. The synthetic demo always
+   works without a microphone.                                      */
 </script>
+<script src="device-listener.js"></script>
 <script>
-/* Live listening: Python server owns microphone, browser polls for results */
+/* Legacy fallback: only runs if device-listener.js could not load. */
 (function(){
+  if (window.SevaDeviceAudio) return;
   function J(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}}
   var watch=J("seva.watch");
   if(!watch||!watch.value){
@@ -698,6 +705,262 @@ document.getElementById("mic").addEventListener("click", stop);
   });
 })();
 </script>
+<script>
+/* Device-first listening. The phone captures its own microphone; short WAV
+   clips go to the server for Gnani speech recognition and matching. */
+(function(){
+  function J(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}}
+  var watch = J("seva.watch");
+  if (!watch || !watch.value) { location.replace("listen.html"); return; }
+  try{ localStorage.removeItem("seva.lastResult"); }catch(e){}
+  var lang = "en-IN";
+  try{ lang = localStorage.getItem("seva.language") || "en-IN"; }catch(e){}
+
+  var big = document.querySelector(".status .big");
+  var small = document.querySelector(".status .small");
+  var debugBox = document.getElementById("debug");
+  var stopButton = document.getElementById("stop");
+  var micButton = document.getElementById("mic");
+  var demoButton = document.getElementById("demo");
+  var demoNote = document.querySelector(".demo-note");
+  var micTestButton = document.getElementById("mic-test");
+  var micTestNote = document.getElementById("mic-test-note");
+  var controller = null;
+  var legacyPoll = null;
+  var leaving = false;
+
+  var STATUS = {
+    requesting_permission: ["Allow microphone", "Tap Allow in the browser prompt."],
+    tap_to_start: ["Tap to start", "Tap anywhere on this screen to start the microphone."],
+    listening: ["Listening\u2026", "Please wait for your announcement"],
+    speech: ["Hearing sound\u2026", "Checking what was said"],
+    processing: ["Checking\u2026", "Matching what was heard"],
+    pending_missing: ["Token heard", "Waiting to hear the room number\u2026"],
+    not_detected: ["Still listening\u2026", "That was another announcement."],
+    duplicate: ["Still listening\u2026", "That announcement was already shown."],
+    detected: ["Announcement detected!", "Opening your alert\u2026"],
+    test_listening: ["Mic Test: Listening\u2026", "Speech recognition is disabled. Speak to test."],
+    sound_detected: ["Mic Test: Sound detected!", "Speech recognition is disabled. No audio uploaded."],
+    test_stopped: ["Mic Test stopped", "Capture-only test ended. Tap Start when ready."],
+    permission_denied: ["Microphone blocked", "Allow microphone access in your browser settings, then try again."],
+    no_microphone: ["No microphone found", "This device did not offer a microphone."],
+    mic_error: ["Microphone unavailable", "Close other apps using the microphone and try again."],
+    insecure: ["Secure connection needed", "Open Seva at its https:// address to use the microphone."],
+    unsupported: ["Microphone unavailable", "This browser cannot capture microphone audio."],
+    offline: ["Connection lost", "Seva will keep trying to reach the server."],
+    session_expired: ["Listening session ended", "Please start again."],
+    rate_limited: ["Please wait", "Too many audio chunks. Seva will try again shortly."],
+    service_unavailable: ["Speech service busy", "Seva will keep listening. Please wait."],
+    unavailable: ["Live listening unavailable", "The speech service is not configured. You can still try the synthetic demo."],
+    error: ["Something went wrong", "Please stop and try again."],
+    stopped: ["Listening stopped", "Please go back and start again."]
+  };
+
+  function setStatus(title, detail){
+    big.textContent = title;
+    if (detail !== undefined) small.textContent = detail;
+  }
+  function show(code, detail){
+    var row = STATUS[code] || STATUS.error;
+    setStatus(row[0], detail || row[1]);
+  }
+  function debug(message){
+    if (localStorage.getItem("seva.debug") !== "1") return;
+    debugBox.hidden = false;
+    debugBox.textContent += (debugBox.textContent ? "\n" : "") + message;
+  }
+
+  function storeResult(alert){
+    var result = {
+      schemaVersion: 1,
+      verdict: alert.verdict || "missing",
+      token: alert.token || null,
+      room: alert.room || null,
+      train_no: alert.train_no || null,
+      train_name: alert.train_name || null,
+      platform: alert.platform || null,
+      destination: alert.destination || null,
+      specialist: alert.specialist || null,
+      certain: alert.certain === true,
+      spoken: alert.spoken || null,
+      lang: alert.lang || null,
+      requested_language: alert.requested_language || null,
+      audio: alert.audio || null,
+      audio_url: alert.audio_url || null,
+      tts_error: alert.tts_error || null,
+      synthetic: alert.synthetic === true
+    };
+    try{
+      localStorage.setItem("seva.lastResult", JSON.stringify(result));
+      if (alert.id) localStorage.setItem("seva.lastAlertId", alert.id);
+    }catch(e){}
+    return result;
+  }
+
+  function openResult(alert){
+    if (leaving) return;
+    leaving = true;
+    var result = storeResult(alert);
+    var target = (result.verdict === "mine" && result.certain)
+      ? "confirmed.html" : "missing.html";
+    setTimeout(function(){ location.href = target; }, 450);
+  }
+
+  /* ---------- device microphone path ---------- */
+  function startDevice(){
+    controller = window.SevaDeviceAudio.create({
+      kind: watch.mode || "hospital",
+      value: watch.value || "",
+      language: lang,
+      sessionUrl: "/api/device/session",
+      chunkUrl: "/api/device/chunk",
+      stateUrl: "/api/device/state",
+      stopUrl: "/api/device/stop",
+      onState: function(code, detail){
+        if (leaving) return;
+        show(code, detail === "other" ? "That was another announcement." : "");
+      },
+      onDetected: function(alert){ openResult(alert); },
+      onDebug: debug
+    });
+    controller.start();
+  }
+
+  /* ---------- optional legacy server-microphone path ---------- */
+  function startLegacy(){
+    function setServerStatus(title, detail){ setStatus(title, detail); }
+    fetch("/api/watch/start", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        kind: watch.mode || "hospital",
+        value: watch.value || "",
+        language: lang
+      })
+    }).then(function(res){
+      if (res.status === 409) return res.json();
+      return res.json().then(function(body){
+        if (!res.ok) throw new Error(body.error || "Failed to start listening");
+        return body;
+      });
+    }).then(function(){
+      legacyPoll = setInterval(function(){
+        fetch("/api/watch/state").then(function(res){
+          if (!res.ok) throw new Error("Server returned " + res.status);
+          return res.json();
+        }).then(function(state){
+          if (!state.alerts || !state.alerts.length) return;
+          var alert = state.alerts[state.alerts.length - 1];
+          var last = "";
+          try{ last = localStorage.getItem("seva.lastAlertId") || ""; }catch(e){}
+          if (alert.id && alert.id === last) return;
+          clearInterval(legacyPoll);
+          legacyPoll = null;
+          if (alert.verdict === "other") {
+            storeResult(alert);
+            leaving = true;
+            location.href = "another.html";
+            return;
+          }
+          openResult(alert);
+        }).catch(function(){
+          setServerStatus("Connection lost", "Seva will keep trying to reach the server.");
+        });
+      }, 1000);
+    }).catch(function(err){
+      setServerStatus("Live microphone unavailable", err.message || "Start again.");
+    });
+  }
+
+  function start(){
+    if (!window.SevaDeviceAudio) {
+      startLegacy();
+      return;
+    }
+    fetch("/api/watch/capabilities").then(function(res){
+      if (!res.ok) throw new Error("Cannot check listening capabilities.");
+      return res.json();
+    }).then(function(capabilities){
+      if (capabilities.synthetic_demo !== true){
+        if (demoButton) demoButton.hidden = true;
+        if (demoNote) demoNote.hidden = true;
+      }
+      if (capabilities.device_microphone === true) {
+        startDevice();
+      } else if (capabilities.server_microphone === true) {
+        startLegacy();
+      } else {
+        show("unavailable");
+      }
+    }).catch(function(){
+      show("unavailable");
+    });
+  }
+
+  function stopListening(silent){
+    leaving = true;
+    if (controller) controller.stop(silent === true);
+    if (legacyPoll) { clearInterval(legacyPoll); legacyPoll = null; }
+    if (silent !== true) {
+      if (!controller) fetch("/api/watch/stop", {method: "POST"}).catch(function(){});
+      location.href = "listen.html";
+    }
+  }
+
+  stopButton.addEventListener("click", function(){ stopListening(false); });
+  micButton.addEventListener("click", function(){ stopListening(false); });
+  window.addEventListener("pagehide", function(){ stopListening(true); });
+
+  if (demoButton) demoButton.addEventListener("click", function(){
+    var button = this;
+    button.disabled = true;
+    show("processing", "Running a generated example. No microphone or external service is used.");
+    fetch("/api/watch/demo", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        kind: watch.mode || "hospital",
+        value: watch.value || "",
+        language: lang
+      })
+    }).then(function(res){
+      return res.json().catch(function(){ return {}; }).then(function(body){
+        if (!res.ok) throw new Error(body.error || "Synthetic demo is unavailable.");
+        return body;
+      });
+    }).then(function(alert){
+      if (alert.synthetic !== true) throw new Error("The server did not return a synthetic sample.");
+      storeResult(alert);
+      leaving = true;
+      location.href = (!alert.certain || alert.verdict === "missing")
+        ? "missing.html" : "confirmed.html";
+    }).catch(function(err){
+      setStatus("Synthetic demo unavailable", err.message || "Try again later.");
+      button.disabled = false;
+    });
+  });
+
+  if (micTestButton) micTestButton.addEventListener("click", function(){
+    if (controller && controller.isRunning()) {
+      controller.stop(false);
+    }
+    if (legacyPoll) { clearInterval(legacyPoll); legacyPoll = null; }
+
+    show("test_listening");
+    controller = window.SevaDeviceAudio.createTest({
+      onState: function(code, detail){
+        if (leaving) return;
+        show(code, detail);
+      },
+      onDebug: debug
+    });
+    controller.start();
+  });
+
+  start();
+})();
+</script>
+<script src="i18n-device.js"></script>
 <script src="i18n.js"></script>
 </body>
 </html>
