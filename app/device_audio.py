@@ -99,6 +99,7 @@ _LOCK = None
 _SESSIONS: dict[str, DeviceSession] = {}
 _DIAGNOSTIC_HMAC_KEY = secrets.token_bytes(32)
 _LOGGER = logging.getLogger(__name__)
+_LOGGER.setLevel(logging.INFO)
 
 
 @dataclass(frozen=True)
