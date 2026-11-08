@@ -101,6 +101,13 @@ _DIAGNOSTIC_HMAC_KEY = secrets.token_bytes(32)
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.INFO)
 
+_GUNICORN_LOGGER = logging.getLogger("gunicorn.error")
+if _GUNICORN_LOGGER.handlers:
+    for _handler in _GUNICORN_LOGGER.handlers:
+        if _handler not in _LOGGER.handlers:
+            _LOGGER.addHandler(_handler)
+    _LOGGER.propagate = False
+
 
 @dataclass(frozen=True)
 class SessionLookup:
