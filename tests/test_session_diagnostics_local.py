@@ -26,13 +26,13 @@ class TestSessionDiagnostics(unittest.TestCase):
             client_ip=address,
         )
 
-    def test_lookup_logs_found_missing_expired_and_owner_mismatch_safely(self):
+    def test_lookup_accepts_changed_ip_and_logs_missing_and_expired_safely(self):
         session = self.create()
         with self.assertLogs("app.device_audio", level=logging.INFO) as captured:
             found = device_audio.lookup_session(
                 session.id, client_ip="198.51.100.10", route="state"
             )
-            mismatch = device_audio.lookup_session(
+            changed_ip = device_audio.lookup_session(
                 session.id, client_ip="203.0.113.20", route="chunk"
             )
             missing = device_audio.lookup_session(
@@ -47,13 +47,13 @@ class TestSessionDiagnostics(unittest.TestCase):
 
         self.assertEqual(found.outcome, "found")
         self.assertIs(found.session, session)
-        self.assertEqual(mismatch.outcome, "owner_mismatch")
-        self.assertIsNone(mismatch.session)
+        self.assertEqual(changed_ip.outcome, "found")
+        self.assertIs(changed_ip.session, session)
         self.assertEqual(missing.outcome, "missing")
         self.assertEqual(expired.outcome, "expired")
 
         logs = "\n".join(captured.output)
-        for outcome in ("found", "owner_mismatch", "missing", "expired"):
+        for outcome in ("found", "missing", "expired"):
             self.assertIn(f"outcome={outcome}", logs)
         self.assertIn("route=state", logs)
         self.assertIn("route=chunk", logs)
@@ -69,14 +69,9 @@ class TestSessionDiagnostics(unittest.TestCase):
     def test_creation_expiry_capacity_and_stop_outcomes_are_logged(self):
         with self.assertLogs("app.device_audio", level=logging.INFO) as captured:
             session = self.create()
-            self.assertFalse(
-                device_audio.stop_session(
-                    session.id, client_ip="203.0.113.20"
-                )
-            )
             self.assertTrue(
                 device_audio.stop_session(
-                    session.id, client_ip="198.51.100.10"
+                    session.id, client_ip="203.0.113.20"
                 )
             )
             with patch.object(device_audio, "MAX_ACTIVE_SESSIONS", 1):
@@ -90,7 +85,6 @@ class TestSessionDiagnostics(unittest.TestCase):
             "event=session_evicted",
         ):
             self.assertIn(event, logs)
-        self.assertIn("outcome=owner_mismatch", logs)
         self.assertIn("outcome=stopped", logs)
         self.assertIn("outcome=capacity", logs)
         for sensitive in ("198.51.100.10", "198.51.100.11", "198.51.100.12"):

@@ -47,16 +47,14 @@ class TestSessionLookupDiagnosticFields(unittest.TestCase):
 
         self.assertIn(f"pid={os.getpid()}", creation)
         self.assertIn("owner_ip_stored=true", creation)
-        self.assertEqual(len(lookups), 4)
+        self.assertEqual(len(lookups), 3)
         self.assertIn("outcome=found", lookups[0])
         self.assertIn("session_found=true", lookups[0])
-        self.assertIn("owner_check_matched=true", lookups[0])
-        self.assertIn("reason=owner_mismatch", lookups[1])
-        self.assertIn("owner_check_matched=false", lookups[1])
-        self.assertIn("reason=missing", lookups[2])
-        self.assertIn("reason=expired", lookups[3])
-        self.assertIn("expired=true", lookups[3])
-        self.assertRegex(lookups[1], r"session_age_seconds=\d+\.\d{3}")
+        self.assertIn("owner_check_matched=not_applicable", lookups[0])
+        self.assertIn("reason=missing", lookups[1])
+        self.assertIn("reason=expired", lookups[2])
+        self.assertIn("expired=true", lookups[2])
+        self.assertRegex(lookups[0], r"session_age_seconds=\d+\.\d{3}")
 
         all_logs = "\n".join(logs)
         for sensitive in (

@@ -80,7 +80,7 @@ class TestDeviceSessions(unittest.TestCase):
                 "hospital", "47", "xx-IN", client_ip="127.0.0.1"
             )
 
-    def test_session_is_bound_to_the_client_address(self):
+    def test_session_survives_client_address_changes(self):
         session = device_audio.create_session(
             "hospital", "47", "en-IN", client_ip="127.0.0.1"
         )
@@ -88,14 +88,12 @@ class TestDeviceSessions(unittest.TestCase):
             device_audio.get_session(session.id, client_ip="127.0.0.1"),
             session,
         )
-        self.assertIsNone(
-            device_audio.get_session(session.id, client_ip="10.0.0.9")
-        )
-        self.assertFalse(
-            device_audio.stop_session(session.id, client_ip="10.0.0.9")
+        self.assertIs(
+            device_audio.get_session(session.id, client_ip="10.0.0.9"),
+            session,
         )
         self.assertTrue(
-            device_audio.stop_session(session.id, client_ip="127.0.0.1")
+            device_audio.stop_session(session.id, client_ip="10.0.0.9")
         )
 
     def test_expired_session_is_removed(self):

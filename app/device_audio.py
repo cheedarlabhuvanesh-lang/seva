@@ -112,7 +112,7 @@ if _GUNICORN_LOGGER.handlers:
 @dataclass(frozen=True)
 class SessionLookup:
     session: DeviceSession | None
-    outcome: Literal["found", "missing", "expired", "owner_mismatch"]
+    outcome: Literal["found", "missing", "expired"]
 
 
 def _fingerprint(value: str, purpose: bytes) -> str:
@@ -316,18 +316,11 @@ def lookup_session(
             expired = True
             owner_check_matched = "not_applicable"
             age_seconds = max(0, round(now - session.created_at, 3))
-        elif session.client_ip and str(client_ip or "") != session.client_ip:
-            result = SessionLookup(None, "owner_mismatch")
-            expired = False
-            owner_check_matched = False
-            age_seconds = max(0, round(now - session.created_at, 3))
         else:
             session.touch()
             result = SessionLookup(session, "found")
             expired = False
-            owner_check_matched = (
-                True if session.client_ip else "not_applicable"
-            )
+            owner_check_matched = "not_applicable"
             age_seconds = max(0, round(now - session.created_at, 3))
             log_found = not session.lookup_diagnostic_logged
             session.lookup_diagnostic_logged = True
@@ -358,7 +351,7 @@ def lookup_session(
 
 
 def get_session(session_id: str, *, client_ip: str) -> DeviceSession | None:
-    """Return a live session owned by this client, or None."""
+    """Return a live session for this session ID, or None."""
     return lookup_session(session_id, client_ip=client_ip).session
 
 
@@ -376,9 +369,6 @@ def stop_session(session_id: str, *, client_ip: str) -> bool:
         if session is None:
             outcome = "missing"
             owner_ip = ""
-        elif session.client_ip and str(client_ip or "") != session.client_ip:
-            outcome = "owner_mismatch"
-            owner_ip = session.client_ip
         else:
             del _SESSIONS[session.id]
             outcome = "stopped"
