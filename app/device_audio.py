@@ -23,6 +23,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+import os
 import re
 import secrets
 import tempfile
@@ -85,6 +86,7 @@ class DeviceSession:
     recent_transcripts: deque = field(default_factory=deque)
     recent_alerts: deque = field(default_factory=deque)
     last_alert: dict | None = None
+    lookup_diagnostic_logged: bool = False
 
     def touch(self) -> None:
         self.last_seen = time.time()
@@ -112,6 +114,41 @@ def _fingerprint(value: str, purpose: bytes) -> str:
         hashlib.sha256,
     ).hexdigest()
     return digest[:16]
+
+
+def _log_lookup_diagnostic(
+    *,
+    route: str,
+    session_id: str,
+    outcome: str,
+    session_found: bool,
+    expired: bool,
+    owner_check_matched: bool | str,
+    age_seconds: float | None,
+    session_fp: str | None = None,
+) -> None:
+    if session_fp is None:
+        session_fp = _fingerprint(session_id, b"session") if session_id else "-"
+    age = "na" if age_seconds is None else f"{age_seconds:.3f}"
+    owner_match = (
+        str(owner_check_matched).lower()
+        if isinstance(owner_check_matched, bool)
+        else owner_check_matched
+    )
+    _LOGGER.info(
+        "device_session event=session_lookup pid=%s route=%s outcome=%s "
+        "session_found=%s expired=%s owner_check_matched=%s "
+        "session_age_seconds=%s reason=%s session_fp=%s",
+        os.getpid(),
+        route,
+        outcome,
+        str(session_found).lower(),
+        str(expired).lower(),
+        owner_match,
+        age,
+        outcome,
+        session_fp,
+    )
 
 
 def _log_session_event(
@@ -227,12 +264,12 @@ def create_session(
             last_seen=now,
         )
         _SESSIONS[session.id] = session
-    _log_session_event(
-        "session_created",
-        "created",
-        route="session_create",
-        session_id=session.id,
-        client_ip=session.client_ip,
+    _LOGGER.info(
+        "device_session event=session_created pid=%s owner_ip_stored=%s "
+        "session_fp=%s",
+        os.getpid(),
+        str(bool(session.client_ip)).lower(),
+        _fingerprint(session.id, b"session"),
     )
     return session
 
@@ -245,48 +282,70 @@ def lookup_session(
 ) -> SessionLookup:
     """Find a live session and record a privacy-safe diagnostic outcome."""
     if not session_id:
-        _log_session_event(
-            "session_lookup",
-            "missing",
+        _log_lookup_diagnostic(
             route=route,
-            client_ip=client_ip,
+            session_id="",
+            outcome="missing",
+            session_found=False,
+            expired=False,
+            owner_check_matched="not_applicable",
+            age_seconds=None,
         )
         return SessionLookup(None, "missing")
 
     now = time.time()
+    session_fp = _fingerprint(session_id, b"session")
     with _lock():
         session = _SESSIONS.get(str(session_id))
         if session is None:
             result = SessionLookup(None, "missing")
-            owner_ip = ""
+            expired = False
+            owner_check_matched = "not_applicable"
+            age_seconds = None
         elif session.expired(now):
             del _SESSIONS[session.id]
-            _log_session_event(
-                "session_expired",
-                "expired",
-                route=route,
-                session_id=session.id,
-                client_ip=client_ip,
-                owner_ip=session.client_ip,
-            )
             result = SessionLookup(None, "expired")
-            owner_ip = session.client_ip
+            expired = True
+            owner_check_matched = "not_applicable"
+            age_seconds = max(0, round(now - session.created_at, 3))
         elif session.client_ip and str(client_ip or "") != session.client_ip:
             result = SessionLookup(None, "owner_mismatch")
-            owner_ip = session.client_ip
+            expired = False
+            owner_check_matched = False
+            age_seconds = max(0, round(now - session.created_at, 3))
         else:
             session.touch()
             result = SessionLookup(session, "found")
-            owner_ip = session.client_ip
+            expired = False
+            owner_check_matched = (
+                True if session.client_ip else "not_applicable"
+            )
+            age_seconds = max(0, round(now - session.created_at, 3))
+            log_found = not session.lookup_diagnostic_logged
+            session.lookup_diagnostic_logged = True
 
-    _log_session_event(
-        "session_lookup",
-        result.outcome,
-        route=route,
-        session_id=session_id,
-        client_ip=client_ip,
-        owner_ip=owner_ip,
-    )
+    if result.outcome != "found":
+        _log_lookup_diagnostic(
+            route=route,
+            session_id=session_id,
+            outcome=result.outcome,
+            session_found=result.outcome != "missing",
+            expired=expired,
+            owner_check_matched=owner_check_matched,
+            age_seconds=age_seconds,
+            session_fp=session_fp,
+        )
+    elif log_found:
+        _log_lookup_diagnostic(
+            route=route,
+            session_id=session_id,
+            outcome="found",
+            session_found=True,
+            expired=False,
+            owner_check_matched=owner_check_matched,
+            age_seconds=age_seconds,
+            session_fp=session_fp,
+        )
     return result
 
 
