@@ -154,6 +154,10 @@
 
     function debug(message) {
       if (typeof config.onDebug === "function") config.onDebug(message);
+      // Always log critical errors to console for production debugging
+      if (message.includes("error") || message.includes("failed") || message.includes("status")) {
+        console.log("[SevaDeviceAudio] " + message);
+      }
     }
 
     function stopCapture() {
@@ -281,6 +285,7 @@
       form.append("session_id", sessionId || "");
       form.append("audio", blob, "chunk.wav");
       sentChunks += 1;
+      debug("uploading chunk " + sentChunks + " (" + blob.size + " bytes)");
       return fetch(config.chunkUrl, {
         method: "POST",
         body: form,
@@ -288,29 +293,39 @@
       }).then(function (response) {
         return response.json().catch(function () { return {}; }).then(function (body) {
           if (response.status === 410) {
+            debug("session expired (410)");
             emit("session_expired", "");
             stop(true);
             clearSession();
             return;
           }
           if (response.status === 429) {
+            debug("rate limited (429)");
             emit("rate_limited", "");
             return;
           }
           if (!response.ok) {
-            if (response.status === 502) emit("service_unavailable", "");
-            else emit("error", body.error || "The server could not process audio.");
-            debug("chunk " + response.status + ": " + ((body && body.error) || ""));
+            var errorMsg = (body && body.error) || "Unknown error";
+            var debugHint = (body && body.debug_hint) || "";
+            debug("chunk failed: status=" + response.status + " error=" + errorMsg + " hint=" + debugHint);
+            if (response.status === 502 || response.status === 503) {
+              emit("service_unavailable", errorMsg);
+            } else if (response.status === 500) {
+              emit("error", "Server error: " + errorMsg);
+            } else {
+              emit("error", body.error || "The server could not process audio.");
+            }
             return;
           }
+          debug("chunk " + sentChunks + " processed: verdict=" + (body.verdict || "unknown"));
           failedPolls = 0;
           handleChunkResponse(body);
         });
-      }).catch(function () {
+      }).catch(function (err) {
         if (!running) return;
         failedPolls += 1;
+        debug("chunk network error: " + (err.message || "fetch failed"));
         if (failedPolls >= 2) emit("offline", "");
-        debug("chunk network error");
       });
     }
 
@@ -492,6 +507,7 @@
     }
 
     function createSession() {
+      debug("creating session: kind=" + (config.kind || "hospital") + " value=" + (config.value || "") + " lang=" + (config.language || "en-IN"));
       return fetch(config.sessionUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -504,7 +520,11 @@
       }).then(readJson).then(function (body) {
         if (!body.session_id) throw new Error("The server did not create a listening session.");
         sessionId = body.session_id;
+        debug("session created: " + sessionId.substring(0, 12) + "...");
         return body;
+      }).catch(function (err) {
+        debug("session creation failed: " + (err.message || "unknown error"));
+        throw err;
       });
     }
 

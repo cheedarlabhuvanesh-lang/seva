@@ -877,7 +877,7 @@ html[data-theme="dark"] .screen{
       startLegacy();
       return;
     }
-    fetch("/api/watch/capabilities").then(function(res){
+    fetch("/api/device/capabilities").then(function(res){
       if (!res.ok) throw new Error("Cannot check listening capabilities.");
       return res.json();
     }).then(function(capabilities){
@@ -885,15 +885,23 @@ html[data-theme="dark"] .screen{
         if (demoButton) demoButton.hidden = true;
         if (demoNote) demoNote.hidden = true;
       }
+      // Check audio provider health BEFORE starting device microphone
       if (capabilities.device_microphone === true) {
+        if (capabilities.audio_provider_healthy === false) {
+          var errorMsg = capabilities.audio_provider_error || "The speech service is not available.";
+          setStatus("Speech service unavailable", errorMsg + " Try the synthetic demo below.");
+          debug("Audio provider health check failed: " + errorMsg);
+          return;
+        }
         startDevice();
       } else if (capabilities.server_microphone === true) {
         startLegacy();
       } else {
         show("unavailable");
       }
-    }).catch(function(){
+    }).catch(function(err){
       show("unavailable");
+      debug("Capabilities check failed: " + (err.message || "unknown"));
     });
   }
 

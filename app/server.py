@@ -1200,17 +1200,30 @@ def _device_client():
         client = get_client()
     except Exception as exc:
         app.logger.error(
-            "Speech service setup failed (%s)", type(exc).__name__
+            "Speech service setup failed (%s: %s)", type(exc).__name__, str(exc)
         )
+        # Log the actual error for debugging but don't expose it to the client
+        import sys
+        print(f"[CRITICAL] Gnani client initialization failed: {type(exc).__name__}: {str(exc)}", file=sys.stderr)
         return None, (jsonify({
             "error": "The speech service is not configured correctly. "
-                     "Check the server's environment."
+                     "Check the server's environment.",
+            "debug_hint": "Check server logs for Gnani initialization errors"
         }), 500)
     if not getattr(client, "api_key", None):
+        app.logger.error("Gnani API key is missing or empty")
+        import sys
+        print("[CRITICAL] GNANI_API_KEY is missing or empty in environment", file=sys.stderr)
         return None, (jsonify({
             "error": "The speech service key was not found. "
-                     "Add GNANI_API_KEY to .env and restart Seva."
+                     "Add GNANI_API_KEY to .env and restart Seva.",
+            "debug_hint": "Ensure GNANI_API_KEY is set in environment"
         }), 503)
+    # Verify the key has the expected format
+    if not client.api_key.startswith("vach_"):
+        app.logger.warning("Gnani API key does not start with expected prefix")
+        import sys
+        print(f"[WARNING] GNANI_API_KEY format check: key length is {len(client.api_key)} chars", file=sys.stderr)
     return client, None
 
 
@@ -1304,11 +1317,24 @@ def api_hospital_announcement():
 
 @app.get("/api/device/capabilities")
 def api_device_capabilities():
+    # Include Gnani health status in capabilities
+    gnani_healthy = False
+    gnani_error = None
+    if app.config["DEVICE_MIC_ENABLED"]:
+        client, error = _device_client()
+        if client is not None:
+            gnani_healthy = True
+        elif error is not None:
+            # Extract error message from the tuple (response, status_code)
+            gnani_error = error[0].get_json().get("error") if hasattr(error[0], 'get_json') else str(error)
+
     return jsonify({
         "device_microphone": bool(app.config["DEVICE_MIC_ENABLED"]),
         "server_microphone": bool(app.config["SERVER_MIC_ENABLED"]),
         "synthetic_demo": bool(app.config["SYNTHETIC_DEMO_ENABLED"]),
         "audio_provider": "gnani" if app.config["DEVICE_MIC_ENABLED"] else None,
+        "audio_provider_healthy": gnani_healthy,
+        "audio_provider_error": gnani_error,
         "transmits_audio": bool(app.config["DEVICE_MIC_ENABLED"]),
         "chunk_seconds": 6,
         "max_chunk_seconds": device_audio.MAX_CHUNK_SECONDS,
@@ -1337,17 +1363,23 @@ def api_device_session():
     if not _device_rate_ok(_client_ip()):
         return jsonify({"error": "too many listening requests; wait a minute"}), 429
 
+    # Pre-flight check: verify Gnani client BEFORE creating session
+    _client, error = _device_client()
+    if error is not None:
+        import sys
+        print(f"[ERROR] Session creation failed: Gnani client not available", file=sys.stderr)
+        return error
+
     try:
         session = device_audio.create_session(
             kind, value, language, client_ip=_client_ip()
         )
+        import sys
+        print(f"[INFO] Device session created: {session.id} | kind={kind} value={value} lang={language}", file=sys.stderr)
     except device_audio.DeviceAudioError as exc:
+        import sys
+        print(f"[ERROR] Session validation failed: {str(exc)}", file=sys.stderr)
         return jsonify({"error": str(exc)}), 400
-
-    _client, error = _device_client()
-    if error is not None:
-        device_audio.stop_session(session.id, client_ip=_client_ip())
-        return error
 
     return jsonify({
         "ok": True,
@@ -1390,16 +1422,21 @@ def api_device_chunk():
     if len(data) > device_audio.MAX_CHUNK_BYTES:
         return jsonify({"error": "audio chunk is too large"}), 413
 
+    import sys
+    print(f"[INFO] Received chunk: session={session_id[:12]}... size={len(data)} bytes", file=sys.stderr)
+
     if not _device_rate_ok(_client_ip()):
         return jsonify({"error": "too many audio chunks; wait a minute"}), 429
 
     session = device_audio.get_session(session_id, client_ip=_client_ip())
     if session is None:
+        print(f"[ERROR] Session expired or not found: {session_id[:12]}...", file=sys.stderr)
         return jsonify({
             "error": "listening session expired",
             "code": "session_expired",
         }), 410
     if not device_audio.begin_chunk(session):
+        print(f"[ERROR] Session chunk limit reached: {session_id[:12]}...", file=sys.stderr)
         return jsonify({
             "error": "listening session reached its limit; start again",
             "code": "session_limit",
@@ -1407,21 +1444,28 @@ def api_device_chunk():
 
     client, error = _device_client()
     if error is not None:
+        print(f"[ERROR] Gnani client unavailable for chunk processing", file=sys.stderr)
         return error
 
     try:
+        print(f"[INFO] Calling Gnani STT for chunk {session.chunks}", file=sys.stderr)
         result = device_audio.transcribe_chunk(client, data, DEVICE_TEMP_DIR)
+        print(f"[INFO] STT success: got {len(result.get('transcript', ''))} chars", file=sys.stderr)
     except device_audio.DeviceAudioError as exc:
+        print(f"[ERROR] Audio validation failed: {str(exc)}", file=sys.stderr)
         return jsonify({"error": str(exc)}), 400
     except GnaniError as exc:
-        app.logger.warning("Device STT failed (%s)", type(exc).__name__)
+        app.logger.warning("Device STT failed (%s: %s)", type(exc).__name__, str(exc))
+        print(f"[ERROR] Gnani STT failed: {type(exc).__name__}: {str(exc)}", file=sys.stderr)
         return jsonify({
             "error": "The speech service could not understand this audio chunk. "
                      "Seva will keep listening.",
             "code": "stt_error",
+            "debug_hint": f"{type(exc).__name__}"
         }), 502
-    except OSError:
-        app.logger.error("Device audio could not be processed")
+    except OSError as exc:
+        app.logger.error("Device audio could not be processed (%s)", type(exc).__name__)
+        print(f"[ERROR] Audio processing failed: {type(exc).__name__}: {str(exc)}", file=sys.stderr)
         return jsonify({
             "error": "The server could not process that audio chunk.",
             "code": "audio_error",
@@ -1429,6 +1473,7 @@ def api_device_chunk():
 
     transcript = (result.get("transcript") or "").strip()
     if not transcript:
+        print(f"[INFO] Empty transcript from STT", file=sys.stderr)
         return jsonify({
             "ok": True,
             "heard": False,
@@ -1437,15 +1482,20 @@ def api_device_chunk():
             "stats": device_audio.stats(session),
         })
 
+    print(f"[INFO] Transcript received: {len(transcript)} chars", file=sys.stderr)
+
     try:
         record = device_audio.process_transcript(session, transcript)
+        print(f"[INFO] Match verdict: {record.get('verdict')} | token={record.get('token')} room={record.get('room')}", file=sys.stderr)
     except device_audio.DeviceAudioError as exc:
+        print(f"[ERROR] Transcript processing failed: {str(exc)}", file=sys.stderr)
         return jsonify({"error": str(exc)}), 400
 
     alert = None
     if record.get("verdict") in ("mine", "missing") and not record.get("duplicate"):
         alert = _finalize_device_record(record)
         device_audio.set_last_alert(session, alert)
+        print(f"[SUCCESS] Alert created: verdict={record.get('verdict')}", file=sys.stderr)
 
     return jsonify({
         "ok": True,
