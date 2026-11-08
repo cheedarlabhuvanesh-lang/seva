@@ -42,10 +42,9 @@ threads = 4
 timeout = 120
 graceful_timeout = 30
 keepalive = 5
-# Keep logs useful without recording replay/announcement text. %(U)s is the
-# path only; %(q)s (the query string) is deliberately omitted.
+# Keep logs useful without recording peer IPs or query strings.
 accesslog = "-"
-access_log_format = '%(h)s %(t)s "%(m)s %(U)s %(H)s" %(s)s %(b)s %(D)s'
+access_log_format = '%(t)s "%(m)s %(U)s %(H)s" %(s)s %(b)s %(D)s'
 errorlog = "-"
 capture_output = True
 loglevel = os.environ.get("LOG_LEVEL", "info").strip().lower()

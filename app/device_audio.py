@@ -20,6 +20,9 @@ Design rules
 
 from __future__ import annotations
 
+import hashlib
+import hmac
+import logging
 import re
 import secrets
 import tempfile
@@ -28,6 +31,7 @@ import wave
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Literal
 
 from app.alert import alert_is_certain, build_alert, language_supported
 from app.extract import token_key
@@ -91,6 +95,47 @@ class DeviceSession:
 
 _LOCK = None
 _SESSIONS: dict[str, DeviceSession] = {}
+_DIAGNOSTIC_HMAC_KEY = secrets.token_bytes(32)
+_LOGGER = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class SessionLookup:
+    session: DeviceSession | None
+    outcome: Literal["found", "missing", "expired", "owner_mismatch"]
+
+
+def _fingerprint(value: str, purpose: bytes) -> str:
+    digest = hmac.new(
+        _DIAGNOSTIC_HMAC_KEY,
+        purpose + b"\0" + str(value or "").encode("utf-8", errors="replace"),
+        hashlib.sha256,
+    ).hexdigest()
+    return digest[:16]
+
+
+def _log_session_event(
+    event: str,
+    outcome: str,
+    *,
+    route: str,
+    session_id: str = "",
+    client_ip: str = "",
+    owner_ip: str = "",
+) -> None:
+    session_fp = _fingerprint(session_id, b"session") if session_id else "-"
+    client_fp = _fingerprint(client_ip, b"client-ip") if client_ip else "-"
+    owner_fp = _fingerprint(owner_ip, b"client-ip") if owner_ip else "-"
+    _LOGGER.info(
+        "device_session event=%s route=%s outcome=%s "
+        "session_fp=%s client_fp=%s owner_fp=%s",
+        event,
+        route,
+        outcome,
+        session_fp,
+        client_fp,
+        owner_fp,
+    )
 
 
 def _lock():
@@ -152,9 +197,24 @@ def create_session(
     with _lock():
         expired = [sid for sid, session in _SESSIONS.items() if session.expired(now)]
         for sid in expired:
+            removed = _SESSIONS[sid]
+            _log_session_event(
+                "session_expired",
+                "expired",
+                route="session_create",
+                session_id=removed.id,
+                owner_ip=removed.client_ip,
+            )
             del _SESSIONS[sid]
         while len(_SESSIONS) >= MAX_ACTIVE_SESSIONS:
             oldest = min(_SESSIONS.values(), key=lambda item: item.last_seen)
+            _log_session_event(
+                "session_evicted",
+                "capacity",
+                route="session_create",
+                session_id=oldest.id,
+                owner_ip=oldest.client_ip,
+            )
             del _SESSIONS[oldest.id]
 
         session = DeviceSession(
@@ -167,38 +227,105 @@ def create_session(
             last_seen=now,
         )
         _SESSIONS[session.id] = session
+    _log_session_event(
+        "session_created",
+        "created",
+        route="session_create",
+        session_id=session.id,
+        client_ip=session.client_ip,
+    )
     return session
 
 
-def get_session(session_id: str, *, client_ip: str) -> DeviceSession | None:
-    """Return a live session owned by this client, or None."""
+def lookup_session(
+    session_id: str,
+    *,
+    client_ip: str,
+    route: Literal["state", "chunk", "lookup"] = "lookup",
+) -> SessionLookup:
+    """Find a live session and record a privacy-safe diagnostic outcome."""
     if not session_id:
-        return None
+        _log_session_event(
+            "session_lookup",
+            "missing",
+            route=route,
+            client_ip=client_ip,
+        )
+        return SessionLookup(None, "missing")
+
     now = time.time()
     with _lock():
         session = _SESSIONS.get(str(session_id))
         if session is None:
-            return None
-        if session.expired(now):
+            result = SessionLookup(None, "missing")
+            owner_ip = ""
+        elif session.expired(now):
             del _SESSIONS[session.id]
-            return None
-        if session.client_ip and str(client_ip or "") != session.client_ip:
-            return None
-        session.touch()
-        return session
+            _log_session_event(
+                "session_expired",
+                "expired",
+                route=route,
+                session_id=session.id,
+                client_ip=client_ip,
+                owner_ip=session.client_ip,
+            )
+            result = SessionLookup(None, "expired")
+            owner_ip = session.client_ip
+        elif session.client_ip and str(client_ip or "") != session.client_ip:
+            result = SessionLookup(None, "owner_mismatch")
+            owner_ip = session.client_ip
+        else:
+            session.touch()
+            result = SessionLookup(session, "found")
+            owner_ip = session.client_ip
+
+    _log_session_event(
+        "session_lookup",
+        result.outcome,
+        route=route,
+        session_id=session_id,
+        client_ip=client_ip,
+        owner_ip=owner_ip,
+    )
+    return result
+
+
+def get_session(session_id: str, *, client_ip: str) -> DeviceSession | None:
+    """Return a live session owned by this client, or None."""
+    return lookup_session(session_id, client_ip=client_ip).session
 
 
 def stop_session(session_id: str, *, client_ip: str) -> bool:
     if not session_id:
+        _log_session_event(
+            "session_stop",
+            "missing",
+            route="stop",
+            client_ip=client_ip,
+        )
         return False
     with _lock():
         session = _SESSIONS.get(str(session_id))
         if session is None:
-            return False
-        if session.client_ip and str(client_ip or "") != session.client_ip:
-            return False
-        del _SESSIONS[session.id]
-        return True
+            outcome = "missing"
+            owner_ip = ""
+        elif session.client_ip and str(client_ip or "") != session.client_ip:
+            outcome = "owner_mismatch"
+            owner_ip = session.client_ip
+        else:
+            del _SESSIONS[session.id]
+            outcome = "stopped"
+            owner_ip = session.client_ip
+
+    _log_session_event(
+        "session_stop",
+        outcome,
+        route="stop",
+        session_id=session_id,
+        client_ip=client_ip,
+        owner_ip=owner_ip,
+    )
+    return outcome == "stopped"
 
 
 def clear_sessions() -> None:

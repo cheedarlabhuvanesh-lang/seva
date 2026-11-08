@@ -26,6 +26,7 @@ from app.langdata import (
     NATIVE_TEENS,
     NATIVE_TENS,
     NATIVE_UNITS,
+    ROOM_WORDS,
     strip_zero_width,
     to_ascii_digits,
 )
@@ -47,6 +48,13 @@ ROOM_INDICATORS = {
 GO_INDICATORS = {
     "go", "వెళ్ళండి", "వెళ్లండి", "జాచ్", "जाएं", "जाएँ"
 }
+
+_ROOM_WORD_PATTERN = "|".join(
+    re.escape(word) for word in sorted(set(ROOM_WORDS), key=len, reverse=True)
+)
+_UNMARKED_LETTER_TOKEN_RE = re.compile(
+    rf"^([a-z])\s+(\d+)(?:\s+(?:{_ROOM_WORD_PATTERN})\s+(\d+))?$"
+)
 
 
 # --------------------------------------------------------------------------
@@ -168,6 +176,16 @@ def match_hospital(transcript: str, my_value: str | int) -> dict:
 
     specialist = find_specialist(transcript)
     announcements = find_tokens(transcript)
+    if not announcements:
+        normalized = normalize_text(transcript).strip()
+        unmarked = _UNMARKED_LETTER_TOKEN_RE.fullmatch(normalized)
+        if unmarked:
+            letter, number, room = unmarked.groups()
+            announcements = [{
+                "token": f"{letter.upper()}-{number}",
+                "room": room,
+            }]
+
     if not announcements:
         return {
             "verdict": "none", "token": None, "room": None,
