@@ -205,23 +205,14 @@ html[data-theme="dark"] .screen{
 
 /* ══════ 3. STATUS ══════ */
 .status{text-align:center}
-.status .big{font-size:32px;font-weight:750;letter-spacing:-.4px;color:var(--ink);line-height:1.2}
+.status .big{font-size:32px;font-weight:750;letter-spacing:-.4px;color:var(--ink);line-height:1.4}
 .status .small{margin-top:var(--s2);font-size:19px;color:var(--muted);
                max-width:18ch;margin-left:auto;margin-right:auto}
-.demo-button{
-  min-height:var(--tap);margin-top:var(--s3);padding:0 var(--s4);
-  border:1px solid var(--line);border-radius:var(--r-pill);
-  background:var(--surface);color:var(--ink);
-  font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;
-}
-.demo-button:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
-.demo-note{margin-top:var(--s1);font-size:13px;line-height:1.35;color:var(--muted)}
 .privacy-note{
   margin-top:var(--s3);padding:10px 12px;border:1px solid var(--line);
   border-radius:12px;background:color-mix(in srgb, var(--surface) 88%, transparent);
   font-size:12px;line-height:1.45;color:var(--muted);text-align:left;
 }
-.demo-button:disabled{opacity:.65;cursor:wait}
 
 /* ══════ 4. THE WAVEFORM ══════
    Decoration. It is not reading a microphone — the mic is
@@ -359,14 +350,14 @@ html[data-theme="dark"] .screen{
       <div class="small">Please wait for your announcement</div>
     </div>
 
-    <button class="demo-button" id="demo" type="button">Try synthetic announcement</button>
-    <div class="demo-note">Example only. No microphone, paid API, or real announcement.</div>
-    <button class="demo-button" id="mic-test" type="button" style="margin-top:8px;">Test microphone only</button>
-    <div class="demo-note" id="mic-test-note">Local test only. No audio is uploaded or sent to Gnani or Gemini.</div>
-
-    <div class="privacy-note">
-      <span>While listening, short audio clips go to Gnani for speech recognition. They are deleted after processing.</span><br>
-      <span>Live listening works only while this screen is open. It stops when you leave or close the browser.</span>
+    <div class="privacy-note" id="mic-diag-panel" style="display:none; margin-top:10px; font-family:ui-monospace,monospace; text-align:left;">
+      <strong>Microphone Diagnostics:</strong><br>
+      Status: <span id="diag-status">Inactive</span><br>
+      Volume (RMS): <span id="diag-rms">0.0000</span><br>
+      Noise Floor: <span id="diag-noise">0.0050</span><br>
+      Speech Level: <span id="diag-db">0.0</span> dB above noise<br>
+      Gate Status: <span id="diag-gate">Closed</span><br>
+      Processing: <span id="diag-proc">Stopped</span>
     </div>
 
     <div class="wavebars" id="wavebars" aria-hidden="true"></div>
@@ -450,8 +441,7 @@ html[data-theme="dark"] .screen{
 /* ───────── LISTENING MODES ─────────
    Primary: the phone's own microphone is captured here and bounded clips
    are sent to /api/device/chunk. Secondary: a development server with
-   SEVA_ENABLE_SERVER_MIC=1 polls /api/watch/*. The synthetic demo always
-   works without a microphone.                                      */
+   SEVA_ENABLE_SERVER_MIC=1 polls /api/watch/*.                         */
 </script>
 <script src="device-listener.js"></script>
 <script>
@@ -540,21 +530,17 @@ html[data-theme="dark"] .screen{
     if(!res.ok) throw new Error("Cannot check listening capabilities.");
     return res.json();
   }).then(function(capabilities){
-    if(capabilities.synthetic_demo !== true){
-      document.getElementById("demo").hidden = true;
-      document.querySelector(".demo-note").hidden = true;
-    }
     if(capabilities.server_microphone !== true){
       startFailed = true;
       setStatus("Live microphone unavailable",
-        "The Render server cannot hear your phone. Use the synthetic demo below.");
+        "The Render server cannot hear your phone. Please try again.");
       return;
     }
     return startServerWatch();
   }).catch(function(){
     startFailed = true;
     setStatus("Listening unavailable",
-      "The service could not check microphone access. You can still try the synthetic demo.");
+      "The service could not check microphone access. Please try again.");
   });
 
   /* Poll /api/watch/state every 1 second (Python owns the mic) */
@@ -629,62 +615,6 @@ html[data-theme="dark"] .screen{
     }, 1000);
   }
 
-  document.getElementById("demo").addEventListener("click", function(){
-    var demoButton = this;
-    demoButton.disabled = true;
-    setStatus("Synthetic demo", "Running a generated example. No microphone or external service is used.");
-    fetch("/api/watch/demo", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        kind: watch.mode || "hospital",
-        value: watch.value || "",
-        language: lang
-      })
-    }).then(function(res){
-      return res.json().catch(function(){ return {}; }).then(function(body){
-        if(!res.ok) throw new Error(body.error || "Synthetic demo is unavailable.");
-        return body;
-      });
-    }).then(function(alert){
-      if(alert.synthetic !== true) throw new Error("The server did not return a synthetic sample.");
-      var result = {
-        schemaVersion: alert.schemaVersion,
-        verdict: alert.verdict,
-        token: alert.token || null,
-        room: alert.room || null,
-        train_no: alert.train_no || null,
-        train_name: alert.train_name || null,
-        platform: alert.platform || null,
-        destination: alert.destination || null,
-        specialist: alert.specialist || null,
-        certain: alert.certain === true,
-        spoken: alert.spoken || null,
-        lang: alert.lang || null,
-        requested_language: alert.requested_language || null,
-        audio: null,
-        audio_url: null,
-        synthetic: true
-      };
-      try{
-        localStorage.setItem("seva.lastResult", JSON.stringify(result));
-        localStorage.removeItem("seva.lastAlertId");
-      }catch(e){}
-      if(!result.certain){
-        location.href = "missing.html";
-      } else if(result.verdict === "mine"){
-        location.href = "confirmed.html";
-      } else if(result.verdict === "other"){
-        location.href = "another.html";
-      } else {
-        location.href = "missing.html";
-      }
-    }).catch(function(err){
-      setStatus("Synthetic demo unavailable", err.message || "Try again later.");
-      demoButton.disabled = false;
-    });
-  });
-
   /* Stop listening and return */
   function stopListening(){
     if(!startFailed) fetch("/api/watch/stop", {method: "POST"}).catch(function(){});
@@ -721,13 +651,40 @@ html[data-theme="dark"] .screen{
   var debugBox = document.getElementById("debug");
   var stopButton = document.getElementById("stop");
   var micButton = document.getElementById("mic");
-  var demoButton = document.getElementById("demo");
-  var demoNote = document.querySelector(".demo-note");
-  var micTestButton = document.getElementById("mic-test");
-  var micTestNote = document.getElementById("mic-test-note");
   var controller = null;
   var legacyPoll = null;
   var leaving = false;
+  var diagTimer = null;
+  var diagPanel = document.getElementById("mic-diag-panel");
+  var diagStatus = document.getElementById("diag-status");
+  var diagRms = document.getElementById("diag-rms");
+  var diagNoise = document.getElementById("diag-noise");
+  var diagDb = document.getElementById("diag-db");
+  var diagGate = document.getElementById("diag-gate");
+  var diagProc = document.getElementById("diag-proc");
+
+  function startDiagnostics(){
+    if (diagPanel) diagPanel.style.display = "block";
+    if (diagTimer) clearInterval(diagTimer);
+    diagTimer = setInterval(function(){
+      if (!controller || !controller.isRunning()) {
+        if (diagStatus) diagStatus.textContent = "Stopped";
+        return;
+      }
+      var d = controller.diagnostics();
+      if (diagStatus) diagStatus.textContent = d.callbacksRunning ? "Active" : "Waiting for audio...";
+      if (diagRms) diagRms.textContent = d.rms.toFixed(4);
+      if (diagNoise) diagNoise.textContent = d.background.toFixed(4);
+      if (diagDb) diagDb.textContent = d.db.toFixed(1);
+      if (diagGate) diagGate.textContent = d.gateOpen ? "OPEN (Speech detected)" : "Closed (Silence)";
+      if (diagProc) diagProc.textContent = d.callbacksRunning ? ("Running (" + d.callbacksCount + " blocks, " + d.framesCaptured + " frames)") : "Stalled / No callbacks";
+    }, 150);
+  }
+
+  function stopDiagnostics(){
+    if (diagTimer) { clearInterval(diagTimer); diagTimer = null; }
+    if (diagPanel) diagPanel.style.display = "none";
+  }
 
   var STATUS = {
     requesting_permission: ["Allow microphone", "Tap Allow in the browser prompt."],
@@ -739,9 +696,6 @@ html[data-theme="dark"] .screen{
     not_detected: ["Still listening\u2026", "That was another announcement."],
     duplicate: ["Still listening\u2026", "That announcement was already shown."],
     detected: ["Announcement detected!", "Opening your alert\u2026"],
-    test_listening: ["Mic Test: Listening\u2026", "Speech recognition is disabled. Speak to test."],
-    sound_detected: ["Mic Test: Sound detected!", "Speech recognition is disabled. No audio uploaded."],
-    test_stopped: ["Mic Test stopped", "Capture-only test ended. Tap Start when ready."],
     permission_denied: ["Microphone blocked", "Allow microphone access in your browser settings, then try again."],
     no_microphone: ["No microphone found", "This device did not offer a microphone."],
     mic_error: ["Microphone unavailable", "Close other apps using the microphone and try again."],
@@ -751,7 +705,7 @@ html[data-theme="dark"] .screen{
     session_expired: ["Listening session ended", "Please start again."],
     rate_limited: ["Please wait", "Too many audio chunks. Seva will try again shortly."],
     service_unavailable: ["Speech service busy", "Seva will keep listening. Please wait."],
-    unavailable: ["Live listening unavailable", "The speech service is not configured. You can still try the synthetic demo."],
+    unavailable: ["Live listening unavailable", "The speech service is not configured. Please try again."],
     error: ["Something went wrong", "Please stop and try again."],
     stopped: ["Listening stopped", "Please go back and start again."]
   };
@@ -788,7 +742,6 @@ html[data-theme="dark"] .screen{
       audio: alert.audio || null,
       audio_url: alert.audio_url || null,
       tts_error: alert.tts_error || null,
-      synthetic: alert.synthetic === true
     };
     try{
       localStorage.setItem("seva.lastResult", JSON.stringify(result));
@@ -881,15 +834,11 @@ html[data-theme="dark"] .screen{
       if (!res.ok) throw new Error("Cannot check listening capabilities.");
       return res.json();
     }).then(function(capabilities){
-      if (capabilities.synthetic_demo !== true){
-        if (demoButton) demoButton.hidden = true;
-        if (demoNote) demoNote.hidden = true;
-      }
       // Check audio provider health BEFORE starting device microphone
       if (capabilities.device_microphone === true) {
         if (capabilities.audio_provider_healthy === false) {
           var errorMsg = capabilities.audio_provider_error || "The speech service is not available.";
-          setStatus("Speech service unavailable", errorMsg + " Try the synthetic demo below.");
+          setStatus("Speech service unavailable", errorMsg + " Please try again.");
           debug("Audio provider health check failed: " + errorMsg);
           return;
         }
@@ -909,6 +858,7 @@ html[data-theme="dark"] .screen{
     leaving = true;
     if (controller) controller.stop(silent === true);
     if (legacyPoll) { clearInterval(legacyPoll); legacyPoll = null; }
+    stopDiagnostics();
     if (silent !== true) {
       if (!controller) fetch("/api/watch/stop", {method: "POST"}).catch(function(){});
       location.href = "listen.html";
@@ -918,52 +868,6 @@ html[data-theme="dark"] .screen{
   stopButton.addEventListener("click", function(){ stopListening(false); });
   micButton.addEventListener("click", function(){ stopListening(false); });
   window.addEventListener("pagehide", function(){ stopListening(true); });
-
-  if (demoButton) demoButton.addEventListener("click", function(){
-    var button = this;
-    button.disabled = true;
-    show("processing", "Running a generated example. No microphone or external service is used.");
-    fetch("/api/watch/demo", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        kind: watch.mode || "hospital",
-        value: watch.value || "",
-        language: lang
-      })
-    }).then(function(res){
-      return res.json().catch(function(){ return {}; }).then(function(body){
-        if (!res.ok) throw new Error(body.error || "Synthetic demo is unavailable.");
-        return body;
-      });
-    }).then(function(alert){
-      if (alert.synthetic !== true) throw new Error("The server did not return a synthetic sample.");
-      storeResult(alert);
-      leaving = true;
-      location.href = (!alert.certain || alert.verdict === "missing")
-        ? "missing.html" : "confirmed.html";
-    }).catch(function(err){
-      setStatus("Synthetic demo unavailable", err.message || "Try again later.");
-      button.disabled = false;
-    });
-  });
-
-  if (micTestButton) micTestButton.addEventListener("click", function(){
-    if (controller && controller.isRunning()) {
-      controller.stop(false);
-    }
-    if (legacyPoll) { clearInterval(legacyPoll); legacyPoll = null; }
-
-    show("test_listening");
-    controller = window.SevaDeviceAudio.createTest({
-      onState: function(code, detail){
-        if (leaving) return;
-        show(code, detail);
-      },
-      onDebug: debug
-    });
-    controller.start();
-  });
 
   start();
 })();

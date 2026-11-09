@@ -72,15 +72,15 @@ class TestDeviceUIContract(unittest.TestCase):
         self.assertIn("speech provider", page)
         self.assertIn('src="i18n-device.js"', page)
 
-    def test_device_capture_only_test_mode(self):
+    def test_device_capture_only_test_mode_is_removed(self):
         source = self.page("device-listener.js")
-        self.assertIn("createTest", source)
-        self.assertIn("captureOnly", source)
-        self.assertIn("test_listening", source)
-        self.assertIn("sound_detected", source)
+        self.assertNotIn("createTest", source)
+        self.assertNotIn("captureOnly", source)
+        self.assertNotIn("test_listening", source)
+        self.assertNotIn("sound_detected", source)
         page = self.page("listening.html")
-        self.assertIn('id="mic-test"', page)
-        self.assertIn("Test microphone only", page)
+        self.assertNotIn('id="mic-test"', page)
+        self.assertNotIn("Test microphone only", page)
 
 
 if __name__ == "__main__":

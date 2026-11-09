@@ -118,7 +118,6 @@
 
   function create(options) {
     var config = options || {};
-    var captureOnly = config.captureOnly === true;
     var sessionId = null;
     var running = false;
     var detected = false;
@@ -134,6 +133,14 @@
     var droppedChunks = 0;
     var sentChunks = 0;
     var lastStatus = "";
+
+    var diagRms = 0;
+    var diagBackground = SILENCE_FLOOR;
+    var diagDb = 0;
+    var diagCallbacks = 0;
+    var diagLastCallback = 0;
+    var diagGateOpen = false;
+    var diagFrames = 0;
 
     var gate = {
       primed: false,
@@ -191,10 +198,6 @@
     }
 
     function notifyStop() {
-      if (captureOnly) {
-        clearSession();
-        return;
-      }
       var id = sessionId;
       if (!id) return;
       var payload = JSON.stringify({ session_id: id });
@@ -228,13 +231,8 @@
       uploading = false;
       stopCapture();
       if (!silent) {
-        if (captureOnly) {
-          clearSession();
-          if (wasRunning) emit("test_stopped");
-        } else {
-          notifyStop();
-          if (wasRunning) emit("stopped");
-        }
+        notifyStop();
+        if (wasRunning) emit("stopped");
       } else {
         clearSession();
       }
@@ -343,7 +341,7 @@
     }
 
     function enqueue(blob) {
-      if (captureOnly || !blob || !running) return;
+      if (!blob || !running) return;
       if (queue.length >= MAX_QUEUED_CHUNKS) {
         droppedChunks += 1;
         debug("dropped a chunk because the upload queue was full");
@@ -354,11 +352,6 @@
     }
 
     function flushBuffer() {
-      if (captureOnly) {
-        gate.buffer = [];
-        gate.buffered = 0;
-        return;
-      }
       if (gate.buffered < MIN_BUFFER_SECONDS) {
         gate.buffer = [];
         gate.buffered = 0;
@@ -372,12 +365,20 @@
 
     function processBlock(samples, inputRate) {
       var level = rms(samples);
+      diagRms = level;
+      diagBackground = gate.background;
+      diagDb = gate.primed ? (20 * Math.log10(Math.max(level, 1e-6) / Math.max(gate.background, 1e-6))) : 0;
+      diagCallbacks += 1;
+      diagLastCallback = Date.now();
+      diagGateOpen = gate.open;
+      diagFrames += samples.length;
+
       var resampled = resampleLinear(samples, inputRate, TARGET_RATE);
 
       if (!gate.primed) {
         gate.background = Math.max(SILENCE_FLOOR, level);
         gate.primed = true;
-        emit(captureOnly ? "test_listening" : "listening");
+        emit("listening");
         return;
       }
 
@@ -400,13 +401,12 @@
           gate.buffered += gate.buffer[i].length / TARGET_RATE;
         }
         gate.pre = [];
-        emit(captureOnly ? "sound_detected" : "speech");
+        emit("speech");
       } else {
         gate.buffer.push(resampled);
         gate.buffered += resampled.length / TARGET_RATE;
         if (loud) {
           gate.quiet = 0;
-          if (captureOnly) emit("sound_detected");
         } else {
           gate.quiet += 1;
         }
@@ -419,7 +419,6 @@
         gate.open = false;
         gate.quiet = 0;
         flushBuffer();
-        if (captureOnly) emit("test_listening");
       }
     }
 
@@ -472,19 +471,19 @@
           emit("tap_to_start", "");
           context.resume().then(function () {
             if (running && context && context.state === "running") {
-              emit(captureOnly ? "test_listening" : "listening");
+              emit("listening");
             }
           }).catch(function () {});
           var resumeOnTap = function () {
             if (context && context.state === "suspended") {
               context.resume().then(function () {
-                if (running) emit(captureOnly ? "test_listening" : "listening");
+                if (running) emit("listening");
               }).catch(function () {});
             }
           };
           document.addEventListener("pointerdown", resumeOnTap, { once: true });
         } else {
-          emit(captureOnly ? "test_listening" : "listening");
+          emit("listening");
         }
         return null;
       }).catch(function (error) {
@@ -571,15 +570,11 @@
         buffered: 0
       };
 
-      var init = captureOnly ? Promise.resolve() : createSession();
-
-      return init.then(function () {
+      return createSession().then(function () {
         return startAudio();
       }).then(function () {
         if (!running) return;
-        if (!captureOnly) {
-          pollTimer = setInterval(pollState, POLL_MS);
-        }
+        pollTimer = setInterval(pollState, POLL_MS);
       }).catch(function (error) {
         if (!running && lastStatus !== "permission_denied" &&
             lastStatus !== "no_microphone" && lastStatus !== "mic_error" &&
@@ -603,19 +598,25 @@
       stop: stop,
       isRunning: function () { return running; },
       sessionId: function () { return sessionId; },
-      isCaptureOnly: function () { return captureOnly; },
       stats: function () {
         return { sent: sentChunks, dropped: droppedChunks, queued: queue.length };
+      },
+      diagnostics: function () {
+        return {
+          rms: diagRms,
+          background: diagBackground,
+          db: diagDb,
+          callbacksRunning: diagCallbacks > 0 && (Date.now() - diagLastCallback < 2000),
+          callbacksCount: diagCallbacks,
+          gateOpen: diagGateOpen,
+          framesCaptured: diagFrames
+        };
       }
     };
   }
 
   global.SevaDeviceAudio = {
     create: create,
-    createTest: function (options) {
-      var opts = Object.assign({}, options || {}, { captureOnly: true });
-      return create(opts);
-    },
     rms: rms,
     resampleLinear: resampleLinear,
     encodeWav: encodeWav
