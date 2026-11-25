@@ -124,6 +124,11 @@ def _fingerprint(value: str, purpose: bytes) -> str:
     return digest[:16]
 
 
+def client_fingerprint(value: str) -> str:
+    """Return a short, non-reversible client identifier for logs."""
+    return _fingerprint(value, b"client-ip") if value else "-"
+
+
 def _log_lookup_diagnostic(
     *,
     route: str,
