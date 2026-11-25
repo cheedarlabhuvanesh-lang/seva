@@ -54,10 +54,13 @@ class TestEntryPoint(unittest.TestCase):
     def setUp(self):
         self.client = server.app.test_client()
 
-    def test_root_redirects_to_app(self):
+    def test_root_serves_the_landing_page(self):
         response = self.client.get("/")
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.headers["Location"], "/app/")
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("Location", response.headers)
+        body = response.get_data(as_text=True)
+        self.assertIn("Hear what matters", body)
+        self.assertIn('href="/app/"', body)
 
     def test_health_endpoint_is_minimal_and_has_security_headers(self):
         response = self.client.get("/healthz")
@@ -311,7 +314,53 @@ class TestSpeechEndpoints(unittest.TestCase):
                 "/api/replay", json={"text": text, "language": "ta-IN"}
             )
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, "audio/wav")
         self.assertEqual(fake.speak_calls[0]["language"], "ta-IN")
+
+    def test_replay_rejects_cross_site_browser_requests(self):
+        fake = FakeClient()
+        with patch.object(server, "get_client", return_value=fake):
+            cross = self.client.get(
+                "/api/replay",
+                query_string={"text": self._text(), "lang": "en-IN"},
+                headers={"Sec-Fetch-Site": "cross-site"},
+            )
+            same_site = self.client.get(
+                "/api/replay",
+                query_string={"text": self._text(), "lang": "en-IN"},
+                headers={"Sec-Fetch-Site": "same-site"},
+            )
+        self.assertEqual(cross.status_code, 403)
+        self.assertEqual(same_site.status_code, 403)
+        self.assertEqual(fake.speak_calls, [])
+
+    def test_replay_allows_same_origin_and_direct_navigation(self):
+        fake = FakeClient()
+        with patch.object(server, "get_client", return_value=fake):
+            same_origin = self.client.get(
+                "/api/replay",
+                query_string={"text": self._text(), "lang": "en-IN"},
+                headers={"Sec-Fetch-Site": "same-origin"},
+            )
+            direct = self.client.get(
+                "/api/replay",
+                query_string={"text": self._text(), "lang": "en-IN"},
+                headers={"Sec-Fetch-Site": "none"},
+            )
+        self.assertEqual(same_origin.status_code, 200)
+        self.assertEqual(direct.status_code, 200)
+        self.assertEqual(len(fake.speak_calls), 2)
+
+    def test_replay_rejects_foreign_origin_header(self):
+        fake = FakeClient()
+        with patch.object(server, "get_client", return_value=fake):
+            response = self.client.get(
+                "/api/replay",
+                query_string={"text": self._text(), "lang": "en-IN"},
+                headers={"Origin": "https://attacker.example"},
+            )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(fake.speak_calls, [])
 
     def test_unsupported_language_is_rejected(self):
         response = self.client.post(

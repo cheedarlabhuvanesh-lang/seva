@@ -86,11 +86,15 @@ API routes.
 
 ## Tests
 
-The offline suite needs no microphone or API keys:
+Install the dependencies, then run the suite from the repository root:
 
 ```
-python -m unittest tests.test_bus_matching tests.test_device_audio tests.test_end_to_end tests.test_gemini tests.test_gnani_client tests.test_hospital_adapter tests.test_multilingual tests.test_nova_language tests.test_security tests.test_ui_contract -v
+pip install -r requirements.txt pytest
+pytest
 ```
+
+Every test is offline. No API key, no network access and no microphone is
+required; external services are mocked. The suite runs in about two seconds.
 
 `tests/step4_complete.py` and `tests/step4_verification.py` are manual
 integration scripts, intentionally excluded from pytest discovery. They call
