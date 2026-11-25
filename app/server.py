@@ -25,6 +25,7 @@ import time
 import uuid
 from collections import defaultdict, deque
 from pathlib import Path
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -155,6 +156,77 @@ DEVICE_RATE_LIMIT = 45
 DEVICE_RATE_LOCK = threading.Lock()
 DEVICE_RATE: dict[str, deque[float]] = defaultdict(deque)
 
+#: Process-local operational counters. Gunicorn runs one worker, so a restart
+#: resets them; the values are for alerting and debugging, not billing.
+_METRICS_LOCK = threading.Lock()
+_METRIC_NAMES = (
+    "ask_requests", "ask_rate_limited",
+    "speech_requests", "speech_rate_limited",
+    "device_requests", "device_rate_limited",
+    "stt_calls", "stt_seconds", "stt_failures",
+    "tts_calls", "tts_chars", "tts_cache_hits", "tts_failures",
+    "gemini_calls", "gemini_failures",
+    "cross_site_rejected", "session_expired",
+)
+_METRICS: dict[str, int] = {name: 0 for name in _METRIC_NAMES}
+
+
+def _metric(name: str, amount: int = 1) -> None:
+    with _METRICS_LOCK:
+        _METRICS[name] = _METRICS.get(name, 0) + amount
+
+
+def _metrics_snapshot() -> dict[str, int]:
+    with _METRICS_LOCK:
+        return dict(_METRICS)
+
+
+def _log_event(event: str, **fields: object) -> None:
+    """Log a structured operational event without text, keys, or raw ids."""
+    detail = " ".join(
+        f"{key}={value}" for key, value in fields.items() if value is not None
+    )
+    app.logger.warning("seva event=%s %s", event, detail)
+
+
+def _host_from_url(value: str) -> str:
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return ""
+    return (parsed.hostname or "").lower()
+
+
+def _same_origin_request() -> bool:
+    """Reject browser requests that another site initiated.
+
+    Simple GETs such as ``<audio src>`` skip CORS preflight, so they can spend
+    provider credits. Modern browsers send ``Sec-Fetch-Site``; older ones are
+    checked through ``Origin``/``Referer``. Requests with none of those headers
+    are allowed so CLI and server-to-server clients keep working.
+    """
+    site = (request.headers.get("Sec-Fetch-Site") or "").strip().lower()
+    if site:
+        return site in {"same-origin", "none"}
+    expected = _host_from_url(f"//{request.host}")
+    for header in ("Origin", "Referer"):
+        raw = (request.headers.get(header) or "").strip()
+        if not raw:
+            continue
+        if raw.lower() == "null":
+            return False
+        host = _host_from_url(raw)
+        if host:
+            return host == expected
+    return True
+
+
+def _reject_cross_site(route: str):
+    _metric("cross_site_rejected")
+    _log_event("cross_site_rejected", route=route, client_fp=_client_fp())
+    return jsonify({"error": "cross-site requests are not allowed"}), 403
+
+
 #: Raw device audio is written only to this short-lived directory. Files are
 #: deleted immediately after transcription, never served, never cached.
 DEVICE_TEMP_DIR = DATA_DIR / "samples" / "device-tmp"
@@ -242,6 +314,24 @@ def healthz():
     return jsonify({"status": "ok"})
 
 
+@app.get("/api/health")
+def api_health():
+    """Non-sensitive readiness and abuse counters for operators.
+
+    This endpoint never returns keys, text, audio, or session identifiers. It
+    is also covered by the preview-auth gate when that gate is enabled.
+    """
+    return jsonify({
+        "status": "ok",
+        "providers": {
+            "gnani_configured": GnaniClient.is_configured(),
+            "gemini_configured": gemini.is_configured(),
+        },
+        "device_microphone": bool(app.config["DEVICE_MIC_ENABLED"]),
+        "metrics": _metrics_snapshot(),
+    })
+
+
 app.config["VOICE"] = "Chetana"   # v3.0 healthcare voice
 
 book = SchemeBook(
@@ -321,20 +411,34 @@ def _allow_ask(remote_addr: str) -> bool:
         while recent and now - recent[0] >= ASK_RATE_WINDOW_SECONDS:
             recent.popleft()
         if len(recent) >= ASK_RATE_LIMIT:
+            _metric("ask_rate_limited")
+            _log_event(
+                "rate_limited",
+                route="ask",
+                client_fp=device_audio.client_fingerprint(remote_addr),
+            )
             return False
         recent.append(now)
+        _metric("ask_requests")
         return True
 
 
-def _allow_speech(remote_addr: str) -> bool:
+def _allow_speech(remote_addr: str, route: str = "speech") -> bool:
     now = time.monotonic()
     with SPEECH_RATE_LOCK:
         recent = SPEECH_RATE[remote_addr]
         while recent and now - recent[0] >= SPEECH_RATE_WINDOW_SECONDS:
             recent.popleft()
         if len(recent) >= SPEECH_RATE_LIMIT:
+            _metric("speech_rate_limited")
+            _log_event(
+                "rate_limited",
+                route=route,
+                client_fp=device_audio.client_fingerprint(remote_addr),
+            )
             return False
         recent.append(now)
+        _metric("speech_requests")
         return True
 
 
@@ -385,6 +489,8 @@ def speak_answer(reply: str, language: str) -> str | None:
     if not text:
         return None
     audio = AUDIO_DIR / f"a-{uuid.uuid4().hex[:8]}.wav"
+    _metric("tts_calls")
+    _metric("tts_chars", len(text))
     get_client().speak(text, language=selected_language, voice=_tts_voice(selected_language),
                        sample_rate=16000, out_path=audio)
     return f"/audio/{audio.name}"
@@ -409,12 +515,15 @@ def answer(question: str, language: str = "te-IN") -> dict:
     source = "gemini"
     fallback = False
     try:
+        _metric("gemini_calls")
         reply = gemini_ask(
             question, selected_language, context,
             model=app.config["GEMINI_MODEL"], timeout=gemini.REQUEST_TIMEOUT_SECONDS,
         )
     except Exception as exc:
         # Provider failures must not turn an answer into a traceback or 5xx.
+        _metric("gemini_failures")
+        _log_event("provider_failure", provider="gemini", op="ask")
         app.logger.warning("[nova] Gemini query failed (%s: %s). Using fallback.", type(exc).__name__, exc)
         reply = _local_fallback(matches, selected_language)
         source = "hospital_faq" if matches else "fallback"
@@ -428,6 +537,8 @@ def answer(question: str, language: str = "te-IN") -> dict:
         audio_url = speak_answer(reply, selected_language)
     except (GnaniError, ValueError, OSError) as exc:
         # Do not hide it: the screen offers a retry and says the language.
+        _metric("tts_failures")
+        _log_event("provider_failure", provider="gnani", op="tts")
         audio_error = str(exc) or "Voice synthesis failed."
     timings["speak_ms"] = int((time.time() - started) * 1000)
 
@@ -480,7 +591,10 @@ def _speech_file(text: str, language: str, prefix: str) -> Path:
     digest = hashlib.sha256(f"{language}\0{text}".encode("utf-8")).hexdigest()[:20]
     out = ALERT_AUDIO_DIR / f"{prefix}-{digest}.wav"
     if out.is_file() and out.stat().st_size > 0:
+        _metric("tts_cache_hits")
         return out
+    _metric("tts_calls")
+    _metric("tts_chars", len(text))
     get_client().speak(
         text, language=language, voice=_tts_voice(language),
         sample_rate=16000, out_path=out,
@@ -497,6 +611,8 @@ def _speech_response(data: dict, prefix: str):
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     except (GnaniError, OSError):
+        _metric("tts_failures")
+        _log_event("provider_failure", provider="gnani", op="tts")
         return jsonify({"error": "Voice synthesis failed."}), 502
     response = send_from_directory(ALERT_AUDIO_DIR, out.name, mimetype="audio/wav")
     # Generated speech can contain a token, room or address. Keep it out of the
@@ -507,8 +623,8 @@ def _speech_response(data: dict, prefix: str):
 
 @app.get("/")
 def index():
-    """The PWA starts at /app/; keep a single canonical entry point."""
-    return redirect("/app/", code=302)
+    """Serve the marketing landing page; the PWA itself starts at /app/."""
+    return send_from_directory(ROOT, "landing.html")
 
 
 @app.get("/audio/<path:name>")
@@ -541,7 +657,9 @@ def tts():
     The confirmation screen calls this when an alert was not pre-synthesised.
     An unsupported language is a clear 400, never a silent English fallback.
     """
-    if not _allow_speech(request.remote_addr or "unknown"):
+    if not _same_origin_request():
+        return _reject_cross_site("tts")
+    if not _allow_speech(request.remote_addr or "unknown", "tts"):
         return jsonify({"error": "too many speech requests; please wait a minute"}), 429
     body = request.get_json(silent=True)
     if not isinstance(body, dict):
@@ -557,7 +675,9 @@ def api_replay():
     the stored text keeps replays working after a restart, and the hash cache
     means the same line is only paid for once.
     """
-    if not _allow_speech(request.remote_addr or "unknown"):
+    if not _same_origin_request():
+        return _reject_cross_site("replay")
+    if not _allow_speech(request.remote_addr or "unknown", "replay"):
         return jsonify({"error": "too many speech requests; please wait a minute"}), 429
     data = dict(request.args)
     body = request.get_json(silent=True)
@@ -570,6 +690,8 @@ def api_replay():
 
 @app.post("/api/ask")
 def api_ask():
+    if not _same_origin_request():
+        return _reject_cross_site("ask")
     body = request.get_json(silent=True)
     if not isinstance(body, dict):
         return jsonify({"error": "invalid request"}), 400
@@ -625,6 +747,8 @@ def api_ask():
 def api_listen():
     if not app.config["SERVER_MIC_ENABLED"]:
         abort(404)
+    if not _same_origin_request():
+        return _reject_cross_site("listen")
     body = request.get_json(silent=True)
     if not isinstance(body, dict):
         return jsonify({"error": "invalid request"}), 400
@@ -783,12 +907,16 @@ def _synthesize_alert(alert_text: str, language: str) -> str | None:
         raise ValueError(f"No voice is configured for {language!r}.")
     try:
         out_path = ALERT_AUDIO_DIR / f"alert-{int(time.time())}-{uuid.uuid4().hex[:20]}.wav"
+        _metric("tts_calls")
+        _metric("tts_chars", len(alert_text))
         get_client().speak(
             alert_text, language=language,
             voice=_tts_voice(language), out_path=out_path,
         )
         return out_path.name
     except (GnaniError, ValueError, OSError):
+        _metric("tts_failures")
+        _log_event("provider_failure", provider="gnani", op="tts_alert")
         return None
 
 
@@ -1175,15 +1303,26 @@ def _client_ip() -> str:
     return str(request.remote_addr or "")
 
 
-def _device_rate_ok(ip: str) -> bool:
+def _client_fp() -> str:
+    return device_audio.client_fingerprint(_client_ip())
+
+
+def _device_rate_ok(ip: str, route: str = "device") -> bool:
     now = time.time()
     with DEVICE_RATE_LOCK:
         bucket = DEVICE_RATE[ip]
         while bucket and now - bucket[0] >= DEVICE_RATE_WINDOW_SECONDS:
             bucket.popleft()
         if len(bucket) >= DEVICE_RATE_LIMIT:
+            _metric("device_rate_limited")
+            _log_event(
+                "rate_limited",
+                route=route,
+                client_fp=device_audio.client_fingerprint(ip),
+            )
             return False
         bucket.append(now)
+        _metric("device_requests")
         if len(DEVICE_RATE) > 1000:
             stale = [
                 key for key, values in DEVICE_RATE.items()
@@ -1219,6 +1358,7 @@ def _finalize_device_record(record: dict) -> dict:
     """Attach a unique id and synthesized audio to a real detection."""
     if record.get("verdict") not in ("mine", "missing") or record.get("duplicate"):
         return record
+    record.pop("transcript", None)
     spoken = record.get("spoken") or ""
     language = record.get("lang") or record.get("language") or "en-IN"
     record["id"] = _new_alert_id()
@@ -1336,6 +1476,8 @@ def api_device_capabilities():
 def api_device_session():
     if not app.config["DEVICE_MIC_ENABLED"]:
         abort(404)
+    if not _same_origin_request():
+        return _reject_cross_site("device_session")
     body = request.get_json(silent=True)
     if not isinstance(body, dict):
         return jsonify({"error": "invalid request"}), 400
@@ -1348,7 +1490,7 @@ def api_device_session():
     if not isinstance(language, str):
         return jsonify({"error": "language must be text"}), 400
 
-    if not _device_rate_ok(_client_ip()):
+    if not _device_rate_ok(_client_ip(), "device_session"):
         return jsonify({"error": "too many listening requests; wait a minute"}), 429
 
     # Pre-flight check: verify Gnani client BEFORE creating session
@@ -1389,6 +1531,8 @@ def api_device_session():
 def api_device_chunk():
     if not app.config["DEVICE_MIC_ENABLED"]:
         abort(404)
+    if not _same_origin_request():
+        return _reject_cross_site("device_chunk")
     session_id = (
         request.form.get("session_id")
         or request.headers.get("X-Seva-Session")
@@ -1404,7 +1548,7 @@ def api_device_chunk():
     if len(data) > device_audio.MAX_CHUNK_BYTES:
         return jsonify({"error": "audio chunk is too large"}), 413
 
-    if not _device_rate_ok(_client_ip()):
+    if not _device_rate_ok(_client_ip(), "device_chunk"):
         return jsonify({"error": "too many audio chunks; wait a minute"}), 429
 
     lookup = device_audio.lookup_session(
@@ -1414,6 +1558,7 @@ def api_device_chunk():
     )
     session = lookup.session
     if session is None:
+        _metric("session_expired")
         return jsonify({
             "error": "listening session expired",
             "code": "session_expired",
@@ -1433,6 +1578,8 @@ def api_device_chunk():
     except device_audio.DeviceAudioError as exc:
         return jsonify({"error": str(exc)}), 400
     except GnaniError as exc:
+        _metric("stt_failures")
+        _log_event("provider_failure", provider="gnani", op="stt")
         app.logger.warning("Device STT failed (%s)", type(exc).__name__)
         return jsonify({
             "error": "The speech service could not understand this audio chunk. "
@@ -1447,6 +1594,8 @@ def api_device_chunk():
             "code": "audio_error",
         }), 500
 
+    _metric("stt_calls")
+    _metric("stt_seconds", int(round(result.get("seconds") or 0)))
     transcript = (result.get("transcript") or "").strip()
     if not transcript:
         return jsonify({
@@ -1482,7 +1631,13 @@ def api_device_chunk():
 def api_device_state():
     if not app.config["DEVICE_MIC_ENABLED"]:
         abort(404)
-    session_id = (request.args.get("session_id") or "").strip()
+    if not _same_origin_request():
+        return _reject_cross_site("device_state")
+    session_id = (
+        request.headers.get("X-Seva-Session")
+        or request.args.get("session_id")
+        or ""
+    ).strip()
     lookup = device_audio.lookup_session(
         session_id,
         client_ip=_client_ip(),
@@ -1490,6 +1645,7 @@ def api_device_state():
     )
     session = lookup.session
     if session is None:
+        _metric("session_expired")
         return jsonify({
             "error": "listening session expired",
             "code": "session_expired",
@@ -1513,6 +1669,8 @@ def api_device_state():
 def api_device_stop():
     if not app.config["DEVICE_MIC_ENABLED"]:
         abort(404)
+    if not _same_origin_request():
+        return _reject_cross_site("device_stop")
     body = request.get_json(silent=True)
     session_id = ""
     if isinstance(body, dict):
@@ -1527,6 +1685,8 @@ def api_device_stop():
 def api_watch_start():
     if not app.config["SERVER_MIC_ENABLED"]:
         abort(404)
+    if not _same_origin_request():
+        return _reject_cross_site("watch_start")
     body = request.get_json(silent=True)
     if not isinstance(body, dict):
         return jsonify({"error": "invalid request"}), 400

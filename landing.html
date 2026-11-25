@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Seva — Hear what matters</title>
+<meta name="description" content="Your personal announcement assistant for hospitals, railway stations and bus stands.">
+<style>
+:root{
+  /* brand */
+  --primary:#6C3D95;
+  --primary-light:#A78BFA;
+  --accent:#3B82F6;
+  --ink:#16215A;
+
+  /* surfaces */
+  --bg:#F8FAFF;
+  --surface:#FFFFFF;
+
+  /* text */
+  --text:#1F2937;
+  --muted:#5A6B86;
+
+  /* button gradient */
+  --cta-from:#2563EB;
+  --cta-to:#7C3AED;
+
+  /* type */
+  --f-sans:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",sans-serif;
+  --f-telugu:"Noto Sans Telugu","Nirmala UI","Gautami",sans-serif;
+
+  /* spacing */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px;
+
+  /* radius */
+  --r-pill:28px;
+
+  --tap:56px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+html,body{height:100%}
+
+body{
+  font-family:var(--f-sans);
+  color:var(--text);
+  background:#FBF8FF;
+  -webkit-font-smoothing:antialiased;
+}
+
+.screen{
+  position:relative;
+  min-height:100svh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  background:
+    /* clean white at the bottom so the text and button stay crisp */
+    linear-gradient(180deg,
+      rgba(255,255,255,0)   0%,
+      rgba(255,255,255,.55) 46%,
+      #FFFFFF               72%),
+    /* soft aurora wash at the top */
+    linear-gradient(170deg,#EDE8FC 0%,#E6EEFE 42%,#FBF8FF 78%);
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+
+/* ─── drifting aurora blobs ──────────────────────────── */
+.blob{
+  position:absolute;
+  border-radius:50%;
+  filter:blur(58px);
+  opacity:.5;
+  pointer-events:none;
+  z-index:0;
+}
+.blob.b1{width:300px;height:300px;top:-70px;left:-90px;background:#B9A6F7;animation:drift1 22s ease-in-out infinite}
+.blob.b2{width:260px;height:260px;top:30px;right:-90px;background:#8EC5FF;animation:drift2 26s ease-in-out infinite}
+.blob.b3{width:220px;height:220px;top:240px;left:40px;background:#F3B8E4;opacity:.32;animation:drift1 30s ease-in-out infinite reverse}
+@keyframes drift1{0%,100%{transform:translate(0,0)}50%{transform:translate(26px,30px)}}
+@keyframes drift2{0%,100%{transform:translate(0,0)}50%{transform:translate(-28px,22px)}}
+
+/* ── the screen glint ──────────────────────────────────
+   A narrow bright core crossing the whole screen, masked
+   so it fades before it reaches the text and the button. */
+.glint{
+  position:absolute;
+  top:-12%; left:0;
+  width:34%; height:124%;
+  z-index:4;
+  pointer-events:none;
+  background:linear-gradient(100deg,
+    rgba(255,255,255,0)    0%,
+    rgba(255,255,255,.10) 28%,
+    rgba(255,255,255,.34) 42%,
+    rgba(255,255,255,.72) 49%,
+    rgba(255,255,255,.94) 50.5%,
+    rgba(255,255,255,.72) 52%,
+    rgba(255,255,255,.34) 59%,
+    rgba(255,255,255,.10) 73%,
+    rgba(255,255,255,0)  100%);
+  -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 44%,rgba(0,0,0,.45) 60%,transparent 74%);
+          mask-image:linear-gradient(180deg,#000 0%,#000 44%,rgba(0,0,0,.45) 60%,transparent 74%);
+  animation:screenSweep 12s cubic-bezier(.42,.02,.28,1) infinite;
+}
+@keyframes screenSweep{
+  0%{transform:translateX(-120%)}
+  55%,100%{transform:translateX(420%)}
+}
+
+/* ─── stage ─── */
+.stage{
+  position:relative;
+  z-index:5;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:40px 26px 0;
+}
+
+.logo{
+  width:122px;height:102px;
+  animation:bob 5.5s ease-in-out infinite;
+}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+
+.wordmark{
+  font-size:46px;
+  font-weight:800;
+  letter-spacing:-1.4px;
+  line-height:1;
+  color:var(--ink);
+  margin-top:var(--s6);
+}
+
+.telugu{
+  font-family:var(--f-telugu);
+  font-size:27px;
+  font-weight:600;
+  line-height:1.4;              /* Telugu glyphs are tall — never below 1.4 */
+  color:var(--primary);
+  margin-top:var(--s1);
+}
+
+.tagline{
+  font-size:23px;
+  font-weight:700;
+  line-height:1.35;
+  color:var(--text);
+  margin-top:var(--s8);
+}
+
+.blurb{
+  font-size:16.5px;
+  line-height:1.55;
+  color:var(--muted);
+  margin-top:var(--s3);
+  max-width:19em;
+  text-wrap:balance;
+}
+
+/* ─── footer / button ─── */
+.footer{
+  position:relative;
+  z-index:5;
+  padding:0 26px 38px;
+  width:100%;
+  max-width:420px;
+  margin:0 auto;
+}
+
+.cta{
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  width:100%;
+  min-height:var(--tap);
+  border:0;
+  border-radius:var(--r-pill);
+  background:linear-gradient(95deg,var(--cta-from),var(--cta-to));
+  color:#fff;
+  font-family:inherit;
+  font-size:17px;
+  font-weight:650;
+  text-decoration:none;
+  cursor:pointer;
+  box-shadow:0 8px 22px rgba(60,40,140,.26);
+  transition:transform .14s ease, box-shadow .14s ease, filter .14s ease;
+}
+.cta:hover{filter:brightness(1.06)}
+.cta:active{transform:translateY(2px) scale(.985);box-shadow:0 4px 12px rgba(60,40,140,.3)}
+.cta:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
+
+/* ── the shine: a white band tilted 18 degrees ── */
+.cta::after{
+  content:"";
+  position:absolute;
+  top:-20%; bottom:-20%;
+  left:-65%; width:46%;
+  z-index:1;
+  pointer-events:none;
+  transform:skewX(-18deg);
+  background:linear-gradient(100deg,
+    rgba(255,255,255,0)    0%,
+    rgba(255,255,255,.10) 30%,
+    rgba(255,255,255,.72) 50%,
+    rgba(255,255,255,.10) 70%,
+    rgba(255,255,255,0)  100%);
+  animation:sheen 6s cubic-bezier(.42,.02,.28,1) infinite;
+}
+@keyframes sheen{
+  0%{left:-65%}
+  48%,100%{left:125%}
+}
+
+.cta-label{position:relative;z-index:2}
+.cta svg{position:relative;z-index:2}
+
+.subnote{
+  margin-top:14px;
+  text-align:center;
+  font-size:13.5px;
+  color:var(--muted);
+}
+
+/* ─── gentle entrance ─── */
+.fade{opacity:0;transform:translateY(10px);animation:rise .62s cubic-bezier(.22,.7,.3,1) forwards}
+.d1{animation-delay:.05s} .d2{animation-delay:.20s} .d3{animation-delay:.34s}
+.d4{animation-delay:.46s} .d5{animation-delay:.60s}
+@keyframes rise{to{opacity:1;transform:translateY(0)}}
+
+@media (prefers-reduced-motion:reduce){
+  .fade,.logo,.glint,.cta::after,.blob{animation:none}
+  .fade{opacity:1;transform:none}
+}
+
+@media (max-height:620px){
+  .logo{width:92px;height:77px}
+  .wordmark{font-size:38px;margin-top:var(--s4)}
+  .telugu{font-size:23px}
+  .tagline{font-size:20px;margin-top:var(--s6)}
+  .blurb{font-size:15.5px}
+}
+</style>
+</head>
+<body>
+
+<main class="screen" id="screen">
+
+  <span class="blob b1"></span>
+  <span class="blob b2"></span>
+  <span class="blob b3"></span>
+  <span class="glint"></span>
+
+  <div class="stage">
+
+    <!-- logo: a person with sound reaching them from both sides -->
+    <svg class="logo fade d1" viewBox="0 0 124 104" role="img"
+         aria-label="Seva logo: a person with sound waves reaching them">
+      <path d="M40 34 A 26 26 0 0 0 40 74" stroke="#22C1EE" stroke-width="7.5"
+            fill="none" stroke-linecap="round"/>
+      <path d="M28 24 A 40 40 0 0 0 28 84" stroke="#3B82F6" stroke-width="7.5"
+            fill="none" stroke-linecap="round"/>
+      <path d="M84 34 A 26 26 0 0 1 84 74" stroke="#A855F7" stroke-width="7.5"
+            fill="none" stroke-linecap="round"/>
+      <path d="M96 24 A 40 40 0 0 1 96 84" stroke="#D946EF" stroke-width="7.5"
+            fill="none" stroke-linecap="round"/>
+      <circle cx="62" cy="28" r="12.5" fill="#2563EB"/>
+      <circle cx="62" cy="25" r="4.6"  fill="#fff"/>
+      <path d="M47 50 Q47 44 53 44 L71 44 Q77 44 77 50 L77 82 Q77 88 71 88
+               L53 88 Q47 88 47 82 Z" fill="#2563EB"/>
+    </svg>
+
+    <h1 class="wordmark fade d2">Seva</h1>
+    <p  class="telugu   fade d2">సేవ</p>
+
+    <p class="tagline fade d3">Hear what matters.</p>
+    <p class="blurb   fade d4">
+      Your personal announcement assistant for hospitals,
+      railway stations and bus stands.
+    </p>
+  </div>
+
+  <div class="footer">
+    <a class="cta fade d5" href="/app/">
+      <span class="cta-label">Get started</span>
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5 12h13M13 6l6 6-6 6"/>
+      </svg>
+    </a>
+    <p class="subnote fade d5">No install. No account. Works in your phone browser.</p>
+  </div>
+
+</main>
+
+</body>
+</html>
