@@ -55,6 +55,7 @@ _ROOM_WORD_PATTERN = "|".join(
 _UNMARKED_LETTER_TOKEN_RE = re.compile(
     rf"^([a-z])\s+(\d+)(?:\s+(?:{_ROOM_WORD_PATTERN})\s+(\d+))?$"
 )
+_LEADING_NUMBER_CUE_RE = re.compile(r"^number\s+")
 
 
 # --------------------------------------------------------------------------
@@ -178,13 +179,16 @@ def match_hospital(transcript: str, my_value: str | int) -> dict:
     announcements = find_tokens(transcript)
     if not announcements:
         normalized = normalize_text(transcript).strip()
-        unmarked = _UNMARKED_LETTER_TOKEN_RE.fullmatch(normalized)
-        if unmarked:
-            letter, number, room = unmarked.groups()
-            announcements = [{
-                "token": f"{letter.upper()}-{number}",
-                "room": room,
-            }]
+        if _LEADING_NUMBER_CUE_RE.match(normalized):
+            announcements = find_tokens(f"token {normalized}")
+        if not announcements:
+            unmarked = _UNMARKED_LETTER_TOKEN_RE.fullmatch(normalized)
+            if unmarked:
+                letter, number, room = unmarked.groups()
+                announcements = [{
+                    "token": f"{letter.upper()}-{number}",
+                    "room": room,
+                }]
 
     if not announcements:
         return {
